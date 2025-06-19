@@ -1,0 +1,10 @@
+services:
+  # crontab running certbot renew every 3 AM daily
+  # crontab -e
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email 2301913@sit.singaporetech.edu.sg -d latergram.xyz --agree-tos 

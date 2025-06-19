@@ -1,0 +1,17 @@
+
+services:
+  snort:
+    image: snort3-jq
+    container_name: snort3
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - SPLUNK_HEC_URL="https://10.3.2.19:8088/services/collector"
+      - SPLUNK_HEC_TOKEN="cb496723-665e-4eeb-9fe5-4362494feaea"
+    volumes:
+      - ./snort3:/etc/snort
+      - ./snort3-log:/root
+    command: bash -c "snort -i enX0 --daq-dir /usr/lib/daq -c /etc/snort/snort.lua --lua 'alert_json = {file = true}' -A alert_json & /root/snort3-forwarder.sh"
+    restart: unless-stopped

@@ -1,0 +1,31 @@
+
+# SNORT
+snort3-log/
+snort3/
+
+# DOCKER VOLUMES/RUNTIME DATA
+certbot/
+mysql-data/
+splunk/splunk-data/
+splunk/splunk-etc/
+
+# PYTHON
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+
+# LOGS AND TEMPS
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# IGNORE IDE/EDITOR CONFIGS
+.vscode/
+.idea/
+
+# IGNORE SECRETS
+*.env
+*.secret

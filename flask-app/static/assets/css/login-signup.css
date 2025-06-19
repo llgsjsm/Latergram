@@ -1,0 +1,78 @@
+body {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo {
+    color: var(--color-white);
+    font-family: Arial, sans-serif;
+    font-size: 40px;
+    font-weight: regular;
+}
+
+.logo .beau {
+    font-family: "Beau Rivage", cursive;
+}
+
+.form-control,
+#password-input-group {
+    background-color: transparent;
+    border: 1px solid #495074;
+    color: #fff;
+    border-radius: 8px;
+    height: 48px;
+}
+
+.form-control::placeholder {
+    color: #666;
+}
+
+.form-control:focus,
+#password-input-group:focus-within {
+    color: var(--color-white);
+    background-color: transparent;
+    border-color: var(--color-primary);
+    box-shadow: none;
+}
+
+#password {
+    border: none;
+}
+
+.btn {
+    height: 48px;
+}
+
+.btn-login {
+    background-color: var(--color-primary);
+    color: #fff;
+    border-radius: 10px;
+}
+
+.btn-login:hover,
+.btn-login:focus {
+    background-color: #4c64d9;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.input-group-text {
+    background: transparent;
+    border: none;
+    color: #999;
+}
+
+.form-container {
+    max-width: 400px;
+    margin: 40px auto;
+}

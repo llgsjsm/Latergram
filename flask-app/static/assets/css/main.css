@@ -1,0 +1,73 @@
+:root {
+    --color-white: #ffffff;
+    --color-bg: #10121D;
+    --color-navbg: #202332;
+    --color-primary: #5F77F8;
+    --color-input: #1a1c2c;
+}
+
+body,
+html {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    color: var(--color-white);
+    background-color: var(--color-bg);
+}
+
+#main-nav {
+    background-color: var(--color-navbg) !important;
+    width: 250px !important;
+    height: 100vh !important;
+}
+
+.navbar-brand {
+    color: var(--color-white);
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    font-weight: regular;
+}
+
+.navbar-brand .beau {
+    font-family: "Beau Rivage", cursive;
+}
+
+.nav-item {
+    margin: 12px 0;
+}
+
+.nav-link {
+    height: 48px;
+    display: flex;
+    align-items: center;
+}
+
+.nav-link,
+.nav-link:hover,
+.nav-link:focus {
+    color: var(--color-white) !important;
+}
+
+.nav-link:hover {
+    color: #d2d3d6 !important;
+    background-color: #161923;
+}
+
+.nav-link i {
+    font-size: 24px;
+    height: 24px;
+    width: 24px !important;
+    margin-right: 16px;
+    vertical-align: middle;
+}
+
+.nav-link.active {
+    background-color: inherit !important;
+    color: var(--color-primary) !important;
+    font-weight: 600;
+}
+
+#logout-btn {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
