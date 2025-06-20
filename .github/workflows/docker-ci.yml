@@ -27,7 +27,7 @@ jobs:
 
     - name: Test Flask via NGINX
       run: |
-        curl -s --fail http://localhost:8080 || (echo "Flask app failed!" && exit 1)
+        curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
 
     - name: Teardown
       if: always()
