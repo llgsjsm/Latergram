@@ -43,9 +43,9 @@ jobs:
 
     - name: Build Snort3 Container (without host network)
       run: |
-        docker-compose -f snort-compose.yml config > temp.yml
+        docker compose -f snort-compose.yml config > temp.yml
         sed -i '/network_mode/d' temp.yml  # Remove host networking for CI
-        docker-compose -f temp.yml up -d --build
+        docker compose -f temp.yml up -d --build
 
     - name: Check Snort3 is Running
       run: docker ps | grep snort3 || (echo "Snort3 failed to run" && exit 1)
