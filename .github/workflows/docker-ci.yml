@@ -1,4 +1,4 @@
-name: CI: Docker + Snort3
+name: Docker + Snort3
 
 on:
   push:
