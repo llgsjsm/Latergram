@@ -10,7 +10,7 @@ services:
     image: python:3.8-slim
     working_dir: /app
     volumes:
-      - ./flask-app:/app
+      - ./app-server:/app
     command: sh -c "pip install -r requirements.txt && python app.py"
     networks:
       laternet:
@@ -21,10 +21,12 @@ services:
     image: nginx
     restart: unless-stopped
     ports:
-      - "80:80"   # certbot
-      - "443:443" # ssl
+      - "80:80"   # Certbot
+      - "443:443" # SSL
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./reverse-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      # For CI - Need not push certbot
+      # For CD - Include the certbot for SSL implementation
       # - ./certbot/conf:/etc/letsencrypt
       # - ./certbot/www:/var/www/certbot
     networks:
@@ -58,6 +60,8 @@ services:
       - "8088:8088"   # HEC
       - "9997:9997"   # UF forwarder
       - "514:514/udp" # Syslog
+    # For CI - Need not include volume mount
+    # For CD - Inlcude the volumes to ensure persistence
     # volumes:
     #   - ./splunk/splunk-data:/opt/splunk/var
     #   - ./splunk/splunk-etc:/opt/splunk/etc
@@ -65,7 +69,6 @@ services:
     networks:
       laternet:
         ipv4_address: 10.20.0.100
-
 
 networks:
   laternet:
