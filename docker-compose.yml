@@ -37,8 +37,10 @@ services:
     container_name: mysqldb
     image: mysql:8.0
     restart: always
-    volumes:
-      - ./mysql-data:/var/lib/mysql
+    # For CI - Don't need persistent volume
+    # For CD - 
+    # volumes:
+    #   - ./mysql-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: laterdb
