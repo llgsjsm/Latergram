@@ -52,4 +52,4 @@ jobs:
 
     - name: Teardown Snort3
       if: always()
-      run: docker-compose -f temp.yml down -v
+      run: docker compose -f temp.yml down -v
