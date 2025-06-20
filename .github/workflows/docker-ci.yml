@@ -6,32 +6,32 @@ on:
   pull_request:
 
 jobs:
-  # main-stack:
-  #   name: Test Main Stack
-  #   runs-on: ubuntu-latest
+  main-stack:
+    name: Test Main Stack
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #   - name: Checkout Repo
-  #     uses: actions/checkout@v3
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
 
-  #   - name: Install Docker Compose
-  #     run: |
-  #       sudo apt-get update
-  #       sudo apt-get install -y docker-compose
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
 
-  #   - name: Build and Run Main Stack
-  #     run: docker-compose -f docker-compose.yml up -d --build
+    - name: Build and Run Main Stack
+      run: docker-compose -f docker-compose.yml up -d --build
 
-  #   - name: Wait for Services to be Ready
-  #     run: sleep 20
+    - name: Wait for Services to be Ready
+      run: sleep 20
 
-  #   - name: Test Flask via NGINX
-  #     run: |
-  #       curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
+    - name: Test Flask via NGINX
+      run: |
+        curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
 
-  #   - name: Teardown
-  #     if: always()
-  #     run: docker-compose -f docker-compose.yml down -v
+    - name: Teardown
+      if: always()
+      run: docker-compose -f docker-compose.yml down -v
 
   snort3-test:
     name: Snort3 Smoke Test
