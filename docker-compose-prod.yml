@@ -1,0 +1,77 @@
+# Admin notes:
+# 1 networks (IPv4) not required, but implemented for future use, docker can reference by their service names or IP
+# 2. Always run docker in root mode
+# 3. Idling command to keep the container running
+#    command: tail -f /dev/null
+
+services:
+  flask:
+    container_name: flask
+    image: python:3.8-slim
+    working_dir: /app
+    volumes:
+      - ./app-server:/app
+    command: sh -c "pip install -r requirements.txt && python app.py"
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.2
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"   # Certbot
+      - "443:443" # SSL
+    volumes:
+      - ./reverse-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.3
+
+  mysqldb:
+    container_name: mysqldb
+    image: mysql:8.0
+    restart: always
+    # For CI - Don't need persistent volume
+    # For CD - 
+    # volumes:
+    #   - ./mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: laterdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.4
+
+  splunk:
+    image: splunk/splunk
+    container_name: splunk
+    environment:
+      - SPLUNK_START_ARGS=${SPLUNK_START_ARGS}
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
+      - OPTIMISTIC_ABOUT_FILE_LOCKING=1
+    ports:
+      - "8888:8000"   # Splunk Web
+      - "8088:8088"   # HEC
+      - "9997:9997"   # UF forwarder
+      - "514:514/udp" # Syslog
+    volumes:
+      - ./splunk/splunk-data:/opt/splunk/var
+      - ./splunk/splunk-etc:/opt/splunk/etc
+    restart: unless-stopped
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.100
+
+networks:
+  laternet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.0.0/16
+          gateway: 10.20.0.1
