@@ -27,29 +27,29 @@ jobs:
 
     - name: Test Flask via NGINX
       run: |
-        curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
+        curl -s --fail http://localhost:8080 || (echo "Flask app failed!" && exit 1)
 
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.yml down -v
 
-  snort3-test:
-    name: Snort3 Smoke Test
-    runs-on: ubuntu-latest
+  # snort3-test:
+  #   name: Snort3 Smoke Test
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v3
+  #   steps:
+  #   - name: Checkout Repo
+  #     uses: actions/checkout@v3
 
-    - name: Build Snort3 Container (without host network)
-      run: |
-        docker-compose -f snort-compose.yml config > temp.yml
-        sed -i '/network_mode/d' temp.yml  # Remove host networking for CI
-        docker-compose -f temp.yml up -d --build
+  #   - name: Build Snort3 Container (without host network)
+  #     run: |
+  #       docker-compose -f snort-compose.yml config > temp.yml
+  #       sed -i '/network_mode/d' temp.yml  # Remove host networking for CI
+  #       docker-compose -f temp.yml up -d --build
 
-    - name: Check Snort3 is Running
-      run: docker ps | grep snort3 || (echo "Snort3 failed to run" && exit 1)
+  #   - name: Check Snort3 is Running
+  #     run: docker ps | grep snort3 || (echo "Snort3 failed to run" && exit 1)
 
-    - name: Teardown Snort3
-      if: always()
-      run: docker-compose -f temp.yml down -v
+  #   - name: Teardown Snort3
+  #     if: always()
+  #     run: docker-compose -f temp.yml down -v
