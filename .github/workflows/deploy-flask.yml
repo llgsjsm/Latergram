@@ -41,6 +41,7 @@ jobs:
         script: |
           cd /home/admin-dev/latergram
           echo "Rebuilding and restarting Flask container..."
+          sudo docker compose -f docker-compose.prod.yml stop flask
           sudo docker compose -f docker-compose.prod.yml up -d --build flask
       # run: |
       #   ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} << 'EOF'
