@@ -1,5 +1,5 @@
 # Latergram
-![img](latergom.jpg)<br>
+![img](latergom.png)<br>
 Real instagram, better and secure
 
 ### Information
