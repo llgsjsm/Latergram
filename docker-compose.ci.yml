@@ -1,8 +1,3 @@
-# Admin notes:
-# 1 networks (IPv4) not required, but implemented for future use, docker can reference by their service names or IP
-# 2. Always run docker in root mode
-# 3. Idling command to keep the container running
-#    command: tail -f /dev/null
 
 services:
   flask:
