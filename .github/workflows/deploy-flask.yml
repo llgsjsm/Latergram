@@ -23,18 +23,18 @@ jobs:
 
     - name: Test SSH Connection to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
+        ssh -o StrictHostKeyChecking=no student9@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
 
 
     - name: Sync Only Flask App Files to EC2
       run: |
         rsync -az --delete \
           -e "ssh -o StrictHostKeyChecking=no" \
-          ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
+          ./app-server/ student9@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
 
     - name: Rebuild Flask Service on EC2
       run: |
-        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no student9@${{ secrets.EC2_HOST }} << 'EOF'
           cd /home/admin-dev/latergram
 
           echo "Rebuilding and restarting Flask container..."
