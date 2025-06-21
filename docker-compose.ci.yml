@@ -1,4 +1,4 @@
-
+# CI override for Docker Compose
 services:
   flask:
     container_name: flask
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"   # Certbot
-      - "443:443" # SSL
+      # - "443:443" # SSL
     volumes:
       - ./reverse-proxy/nginx-ci.conf:/etc/nginx/nginx.conf:ro
       # For CI - Need not push certbot
