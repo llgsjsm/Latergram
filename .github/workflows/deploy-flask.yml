@@ -33,10 +33,19 @@ jobs:
           ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
 
     - name: Rebuild Flask Service on EC2
-      run: |
-        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} << 'EOF'
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: admin-dev
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
           cd /home/admin-dev/latergram
-
           echo "Rebuilding and restarting Flask container..."
           sudo docker compose -f docker-compose.prod.yml up -d --build flask
-        EOF
+      # run: |
+      #   ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} << 'EOF'
+      #     cd /home/admin-dev/latergram
+
+      #     echo "Rebuilding and restarting Flask container..."
+      #     sudo docker compose -f docker-compose.prod.yml up -d --build flask
+      #   EOF
