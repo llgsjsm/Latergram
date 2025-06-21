@@ -30,7 +30,7 @@ jobs:
       run: |
         rsync -az --delete \
           -e "ssh -o StrictHostKeyChecking=no" \
-          ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
+          ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/app-server/
 
     - name: Rebuild Flask Service on EC2
       uses: appleboy/ssh-action@v0.1.7
