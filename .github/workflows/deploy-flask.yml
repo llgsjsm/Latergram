@@ -19,18 +19,18 @@ jobs:
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.7.0
       with:
-        ssh-private-key: ${{ secrets.EC2_STU9_KEY }}
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
     - name: Test SSH Connection to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no student9@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
+        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
 
 
     - name: Sync Only Flask App Files to EC2
       run: |
-        rsync -az --delete \
+        sudo rsync -az --delete \
           -e "ssh -o StrictHostKeyChecking=no" \
-          ./app-server/ student9@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
+          ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
 
     - name: Rebuild Flask Service on EC2
       run: |
