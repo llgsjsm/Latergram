@@ -26,11 +26,11 @@ jobs:
         ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
 
 
-    # - name: Sync Only Flask App Files to EC2
-    #   run: |
-    #     rsync -az --delete \
-    #       -e "ssh -o StrictHostKeyChecking=no" \
-    #       ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/flask-app/
+    - name: Sync Only Flask App Files to EC2
+      run: |
+        rsync -az --delete \
+          -e "ssh -o StrictHostKeyChecking=no" \
+          ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/flask-app/
 
     # - name: Rebuild Flask Service on EC2
     #   run: |
