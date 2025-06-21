@@ -28,7 +28,7 @@ jobs:
 
     - name: Sync Only Flask App Files to EC2
       run: |
-        sudo rsync -az --delete \
+        rsync -az --delete \
           -e "ssh -o StrictHostKeyChecking=no" \
           ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/flask-app/
 
