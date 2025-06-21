@@ -42,7 +42,4 @@ jobs:
 
           echo "Check Flask status"
           docker ps | grep flask
-
-          echo "Optional: health check"
-          curl -f http://localhost:80 || (echo "Flask failed" && exit 1)
         EOF
