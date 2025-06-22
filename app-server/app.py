@@ -1,8 +1,33 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import requests
 import json
+import os
+from dotenv import load_dotenv  # Add this import
+from models import db
+from managers import AuthenticationManager, FeedManager
+from managers.authentication_manager import bcrypt
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(24)
+
+# MySQL Database Configuration
+DB_USER = os.environ.get('DB_USER', '') 
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
+DB_HOST = os.environ.get('DB_HOST', '')
+DB_PORT = os.environ.get('DB_PORT', '')
+DB_NAME = os.environ.get('DB_NAME', '')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+bcrypt.init_app(app)
+
+auth_manager = AuthenticationManager()
+feed_manager = FeedManager()
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
@@ -46,12 +71,60 @@ def log_to_splunk(event_data):
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
-    return render_template('home.html')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    posts = feed_manager.generate_feed(session['user_id'])
+    return render_template('home.html', posts=posts)
 
 @app.route('/')
 def hello_world():
     # log_to_splunk("Visited /")
-    return 'Hello, World!'
+    return redirect(url_for('home'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        result = auth_manager.login(email, password)
+        if result['success']:
+            session['user_id'] = result['user']['user_id']
+            flash('Login successful!', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash(f'Login Unsuccessful. {result["error"]}', 'danger')
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        result = auth_manager.register(username, email, password)
+        if result['success']:
+            flash('Your account has been created! You are now able to log in', 'success')
+            return redirect(url_for('login'))
+        else:
+            if 'errors' in result:
+                for error in result['errors']:
+                    flash(error, 'danger')
+            else:
+                flash(result['error'], 'danger')
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    with app.app_context():
+        try:
+            db.create_all()
+            print("MySQL database tables created successfully!")
+        except Exception as e:
+            print(f"Error creating database tables: {e}")
+    
     app.run(host='0.0.0.0', port=8080)

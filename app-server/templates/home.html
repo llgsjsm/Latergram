@@ -1,52 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Latergram</title>
 
     <!-- Local CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/main.css') }}">
-</head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='assets/css/main.css') }}"
+    />
+  </head>
 
-<body>
+  <body>
     <div class="d-flex">
-        <nav id="main-nav" class="flex-column bg-light py-5 px-3">
-            <a class="navbar-brand mb-4" href="">
-                Later<span class="beau">G</span>ram
-            </a>
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#"><i class="fas fa-house"></i>Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-magnifying-glass"></i>Search</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-plus"></i>Create Post</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-user"></i>Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a id="logout-btn" class="nav-link" href="#"><i class="fas fa-arrow-right-from-bracket"></i>Logout</a>
-                </li>
-            </ul>
-        </nav>
+      <nav id="main-nav" class="flex-column bg-light py-5 px-3">
+        <a class="navbar-brand mb-4" href="">
+          Later<span class="beau">G</span>ram
+        </a>
+        <ul class="nav nav-pills flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="#"
+              ><i class="fas fa-house"></i>Home</a
+            >
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"
+              ><i class="fas fa-magnifying-glass"></i>Search</a
+            >
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"
+              ><i class="fas fa-plus"></i>Create Post</a
+            >
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"><i class="fas fa-user"></i>Profile</a>
+          </li>
+          <li class="nav-item">
+            <a id="logout-btn" class="nav-link" href="#"
+              ><i class="fas fa-arrow-right-from-bracket"></i>Logout</a
+            >
+          </li>
+        </ul>
+      </nav>
 
-        <div class="flex-grow-1 py-5 px-3">
-            <h1>Welcome</h1>
-            <p>This is the main content area</p>
+      <div class="flex-grow-1 py-5 px-3">
+        <h1>Welcome</h1>
+        <p>This is the main content area</p>
+
+        <div class="posts">
+          {% for post in posts %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{ post.title }}</h5>
+              <h6 class="card-subtitle mb-2 text-muted">
+                by {{ post.author.username }}
+              </h6>
+              <p class="card-text">{{ post.content }}</p>
+              <p class="card-text">
+                <small class="text-muted"
+                  >Posted on {{ post.time_of_post.strftime('%Y-%m-%d %H:%M')
+                  }}</small
+                >
+              </p>
+            </div>
+          </div>
+          {% endfor %}
         </div>
+      </div>
     </div>
 
     <!-- Local JS -->
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-</body>
-
+  </body>
 </html>

@@ -1,5 +1,10 @@
+Flask-SQLAlchemy
+Flask-Bcrypt
 Werkzeug>=2.2,<3.0
 Flask>=2.2.0,<3.0
 requests==2.31.0
 pytest
 flake8
+mysql-connector-python==8.0.33
+PyMySQL==1.0.3
+python-dotenv==1.0.0
