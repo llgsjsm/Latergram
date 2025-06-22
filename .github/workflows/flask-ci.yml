@@ -42,6 +42,7 @@ jobs:
     # - name: Lint Flask App in Container
     #   run: docker exec flask flake8 /app
 
+
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v
