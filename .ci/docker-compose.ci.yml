@@ -19,7 +19,7 @@ services:
       - "80:80"   # Certbot
       # - "443:443" # SSL
     volumes:
-      - ./reverse-proxy/nginx-ci.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-ci.conf:/etc/nginx/nginx.conf:ro
       # For CI - Need not push certbot
       # For CD - Include the certbot for SSL implementation
       # - ./certbot/conf:/etc/letsencrypt
