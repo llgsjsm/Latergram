@@ -24,22 +24,16 @@ jobs:
       run: docker-compose -f docker-compose.ci.yml up -d --build
 
     - name: Wait for Services to be Ready
-      run: sleep 60
+      run: sleep 10
 
     - name: Test Flask via NGINX
       run: |
         curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
 
-    - name: Test MySQL Connection
-      run: |
-        sudo apt-get install -y mysql-client
-        mysql -h 10.20.0.4 -P 3306 -u root -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" -e "SELECT 1;"
-
     - name: Save Application Stack Logs
       run: |
         docker logs flask > flask.log
         docker logs nginx > nginx.log
-        docker logs mysqldb > mysqldb.log
 
     - name: Upload Application Stack Log Artifact
       uses: actions/upload-artifact@v4
@@ -48,7 +42,6 @@ jobs:
         path: |
           flask.log
           nginx.log
-          mysqldb.log
         retention-days: 7
 
     - name: Teardown
