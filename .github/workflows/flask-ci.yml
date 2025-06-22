@@ -1,0 +1,46 @@
+name: Flask CI for Dev Branches
+
+on:
+  push:
+    branches:
+      - dev-release-*
+    paths:
+      - 'app-server/**'
+  pull_request:
+    branches:
+      - dev-release-*
+
+jobs:
+  flask-docker:
+    runs-on: ubuntu-latest
+    name: Flask Container Tests
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+
+    - name: Build and Start Flask Container
+      run: docker-compose -f docker-compose.ci.yml up -d --build flask
+
+    - name: Wait for Flask to be Ready
+      run: |
+        for i in {1..10}; do
+          curl -s http://localhost:80 && break
+          echo "Waiting for Flask..."
+          sleep 3
+        done
+
+    - name: Run Flask Tests in Container
+      run: docker exec flask python -m pytest /app/tests
+
+    - name: Lint Flask App in Container
+      run: docker exec flask flake8 /app/app
+
+    - name: Teardown
+      if: always()
+      run: docker-compose -f docker-compose.ci.yml down -v
