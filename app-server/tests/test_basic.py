@@ -10,5 +10,5 @@ def client():
 
 def test_home_status_code(client):
     """Check if the home page loads correctly (200 OK)"""
-    response = client.get('/home')
+    response = client.get('/')
     assert response.status_code == 200
