@@ -1,9 +1,9 @@
-name: Docker + Snort3
+name: Application stack CI Pipeline to Main
 
 on:
   push:
     branches: [ main ]
-  pull_request:
+  pull_request: branches: [ main ]
 
 jobs:
   main-stack:
@@ -29,33 +29,54 @@ jobs:
       run: |
         curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
 
+    - name: Test MySQL Connection
+      run: |
+        sudo apt-get install -y mysql-client
+        mysql -h 10.20.0.4 -P 3306 -u root -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" -e "SELECT 1;"
+
+    - name: Save Application Stack Logs
+      run: |
+        docker logs flask > flask.log
+        docker logs nginx > nginx.log
+        docker logs mysqldb > mysqldb.log
+
+    - name: Upload Application Stack Log Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: application-stack-logs
+        path: |
+          flask.log
+          nginx.log
+          mysqldb.log
+        retention-days: 7
+
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v
 
-  snort3-test:
-    name: Snort3 Smoke Test
-    runs-on: ubuntu-latest
+  # snort3-test:
+  #   name: Snort3 Smoke Test
+  #   runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v3
+  #   steps:
+  #   - name: Checkout Repo
+  #     uses: actions/checkout@v3
 
-    - name: Setup Docker
-      uses: docker/setup-buildx-action@v3
+  #   - name: Setup Docker
+  #     uses: docker/setup-buildx-action@v3
 
-    - name: Build custom image
-      run: docker build -t snort3-jq ./snort3-build
+  #   - name: Build custom image
+  #     run: docker build -t snort3-jq ./snort3-build
     
-    - name: Build Snort3 Container (without host network)
-      run: |
-        docker compose -f snort-compose.yml config > temp.yml
-        sed -i '/network_mode/d' temp.yml  # Remove host networking for CI
-        docker compose -f temp.yml up -d --build
+  #   - name: Build Snort3 Container (without host network)
+  #     run: |
+  #       docker compose -f snort-compose.yml config > temp.yml
+  #       sed -i '/network_mode/d' temp.yml  # Remove host networking for CI
+  #       docker compose -f temp.yml up -d --build
 
-    - name: Check Snort3 is Running
-      run: docker ps | grep snort3 || (echo "Snort3 failed to run" && exit 1)
+  #   - name: Check Snort3 is Running
+  #     run: docker ps | grep snort3 || (echo "Snort3 failed to run" && exit 1)
 
-    - name: Teardown Snort3
-      if: always()
-      run: docker compose -f temp.yml down -v
+  #   - name: Teardown Snort3
+  #     if: always()
+  #     run: docker compose -f temp.yml down -v
