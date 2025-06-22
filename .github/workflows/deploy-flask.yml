@@ -1,14 +1,19 @@
 name: Deploy Flask to EC2
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'app-server/**' # Only trigger CD if Flask code changes
-      - '.github/workflows/deploy-flask.yml'
+  workflow_run:
+    workflows: ["Application stack CI Pipeline to Main"]
+    types:
+      - completed
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'app-server/**' # Only trigger CD if Flask code changes
+  #     - '.github/workflows/deploy-flask.yml'
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Deploy Flask to EC2
     runs-on: ubuntu-latest
 
@@ -16,6 +21,15 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
+    - name: Check if app-server/ changed
+      run: |
+        git fetch origin main
+        CHANGED=$(git diff --name-only origin/main...HEAD | grep '^app-server/' || true)
+        if [ -z "$CHANGED" ]; then
+          echo "No app-server changes. Skipping deploy."
+          exit 0
+        fi
+        
     - name: Setup SSH
       uses: webfactory/ssh-agent@v0.7.0
       with:
