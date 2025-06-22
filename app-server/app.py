@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
+# Please remind me to hide this
 SPLUNK_HEC_TOKEN = "e4e0bbe8-2549-4a8e-bafa-28d0eb22244b"
 
 def get_real_ip():
@@ -44,12 +45,12 @@ def log_to_splunk(event_data):
 
 @app.route('/home')
 def home():
-    log_to_splunk("Visited /home")
+    # log_to_splunk("Visited /home")
     return render_template('home.html')
 
 @app.route('/')
 def hello_world():
-    log_to_splunk("Visited /")
+    # log_to_splunk("Visited /")
     return 'Hello, World!'
 
 if __name__ == '__main__':
