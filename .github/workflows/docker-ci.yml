@@ -2,7 +2,9 @@ name: Application stack CI Pipeline to Main
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - dev-release-*
   pull_request: 
     branches: [ main ]
 
