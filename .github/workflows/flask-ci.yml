@@ -39,7 +39,7 @@ jobs:
       run: docker exec flask python -m pytest /app/tests
 
     - name: Lint Flask App in Container
-      run: docker exec flask flake8 /app/app
+      run: docker exec flask flake8 /app
 
     - name: Teardown
       if: always()
