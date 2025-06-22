@@ -3,7 +3,8 @@ name: Application stack CI Pipeline to Main
 on:
   push:
     branches: [ main ]
-  pull_request: branches: [ main ]
+  pull_request: 
+    branches: [ main ]
 
 jobs:
   main-stack:
