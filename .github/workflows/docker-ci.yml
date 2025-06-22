@@ -21,10 +21,10 @@ jobs:
         sudo apt-get install -y docker-compose
 
     - name: Build and Run Main Stack
-      run: docker-compose -f docker-compose.ci.yml up -d --build
+      run: docker-compose -f .ci/docker-compose.ci.yml up -d --build
 
     - name: Wait for Services to be Ready
-      run: sleep 20
+      run: sleep 60
 
     - name: Test Flask via NGINX
       run: |
@@ -53,7 +53,7 @@ jobs:
 
     - name: Teardown
       if: always()
-      run: docker-compose -f docker-compose.ci.yml down -v
+      run: docker-compose -f .ci/docker-compose.ci.yml down -v
 
   # snort3-test:
   #   name: Snort3 Smoke Test
