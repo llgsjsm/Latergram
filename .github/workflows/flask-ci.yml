@@ -33,6 +33,9 @@ jobs:
     - name: Print MySQL container logs (debugging)
       run: docker logs mysqldb || true
 
+    - name: Show Flask container status
+      run: docker ps -a
+
     - name: Wait for Flask to be Ready
       run: |
         for i in {1..20}; do
