@@ -29,10 +29,10 @@ jobs:
 
     - name: Wait for Flask to be Ready
       run: |
-        for i in {1..10}; do
-          curl -s http://localhost:80 && break
+        for i in {1..20}; do
+          curl http://localhost:80 && break
           echo "Waiting for Flask..."
-          sleep 3
+          sleep 5
         done
 
     - name: Run Flask Tests in Container
