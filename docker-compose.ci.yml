@@ -4,11 +4,11 @@ services:
     container_name: flask
     image: python:3.8-slim
     working_dir: /app
-    ports:
-      - "8080:8080"
     volumes:
       - ./app-server:/app
     command: sh -c "pip install -r requirements.txt && python app.py"
+    networks:
+      - appnet
     # networks:
     #   laternet:
     #     ipv4_address: 10.20.0.2
@@ -22,6 +22,8 @@ services:
       # - "443:443" # SSL
     volumes:
       - ./reverse-proxy/nginx-ci.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - appnet
       # For CI - Need not push certbot
       # For CD - Include the certbot for SSL implementation
       # - ./certbot/conf:/etc/letsencrypt
@@ -39,7 +41,7 @@ services:
     # volumes:
     #   - ./mysql-data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: laterdb
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -68,6 +70,8 @@ services:
     # networks:
     #   laternet:
     #     ipv4_address: 10.20.0.100
+networks:
+  appnet:
 
 # networks:
 #   laternet:
