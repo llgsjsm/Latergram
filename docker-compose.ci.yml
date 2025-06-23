@@ -3,12 +3,14 @@ services:
   flask:
     container_name: flask
     image: python:3.8-slim
+    build:
+      context: ./app-server
+      dockerfile: Dockerfile
     working_dir: /app
     ports:
       - "8080:8080"
     volumes:
       - ./app-server:/app
-    command: sh -c "pip install -r requirements.txt && python app.py"
     environment:
       - DB_USER=root
       - DB_PASSWORD=root
@@ -25,13 +27,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"   # Certbot
-      # - "443:443" # SSL
     volumes:
       - ./reverse-proxy/nginx-ci.conf:/etc/nginx/nginx.conf:ro
-      # For CI - Need not push certbot
-      # For CD - Include the certbot for SSL implementation
-      # - ./certbot/conf:/etc/letsencrypt
-      # - ./certbot/www:/var/www/certbot
     networks:
       laternet:
         ipv4_address: 10.20.0.3
@@ -40,10 +37,6 @@ services:
     container_name: mysqldb
     image: mysql:8.0
     restart: always
-    # For CI - Don't need persistent volume
-    # For CD - 
-    # volumes:
-    #   - ./mysql-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: laterdb
