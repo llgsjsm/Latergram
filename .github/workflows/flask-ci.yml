@@ -38,8 +38,8 @@ jobs:
     #       sleep 3
     #     done
 
-    - name: Run Flask Tests in Container
-      run: docker exec flask python -m unittest discover -s /app/tests
+    - name: Run Simple Flask Test
+      run: docker-compose -f docker-compose.ci.yml run --rm test
 
     # This shit too strict LMAO
     # - name: Lint Flask App in Container
