@@ -4,6 +4,8 @@ services:
     container_name: flask
     image: python:3.8-slim
     working_dir: /app
+    port:
+      - "8080:8080"
     volumes:
       - ./app-server:/app
     command: sh -c "pip install -r requirements.txt && python app.py"
