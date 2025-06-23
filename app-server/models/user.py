@@ -13,6 +13,7 @@ class User(db.Model):
     profilePicture = db.Column(db.String(255), nullable=True, default='')
     visibility = db.Column(db.String(20), default='public')
     bio = db.Column(db.Text, nullable=True, default='')
+    followers = db.Column(db.Integer, default=0)  # Added missing followers field
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -61,6 +62,12 @@ class User(db.Model):
         
     def set_bio(self, bio):
         self.bio = bio
+        
+    def get_followers(self):
+        return self.followers
+        
+    def set_followers(self, followers):
+        self.followers = followers
 
 # Moderator model as separate table
 class Moderator(db.Model):

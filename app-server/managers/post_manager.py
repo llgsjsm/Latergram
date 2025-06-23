@@ -1,5 +1,6 @@
 from models import db, Post, Comment, User
 from typing import Dict, Any
+from sqlalchemy import text
 
 class PostManager:
     def create_post(self, title, content, user_id):
@@ -16,11 +17,24 @@ class PostManager:
             return True
         return False
 
-    def like_post(self, post_id):
+    def like_post(self, post_id, user_id):
+        # Prevent double-like - since we don't have postId in likes table,
+        # we'll check if user already has any likes record (simplified approach)
+        sql = text("SELECT COUNT(*) FROM likes WHERE user_userId = :user_id")
+        result = db.session.execute(sql, {"user_id": user_id}).scalar()
+        if result > 0:
+            return {'success': False, 'error': 'User already has likes recorded'}
+        # Insert like - only user and timestamp since no postId column
+        db.session.execute(
+            text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
+            {"user_id": user_id}
+        )
+        # Optionally increment like count on Post
         post = Post.query.get(post_id)
         if post:
-            post.likes += 1
+            post.like = (post.like or 0) + 1
             db.session.commit()
+        return {'success': True}
 
     def unlike_post(self, post_id):
         post = Post.query.get(post_id)
@@ -89,4 +103,24 @@ class PostManager:
 
     def share_post(self, post_id):
         # Share logic to be implemented
-        pass 
+        pass
+
+    def follow_user(self, follower_user_id, followed_user_id):
+        if follower_user_id == followed_user_id:
+            return {'success': False, 'error': 'Cannot follow yourself'}
+        # Prevent double-follow
+        sql = text("SELECT COUNT(*) FROM followers WHERE followerUserId = :follower AND followedUserId = :followed")
+        result = db.session.execute(sql, {"follower": follower_user_id, "followed": followed_user_id}).scalar()
+        if result > 0:
+            return {'success': False, 'error': 'Already following this user'}
+        # Insert follow
+        db.session.execute(
+            text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower, :followed, NOW())"),
+            {"follower": follower_user_id, "followed": followed_user_id}
+        )
+        # Optionally increment followers count on User
+        user = User.query.get(followed_user_id)
+        if user:
+            user.followers = (user.followers or 0) + 1
+            db.session.commit()
+        return {'success': True} 

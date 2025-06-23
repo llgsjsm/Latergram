@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Likes
+from models import db, Post
 from managers import AuthenticationManager, FeedManager
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
@@ -133,35 +133,30 @@ def create_post():
         content = request.form['content']
         visibility = request.form.get('visibility', 'followers')  # You can handle visibility if you want
 
-        new_likes = Likes(
-            user_userId=session['user_id'],  # must NOT be None
-            timestamp=datetime.utcnow()
+        from sqlalchemy import text
+        
+        # Create a placeholder likes record to satisfy the foreign key constraint
+        result = db.session.execute(
+            text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
+            {"user_id": session['user_id']}
         )
-        db.session.add(new_likes)
         db.session.flush()
+        
+        # Get the ID of the newly created likes record
+        likes_id = result.lastrowid
 
-        # Create the post record first
+        # Create the post record
         new_post = Post(
             authorId=session['user_id'],  # use session user id
             title=title,
             content=content,
             timeOfPost=datetime.utcnow(),
-            like=0,
-            likesId=new_likes.likesId,  # You can update this if Likes is linked
+            like=0,  # Start with 0 likes
+            likesId=likes_id,  # Use the likes record ID
             image="https://fastly.picsum.photos/id/404/200/300.jpg?hmac=1i6ra6DJN9kJ9AQVfSf3VD1w08FkegBgXuz9lNDk1OM"  # No image for now
         )
 
         db.session.add(new_post)
-        # db.session.flush()  # Flush to get new_post.id before commit
-
-        # # Now create a Likes record linked to the post (optional)
-        # # Assuming Likes has a post_id field linking to Post
-        # new_like = Likes(post_id=new_post.id, user_id=session['user_id'])  # Adjust fields as per your model
-        # db.session.add(new_like)
-
-        # # Update the post with likesId if needed (optional)
-        # new_post.likesId = new_like.id
-
         db.session.commit()
 
         flash("Post created successfully!", "success")

@@ -6,16 +6,15 @@ class Post(db.Model):
 
     postId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     authorId = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
-    likesId = db.Column(db.Integer, db.ForeignKey('likes.likesId'))
     title = db.Column(db.String(255), nullable=False)
     timeOfPost = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     like = db.Column(db.Integer, default=0)
+    likesId = db.Column(db.Integer, nullable=True)  # Allow NULL values
     image = db.Column(db.String(255))
     content = db.Column(db.Text, nullable=False)
     
     # Relationships
     author = db.relationship('User', backref=db.backref('posts', lazy=True))
-    likes_rel = db.relationship('Likes', backref=db.backref('post', lazy=True))
 
     def get_post_id(self):
         return self.postId
