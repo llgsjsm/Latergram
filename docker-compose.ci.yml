@@ -4,7 +4,7 @@ services:
     container_name: flask
     image: python:3.8-slim
     working_dir: /app
-    port:
+    ports:
       - "8080:8080"
     volumes:
       - ./app-server:/app
