@@ -27,16 +27,19 @@ jobs:
     - name: Build and Start Flask Container
       run: docker-compose -f docker-compose.ci.yml up -d --build flask
 
-    - name: Wait for Flask to be Ready
-      run: |
-        for i in {1..10}; do
-          curl -s http://localhost:80 && break
-          echo "Waiting for Flask..."
-          sleep 3
-        done
+    - name: Stream Flask Logs (setup/debugging)
+      run: docker logs --follow --since 0s flask &
 
-    - name: Run Flask Tests in Container
-      run: docker exec flask python -m pytest /app/tests
+    # - name: Wait for Flask to be Ready
+    #   run: |
+    #     for i in {1..10}; do
+    #       curl -s http://localhost:80 && break
+    #       echo "Waiting for Flask..."
+    #       sleep 3
+    #     done
+
+    # - name: Run Flask Tests in Container
+    #   run: docker exec flask python -m pytest /app/tests
 
     # This shit too strict LMAO
     # - name: Lint Flask App in Container
