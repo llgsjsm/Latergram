@@ -36,18 +36,18 @@ jobs:
     - name: Show Flask container status
       run: docker ps -a
 
-  - name: Wait for Flask via NGINX (Full Stack Check)
-    run: |
-      for i in {1..20}; do
-        STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80)
-        if [ "$STATUS" = "200" ]; then
-          echo "Flask is ready via NGINX (HTTP $STATUS)"
-          break
-        else
-          echo "NGINX not ready yet (HTTP $STATUS)..."
-          sleep 5
-        fi
-      done
+    - name: Wait for Flask via NGINX (Full Stack Check)
+      run: |
+        for i in {1..20}; do
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80)
+          if [ "$STATUS" = "200" ]; then
+            echo "Flask is ready via NGINX (HTTP $STATUS)"
+            break
+          else
+            echo "NGINX not ready yet (HTTP $STATUS)..."
+            sleep 5
+          fi
+        done
 
     - name: Run Flask Tests in Container
       run: docker exec flask python -m pytest /app/tests
