@@ -26,6 +26,10 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='assets/css/main.css') }}"
     />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}"
+    />
   </head>
 
   <body>
@@ -36,26 +40,28 @@
         </a>
         <ul class="nav nav-pills flex-column">
           <li class="nav-item">
-            <a class="nav-link active" href="#"
-              ><i class="fas fa-house"></i>Home</a
-            >
+            <a class="nav-link" href="{{ url_for('home') }}">
+              <i class="fas fa-house"></i> Home
+            </a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#"
-              ><i class="fas fa-magnifying-glass"></i>Search</a
+              ><i class="fas fa-magnifying-glass"></i> Search</a
             >
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('create_post') }}"
-              ><i class="fas fa-plus"></i>Create Post</a
+              ><i class="fas fa-plus"></i> Create Post</a
             >
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-user"></i>Profile</a>
+            <a class="nav-link" href="{{ url_for('profile') }}">
+              <i class="fas fa-user"></i> Profile
+            </a>
           </li>
           <li class="nav-item">
-            <a id="logout-btn" class="nav-link" href="#"
-              ><i class="fas fa-arrow-right-from-bracket"></i>Logout</a
+            <a class="nav-link" href="{{ url_for('logout') }}"
+              ><i class="fas fa-arrow-right-from-bracket"></i> Logout</a
             >
           </li>
         </ul>

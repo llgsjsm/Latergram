@@ -1,0 +1,570 @@
+{% extends "base.html" %} {% block content %}
+<style>
+  /* Ensure text visibility with proper contrast */
+  .profile-container {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+  }
+
+  .profile-container h2,
+  .profile-container h4,
+  .profile-container h5,
+  .profile-container h6 {
+    color: #333333 !important;
+  }
+
+  .profile-container .text-dark {
+    color: #333333 !important;
+  }
+
+  .profile-container .text-muted {
+    color: #6c757d !important;
+  }
+
+  .stats-link {
+    color: #333333 !important;
+    text-decoration: none !important;
+  }
+
+  .stats-link:hover {
+    color: #0066cc !important;
+  }
+
+  .profile-container strong {
+    color: #333333 !important;
+  }
+
+  .profile-container p {
+    color: #333333 !important;
+  }
+
+  .profile-container div {
+    color: #333333 !important;
+  }
+
+  .profile-container span {
+    color: #333333 !important;
+  }
+
+  /* Override any global dark theme */
+  body .profile-container * {
+    color: #333333 !important;
+  }
+
+  body .profile-container .text-muted {
+    color: #6c757d !important;
+  }
+
+  body .profile-container .btn {
+    color: inherit !important;
+  }
+</style>
+
+<div class="container-fluid profile-container">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Profile Header Section -->
+      <div class="row mb-5">
+        <div class="col-md-4 text-center">
+          <!-- Profile Picture -->
+          <img
+            src="{{ user.profilePicture or 'https://via.placeholder.com/150x150/cccccc/666666?text=No+Photo' }}"
+            alt="Profile Picture"
+            class="rounded-circle mb-3"
+            style="
+              width: 150px;
+              height: 150px;
+              object-fit: cover;
+              border: 3px solid #dee2e6;
+            "
+          />
+        </div>
+
+        <div class="col-md-8">
+          <!-- Username and Actions -->
+          <div class="d-flex align-items-center mb-3">
+            <h2 class="me-4 mb-0 text-dark">{{ user.username }}</h2>
+            {% if is_own_profile %}
+            <a
+              href="{{ url_for('edit_profile') }}"
+              class="btn btn-outline-secondary me-2"
+            >
+              <i class="fas fa-edit"></i> Edit Profile
+            </a>
+            <button class="btn btn-outline-secondary" data-bs-toggle="dropdown">
+              <i class="fas fa-cog"></i>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{{ url_for('edit_profile') }}"
+                  >Settings</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="alert('Feature coming soon!')"
+                  >Privacy</a
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('logout') }}"
+                  >Logout</a
+                >
+              </li>
+            </ul>
+            {% else %} {% if is_following %}
+            <button
+              class="btn btn-outline-danger follow-btn"
+              data-user-id="{{ user.userId }}"
+              data-action="unfollow"
+            >
+              <i class="fas fa-user-check"></i> Following
+            </button>
+            {% else %}
+            <button
+              class="btn btn-primary follow-btn"
+              data-user-id="{{ user.userId }}"
+              data-action="follow"
+            >
+              <i class="fas fa-user-plus"></i> Follow
+            </button>
+            {% endif %}
+            <button
+              class="btn btn-outline-secondary ms-2"
+              onclick="alert('Message feature coming soon!')"
+            >
+              <i class="fas fa-comment"></i> Message
+            </button>
+            {% endif %}
+          </div>
+
+          <!-- Stats Row -->
+          <div class="d-flex mb-3">
+            <div class="me-4 text-dark">
+              <strong class="text-dark"
+                >{{ user_stats.posts_count or 0 }}</strong
+              >
+              <span class="text-dark">posts</span>
+            </div>
+            <div class="me-4">
+              <a
+                href="#"
+                class="stats-link"
+                data-bs-toggle="modal"
+                data-bs-target="#followersModal"
+                onclick="loadFollowers({{ user.userId }})"
+              >
+                <strong>{{ user_stats.followers_count or 0 }}</strong> followers
+              </a>
+            </div>
+            <div>
+              <a
+                href="#"
+                class="stats-link"
+                data-bs-toggle="modal"
+                data-bs-target="#followingModal"
+                onclick="loadFollowing({{ user.userId }})"
+              >
+                <strong>{{ user_stats.following_count or 0 }}</strong> following
+              </a>
+            </div>
+          </div>
+
+          <!-- Full Name and Bio -->
+
+          {% if user.bio %}
+          <div class="mb-2 text-dark">{{ user.bio }}</div>
+          {% endif %}
+
+          <!-- Member Since -->
+          <div class="text-muted small">
+            <i class="fas fa-calendar-alt"></i>
+            Member since {{ user.createdAt.strftime('%B %Y') if user.createdAt
+            else 'Unknown' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Posts Section Header -->
+      <div class="border-top pt-4">
+        <div class="d-flex justify-content-center mb-4">
+          <div class="text-center border-top border-2 border-dark pt-3 px-4">
+            <i class="fas fa-th-large me-2 text-dark"></i>
+            <span class="fw-bold text-uppercase small text-dark">POSTS</span>
+          </div>
+        </div>
+
+        <!-- Posts Grid -->
+        {% if user_posts and user_posts|length > 0 %}
+        <div class="row">
+          {% for post in user_posts %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div
+              class="position-relative post-thumbnail"
+              style="cursor: pointer"
+              data-bs-toggle="modal"
+              data-bs-target="#postModal{{ post.postId }}"
+            >
+              {% if post.image %}
+              <img
+                src="{{ post.image }}"
+                class="img-fluid w-100"
+                style="aspect-ratio: 1; object-fit: cover"
+                alt="Post"
+              />
+              {% else %}
+              <div
+                class="w-100 bg-light d-flex align-items-center justify-content-center text-muted"
+                style="aspect-ratio: 1"
+              >
+                <div class="text-center">
+                  <i class="fas fa-file-text fa-2x mb-2"></i>
+                  <div class="small">
+                    {{ post.title[:20] }}{% if post.title|length > 20 %}...{%
+                    endif %}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Hover Overlay -->
+              <div
+                class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center post-overlay"
+                style="opacity: 0; transition: opacity 0.3s"
+              >
+                <div class="text-white text-center">
+                  <div class="mb-2">
+                    <i class="fas fa-heart"></i> {{ post.like or 0 }}
+                    <span class="ms-3">
+                      <i class="fas fa-comment"></i> {{ post.comments|length if
+                      post.comments else 0 }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Detail Modal -->
+          <div class="modal fade" id="postModal{{ post.postId }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">{{ post.title or 'Post' }}</h5>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                  ></button>
+                </div>
+                <div class="modal-body">
+                  {% if post.image %}
+                  <img
+                    src="{{ post.image }}"
+                    class="img-fluid mb-3"
+                    alt="Post image"
+                  />
+                  {% endif %}
+                  <p><strong>{{ user.username }}</strong> {{ post.content }}</p>
+                  <div class="text-muted small">
+                    {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
+                    post.timeOfPost else '' }}
+                  </div>
+
+                  <!-- Like and Comment buttons -->
+                  <div class="mt-3 pt-3 border-top">
+                    {% if liked_posts.get(post.postId, False) %}
+                    <!-- Unlike button -->
+                    <form
+                      method="POST"
+                      action="{{ url_for('unlike_post', post_id=post.postId) }}"
+                      class="d-inline"
+                    >
+                      <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-heart-fill"></i> {{ post.like or 0 }}
+                      </button>
+                    </form>
+                    {% else %}
+                    <!-- Like button -->
+                    <form
+                      method="POST"
+                      action="{{ url_for('like_post', post_id=post.postId) }}"
+                      class="d-inline"
+                    >
+                      <button
+                        type="submit"
+                        class="btn btn-outline-danger btn-sm"
+                      >
+                        <i class="bi bi-heart"></i> {{ post.like or 0 }}
+                      </button>
+                    </form>
+                    {% endif %}
+                    <button
+                      class="btn btn-outline-secondary btn-sm ms-2"
+                      onclick="toggleCommentForm('modal-{{ post.postId }}')"
+                    >
+                      <i class="fas fa-comment"></i> Comment
+                    </button>
+
+                    <!-- Comment Form -->
+                    <div
+                      id="comment-form-modal-{{ post.postId }}"
+                      class="mt-3"
+                      style="display: none"
+                    >
+                      <form
+                        action="{{ url_for('add_comment', post_id=post.postId) }}"
+                        method="POST"
+                      >
+                        <div class="input-group">
+                          <input
+                            type="text"
+                            class="form-control"
+                            name="comment"
+                            placeholder="Add a comment..."
+                            required
+                          />
+                          <button class="btn btn-primary" type="submit">
+                            Post
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+          <div class="mb-4">
+            <i class="fas fa-camera fa-3x text-muted"></i>
+          </div>
+          <h4 class="text-dark">No Posts Yet</h4>
+          {% if is_own_profile %}
+          <p class="text-muted mb-4">Share your first photo to get started</p>
+          <a href="{{ url_for('create_post') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Your First Post
+          </a>
+          {% else %}
+          <p class="text-muted">
+            When <span class="text-dark">{{ user.username }}</span> shares
+            photos, they'll appear here.
+          </p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Followers Modal -->
+<div class="modal fade" id="followersModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Followers</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div id="followersList">
+          <div class="text-center">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Following Modal -->
+<div class="modal fade" id="followingModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Following</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div id="followingList">
+          <div class="text-center">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .post-thumbnail:hover .post-overlay {
+    opacity: 1 !important;
+  }
+</style>
+
+<script>
+  // Follow/Unfollow functionality
+  document.querySelectorAll(".follow-btn").forEach((button) => {
+    button.addEventListener("click", function () {
+      const userId = this.dataset.userId;
+      const action = this.dataset.action;
+      const btn = this;
+
+      const url =
+        action === "follow"
+          ? `/api/follow/${userId}`
+          : `/api/unfollow/${userId}`;
+
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            if (action === "follow") {
+              btn.innerHTML = '<i class="fas fa-user-check"></i> Following';
+              btn.className = "btn btn-outline-danger follow-btn";
+              btn.dataset.action = "unfollow";
+            } else {
+              btn.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+              btn.className = "btn btn-primary follow-btn";
+              btn.dataset.action = "follow";
+            }
+
+            // Reload page to update follower count
+            setTimeout(() => location.reload(), 500);
+          } else {
+            alert("Error: " + data.error);
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred");
+        });
+    });
+  });
+
+  // Load followers list
+  function loadFollowers(userId) {
+    fetch(`/api/followers/${userId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const followersList = document.getElementById("followersList");
+        if (data.success && data.followers.length > 0) {
+          followersList.innerHTML = data.followers
+            .map(
+              (follower) => `
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="${
+                          follower.profilePicture ||
+                          "https://via.placeholder.com/40"
+                        }" 
+                             class="rounded-circle me-3" 
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <a href="/profile/${
+                              follower.userId
+                            }" class="text-decoration-none">
+                                <strong>${follower.username}</strong>
+                            </a>
+                            ${
+                              follower.bio
+                                ? `<div class="text-muted small">${follower.bio}</div>`
+                                : ""
+                            }
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        } else {
+          followersList.innerHTML =
+            '<p class="text-muted text-center">No followers yet</p>';
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        document.getElementById("followersList").innerHTML =
+          '<p class="text-danger text-center">Error loading followers</p>';
+      });
+  }
+
+  // Load following list
+  function loadFollowing(userId) {
+    fetch(`/api/following/${userId}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const followingList = document.getElementById("followingList");
+        if (data.success && data.following.length > 0) {
+          followingList.innerHTML = data.following
+            .map(
+              (user) => `
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="${
+                          user.profilePicture ||
+                          "https://via.placeholder.com/40"
+                        }" 
+                             class="rounded-circle me-3" 
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <a href="/profile/${
+                              user.userId
+                            }" class="text-decoration-none">
+                                <strong>${user.username}</strong>
+                            </a>
+                            ${
+                              user.bio
+                                ? `<div class="text-muted small">${user.bio}</div>`
+                                : ""
+                            }
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        } else {
+          followingList.innerHTML =
+            '<p class="text-muted text-center">Not following anyone yet</p>';
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        document.getElementById("followingList").innerHTML =
+          '<p class="text-danger text-center">Error loading following list</p>';
+      });
+  }
+
+  // Toggle comment form
+  function toggleCommentForm(postId) {
+    const form = document.getElementById(`comment-form-${postId}`);
+    if (form.style.display === "none" || form.style.display === "") {
+      form.style.display = "block";
+      form.querySelector("input").focus();
+    } else {
+      form.style.display = "none";
+    }
+  }
+</script>
+{% endblock %}

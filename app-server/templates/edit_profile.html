@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Edit Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Profile Picture Preview -->
+                        <div class="text-center mb-4">
+                            <img src="{{ user.profilePicture or 'https://via.placeholder.com/150' }}" 
+                                 alt="Profile Picture" 
+                                 class="rounded-circle mb-3"
+                                 style="width: 120px; height: 120px; object-fit: cover;">
+                            <div>
+                                <small class="text-muted">Profile picture changes coming soon!</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Display Name -->
+                        <div class="mb-3">
+                            <label for="display_name" class="form-label">Display Name</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="display_name" 
+                                   name="display_name" 
+                                   value="{{ user.username }}"
+                                   maxlength="50"
+                                   required>
+                            <div class="form-text">This is how your name will appear to others.</div>
+                        </div>
+                        
+                        <!-- Bio -->
+                        <div class="mb-3">
+                            <label for="bio" class="form-label">Bio</label>
+                            <textarea class="form-control" 
+                                      id="bio" 
+                                      name="bio" 
+                                      rows="3" 
+                                      maxlength="500"
+                                      placeholder="Tell people about yourself...">{{ user.bio or '' }}</textarea>
+                            <div class="form-text">
+                                <span id="bio-count">{{ (user.bio or '')|length }}</span>/500 characters
+                            </div>
+                        </div>
+                        
+                        <!-- Visibility -->
+                        <div class="mb-4">
+                            <label for="visibility" class="form-label">Profile Visibility</label>
+                            <select class="form-select" id="visibility" name="visibility">
+                                <option value="public" {% if user.visibility == 'public' %}selected{% endif %}>
+                                    Public - Anyone can see your profile
+                                </option>
+                                <option value="private" {% if user.visibility == 'private' %}selected{% endif %}>
+                                    Private - Only followers can see your posts
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <!-- Account Info (Read-only) -->
+                        <div class="mb-4">
+                            <h6>Account Information</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <label class="form-label text-muted">Email</label>
+                                    <p class="mb-0">{{ user.email }}</p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label text-muted">Member Since</label>
+                                    <p class="mb-0">{{ user.createdAt.strftime('%B %d, %Y') if user.createdAt else 'Unknown' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Profile
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Additional Options -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Additional Options</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-warning btn-sm" onclick="alert('Feature coming soon!')">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="alert('Feature coming soon!')">
+                            <i class="fas fa-trash"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bio character counter
+document.getElementById('bio').addEventListener('input', function() {
+    const bioCount = document.getElementById('bio-count');
+    bioCount.textContent = this.value.length;
+    
+    if (this.value.length > 450) {
+        bioCount.style.color = '#dc3545';
+    } else if (this.value.length > 400) {
+        bioCount.style.color = '#ffc107';
+    } else {
+        bioCount.style.color = '#6c757d';
+    }
+});
+</script>
+{% endblock %}

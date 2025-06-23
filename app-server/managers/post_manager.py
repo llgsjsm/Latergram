@@ -1,6 +1,7 @@
 from models import db, Post, Comment, User
 from typing import Dict, Any
 from sqlalchemy import text
+from datetime import datetime
 
 class PostManager:
     def create_post(self, title, content, user_id):
@@ -17,30 +18,156 @@ class PostManager:
             return True
         return False
 
-    def like_post(self, post_id, user_id):
-        # Prevent double-like - since we don't have postId in likes table,
-        # we'll check if user already has any likes record (simplified approach)
-        sql = text("SELECT COUNT(*) FROM likes WHERE user_userId = :user_id")
-        result = db.session.execute(sql, {"user_id": user_id}).scalar()
-        if result > 0:
-            return {'success': False, 'error': 'User already has likes recorded'}
-        # Insert like - only user and timestamp since no postId column
-        db.session.execute(
-            text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
-            {"user_id": user_id}
-        )
-        # Optionally increment like count on Post
-        post = Post.query.get(post_id)
-        if post:
+    def like_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
+        """Like a post using a junction table approach - simplified version"""
+        try:
+            # Check if post exists
+            post = Post.query.get(post_id)
+            if not post:
+                return {'success': False, 'error': 'Post not found'}
+            
+            # Create the junction table if it doesn't exist
+            try:
+                db.session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS post_likes (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        post_id INT NOT NULL,
+                        user_id INT NOT NULL,
+                        like_id INT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE KEY unique_user_post_like (user_id, post_id),
+                        INDEX idx_post_id (post_id),
+                        INDEX idx_user_id (user_id)
+                    )
+                """))
+                db.session.commit()
+            except Exception as e:
+                print(f"Table creation info: {e}")
+            
+            # Check if user already liked this post
+            existing_like = db.session.execute(
+                text("SELECT id FROM post_likes WHERE user_id = :user_id AND post_id = :post_id"),
+                {"user_id": user_id, "post_id": post_id}
+            ).first()
+            
+            if existing_like:
+                return {'success': False, 'error': 'You have already liked this post', 'already_liked': True}
+            
+            # Create a new like in the likes table
+            result = db.session.execute(
+                text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
+                {"user_id": user_id}
+            )
+            
+            like_id = result.lastrowid
+            
+            # Create the junction record
+            db.session.execute(
+                text("INSERT INTO post_likes (post_id, user_id, like_id) VALUES (:post_id, :user_id, :like_id)"),
+                {"post_id": post_id, "user_id": user_id, "like_id": like_id}
+            )
+            
+            # Update post like count
             post.like = (post.like or 0) + 1
+            
+            # Avoid touching post.likesId to prevent constraint issues
+            # The junction table serves as our source of truth
+            
             db.session.commit()
-        return {'success': True}
+            
+            return {'success': True, 'message': 'Post liked successfully', 'new_count': post.like}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to like post: {str(e)}'}
 
-    def unlike_post(self, post_id):
-        post = Post.query.get(post_id)
-        if post and post.likes > 0:
-            post.likes -= 1
+    def unlike_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
+        """Unlike a post using the junction table approach - simplified version"""
+        try:
+            # Check if post exists
+            post = Post.query.get(post_id)
+            if not post:
+                return {'success': False, 'error': 'Post not found'}
+            
+            # Check if user has liked this post
+            like_record = db.session.execute(
+                text("SELECT id, like_id FROM post_likes WHERE user_id = :user_id AND post_id = :post_id"),
+                {"user_id": user_id, "post_id": post_id}
+            ).first()
+            
+            if not like_record:
+                return {'success': False, 'error': 'You have not liked this post', 'not_liked': True}
+            
+            # Remove the junction record
+            db.session.execute(
+                text("DELETE FROM post_likes WHERE user_id = :user_id AND post_id = :post_id"),
+                {"user_id": user_id, "post_id": post_id}
+            )
+            
+            # Update post like count
+            post.like = max(0, (post.like or 0) - 1)
+            
+            # Don't touch post.likesId to avoid the NOT NULL constraint issue
+            # The junction table is our source of truth for like tracking
+            
             db.session.commit()
+            
+            # Clean up orphaned like records if they exist and are safe to delete
+            if like_record.like_id:
+                try:
+                    # Only delete the like record if no posts reference it
+                    posts_using_like = db.session.execute(
+                        text("SELECT COUNT(*) FROM post WHERE likesId = :like_id"),
+                        {"like_id": like_record.like_id}
+                    ).scalar()
+                    
+                    if posts_using_like == 0:
+                        db.session.execute(
+                            text("DELETE FROM likes WHERE likesId = :like_id"),
+                            {"like_id": like_record.like_id}
+                        )
+                        db.session.commit()
+                except Exception as cleanup_error:
+                    # If cleanup fails, that's okay - the main unlike operation succeeded
+                    print(f"Cleanup warning: {cleanup_error}")
+            
+            return {'success': True, 'message': 'Post unliked successfully', 'new_count': post.like}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to unlike post: {str(e)}'}
+    
+    def is_post_liked_by_user(self, user_id: int, post_id: int) -> bool:
+        """Check if a user has liked a specific post using junction table"""
+        try:
+            # Ensure the post_likes table exists
+            try:
+                db.session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS post_likes (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        post_id INT NOT NULL,
+                        user_id INT NOT NULL,
+                        like_id INT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE KEY unique_user_post_like (user_id, post_id),
+                        INDEX idx_post_id (post_id),
+                        INDEX idx_user_id (user_id)
+                    )
+                """))
+                db.session.commit()
+            except Exception as e:
+                print(f"Table creation issue (might already exist): {e}")
+            
+            # Query the junction table
+            like_exists = db.session.execute(
+                text("SELECT COUNT(*) FROM post_likes WHERE user_id = :user_id AND post_id = :post_id"),
+                {"user_id": user_id, "post_id": post_id}
+            ).scalar()
+            
+            return like_exists > 0
+        except Exception as e:
+            print(f"Error checking if post is liked: {e}")
+            return False
 
     def add_comment(self, post_id: int, user_id: int, content: str) -> Dict[str, Any]:
         """Create a new comment on a post"""
@@ -123,4 +250,37 @@ class PostManager:
         if user:
             user.followers = (user.followers or 0) + 1
             db.session.commit()
-        return {'success': True} 
+        return {'success': True}
+
+    def get_user_liked_posts(self, user_id: int) -> set:
+        """Get all post IDs that a user has liked using junction table"""
+        try:
+            # Ensure the post_likes table exists
+            try:
+                db.session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS post_likes (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        post_id INT NOT NULL,
+                        user_id INT NOT NULL,
+                        like_id INT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE KEY unique_user_post_like (user_id, post_id),
+                        INDEX idx_post_id (post_id),
+                        INDEX idx_user_id (user_id)
+                    )
+                """))
+                db.session.commit()
+            except Exception as e:
+                print(f"Table creation issue (might already exist): {e}")
+            
+            # Query the junction table for all posts liked by this user
+            liked_posts = db.session.execute(
+                text("SELECT post_id FROM post_likes WHERE user_id = :user_id"),
+                {"user_id": user_id}
+            ).fetchall()
+            
+            liked_post_ids = {row.post_id for row in liked_posts}
+            return liked_post_ids
+        except Exception as e:
+            print(f"Error getting user liked posts: {e}")
+            return set()

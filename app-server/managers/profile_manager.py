@@ -249,4 +249,71 @@ class ProfileManager:
             'success': True,
             'users': user_results,
             'query': query
-        } 
+        }
+
+    def get_user_stats(self, user_id: int) -> Dict[str, Any]:
+        """Get user statistics (posts, followers, following counts)"""
+        try:
+            # Get posts count
+            posts_query = text("SELECT COUNT(*) as count FROM post WHERE authorId = :user_id")
+            posts_result = db.session.execute(posts_query, {"user_id": user_id}).fetchone()
+            posts_count = posts_result[0] if posts_result else 0
+            
+            # Get followers count
+            followers_count = self.get_follower_count(user_id)
+            
+            # Get following count
+            following_count = self.get_following_count(user_id)
+            
+            return {
+                'posts_count': posts_count,
+                'followers_count': followers_count,
+                'following_count': following_count
+            }
+        except Exception as e:
+            print(f"Error getting user stats: {e}")
+            return {
+                'posts_count': 0,
+                'followers_count': 0,
+                'following_count': 0
+            }
+    
+    def get_user_posts(self, user_id: int) -> List[Dict[str, Any]]:
+        """Get all posts by a user"""
+        try:
+            from models.post import Post
+            posts = Post.query.filter_by(authorId=user_id).order_by(Post.timeOfPost.desc()).all()
+            return posts
+        except Exception as e:
+            print(f"Error getting user posts: {e}")
+            return []
+    
+    def get_suggested_users(self, current_user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get suggested users to follow (users not currently followed)"""
+        try:
+            # Get users that the current user is not following
+            query = text("""
+                SELECT u.* FROM user u 
+                WHERE u.userId != :current_user_id 
+                AND u.userId NOT IN (
+                    SELECT followedUserId FROM followers 
+                    WHERE followerUserId = :current_user_id
+                )
+                ORDER BY u.createdAt DESC
+                LIMIT :limit
+            """)
+            result = db.session.execute(query, {
+                "current_user_id": current_user_id,
+                "limit": limit
+            })
+            
+            suggested_users = []
+            for row in result:
+                user = User.query.filter_by(userId=row[0]).first()
+                if user:
+                    suggested_users.append(user)
+            
+            return suggested_users
+        except Exception as e:
+            print(f"Error getting suggested users: {e}")
+            return []

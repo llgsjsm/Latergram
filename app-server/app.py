@@ -1,13 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment
+from models import db, Post, Comment, User
 from managers import AuthenticationManager, FeedManager
+from managers.profile_manager import ProfileManager
+from managers.post_manager import PostManager
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sqlalchemy import text
 
 # Load environment variables
 load_dotenv()
@@ -30,6 +33,8 @@ bcrypt.init_app(app)
 
 auth_manager = AuthenticationManager()
 feed_manager = FeedManager()
+profile_manager = ProfileManager()
+post_manager = PostManager()
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
@@ -75,8 +80,36 @@ def home():
     # log_to_splunk("Visited /home")
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    posts = feed_manager.generate_feed(session['user_id'])
-    return render_template('home.html', posts=posts)
+    
+    try:
+        posts = feed_manager.generate_feed(session['user_id'])
+    except Exception as e:
+        print(f"Error getting posts: {e}")
+        posts = []
+    
+    try:
+        # Get user stats
+        user_stats = profile_manager.get_user_stats(session['user_id'])
+    except Exception as e:
+        print(f"Error getting user stats: {e}")
+        user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
+    
+    try:
+        # Get suggested users (users not followed)
+        suggested_users = profile_manager.get_suggested_users(session['user_id'])
+    except Exception as e:
+        print(f"Error getting suggested users: {e}")
+        suggested_users = []
+    
+    # Check which posts the current user has liked (efficient single query)
+    try:
+        liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
+        liked_posts = {post.postId: post.postId in liked_post_ids for post in posts}
+    except Exception as e:
+        print(f"Error getting liked posts: {e}")
+        liked_posts = {post.postId: False for post in posts}
+
+    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts)
 
 @app.route('/')
 def hello_world():
@@ -133,8 +166,6 @@ def create_post():
         content = request.form['content']
         visibility = request.form.get('visibility', 'followers')  # You can handle visibility if you want
 
-        from sqlalchemy import text
-        
         # Create a placeholder likes record to satisfy the foreign key constraint
         result = db.session.execute(
             text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
@@ -166,9 +197,38 @@ def create_post():
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    post.like += 1
-    db.session.commit()
+    if 'user_id' not in session:
+        flash('Please log in to like posts', 'warning')
+        return redirect(url_for('login'))
+    
+    result = post_manager.like_post(session['user_id'], post_id)
+    
+    if result['success']:
+        flash('Post liked successfully!', 'success')
+    else:
+        if result.get('already_liked'):
+            flash('You have already liked this post', 'info')
+        else:
+            flash(result.get('error', 'Failed to like post'), 'danger')
+    
+    return redirect(url_for('home'))
+
+@app.route('/unlike/<int:post_id>', methods=['POST'])
+def unlike_post(post_id):
+    if 'user_id' not in session:
+        flash('Please log in to unlike posts', 'warning')
+        return redirect(url_for('login'))
+    
+    result = post_manager.unlike_post(session['user_id'], post_id)
+    
+    if result['success']:
+        flash('Post unliked successfully!', 'success')
+    else:
+        if result.get('not_liked'):
+            flash('You have not liked this post', 'info')
+        else:
+            flash(result.get('error', 'Failed to unlike post'), 'danger')
+    
     return redirect(url_for('home'))
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
@@ -194,8 +254,190 @@ def add_comment(post_id):
         db.session.commit()
     return redirect(url_for('home'))
 
+# Profile Routes
+@app.route('/profile')
+@app.route('/profile/<int:user_id>')
+def profile(user_id=None):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # If no user_id provided, show current user's profile
+    if user_id is None:
+        user_id = session['user_id']
+    
+    try:
+        # Get user info
+        user = User.query.filter_by(userId=user_id).first()
+        if not user:
+            flash('User not found', 'danger')
+            return redirect(url_for('home'))
+        
+        # Get user stats
+        user_stats = profile_manager.get_user_stats(user_id)
+        
+        # Get user's posts
+        user_posts = profile_manager.get_user_posts(user_id)
+        
+        # Check if current user is following this user
+        is_following = False
+        if user_id != session['user_id']:
+            is_following = profile_manager.is_following(session['user_id'], user_id)
+        
+        # Check if this is the current user's profile
+        is_own_profile = (user_id == session['user_id'])
+        
+        # Check which posts the current user has liked (efficient single query)
+        liked_posts = {}
+        if user_posts:
+            try:
+                liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
+                liked_posts = {post.postId: post.postId in liked_post_ids for post in user_posts}
+            except Exception as e:
+                print(f"Error getting liked posts: {e}")
+                liked_posts = {post.postId: False for post in user_posts}
+        
+        print(f"Profile data: user={user.username}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
+        
+        return render_template('profile.html', 
+                             user=user, 
+                             user_stats=user_stats, 
+                             user_posts=user_posts,
+                             is_following=is_following,
+                             is_own_profile=is_own_profile,
+                             liked_posts=liked_posts)
+    
+    except Exception as e:
+        print(f"Error in profile route: {e}")
+        flash('Error loading profile', 'danger')
+        return redirect(url_for('home'))
 
+@app.route('/api/follow/<int:user_id>', methods=['POST'])
+def follow_user(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.follow_user(session['user_id'], user_id)
+    return jsonify(result)
 
+@app.route('/api/unfollow/<int:user_id>', methods=['POST'])
+def unfollow_user(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.unfollow_user(session['user_id'], user_id)
+    return jsonify(result)
+
+@app.route('/api/like/<int:post_id>', methods=['POST'])
+def like_post_api(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = post_manager.like_post(session['user_id'], post_id)
+    return jsonify(result)
+
+@app.route('/api/unlike/<int:post_id>', methods=['POST'])
+def unlike_post_api(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = post_manager.unlike_post(session['user_id'], post_id)
+    return jsonify(result)
+
+@app.route('/edit-profile', methods=['GET', 'POST'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        display_name = request.form.get('display_name')
+        bio = request.form.get('bio')
+        visibility = request.form.get('visibility')
+        
+        result = profile_manager.update_profile(
+            session['user_id'], 
+            display_name=display_name, 
+            bio=bio, 
+            visibility=visibility
+        )
+        
+        if result['success']:
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('profile'))
+        else:
+            flash(f'Error updating profile: {result["error"]}', 'danger')
+    
+    return render_template('edit_profile.html', user=user)
+
+@app.route('/api/followers/<int:user_id>')
+def get_followers(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    followers = profile_manager.get_followers(user_id)
+    return jsonify(followers)
+
+@app.route('/api/following/<int:user_id>')
+def get_following(user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    following = profile_manager.get_following(user_id)
+    return jsonify(following)
+
+@app.route('/api/profile/<int:user_id>', methods=['GET'])
+def api_get_profile(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'username': user.username,
+        'email': user.email,
+        'bio': user.bio,
+        'location': user.location,
+        'website': user.website
+    })
+
+@app.route('/api/profile/<int:user_id>', methods=['PUT'])
+def api_update_profile(user_id):
+    user = User.query.get_or_404(user_id)
+
+    data = request.get_json()
+    user.username = data.get('username', user.username)
+    user.email = data.get('email', user.email)
+    user.bio = data.get('bio', user.bio)
+    user.location = data.get('location', user.location)
+    user.website = data.get('website', user.website)
+
+    db.session.commit()
+    return jsonify({'message': 'Profile updated successfully'})
+
+@app.route('/api/posts', methods=['GET'])
+def api_get_posts():
+    posts = Post.query.all()
+    return jsonify([{
+        'postId': post.postId,
+        'authorId': post.authorId,
+        'title': post.title,
+        'content': post.content,
+        'timeOfPost': post.timeOfPost,
+        'like': post.like,
+        'image': post.image
+    } for post in posts])
+
+@app.route('/api/comments/<int:post_id>', methods=['GET'])
+def api_get_comments(post_id):
+    comments = Comment.query.filter_by(postId=post_id).all()
+    return jsonify([{
+        'commentId': comment.commentId,
+        'postId': comment.postId,
+        'authorId': comment.authorId,
+        'commentContent': comment.commentContent,
+        'timestamp': comment.timestamp,
+        'parentCommentId': comment.parentCommentId
+    } for comment in comments])
 
 if __name__ == '__main__':
     with app.app_context():
