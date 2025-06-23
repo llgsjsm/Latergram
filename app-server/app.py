@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post
+from models import db, Post, Comment
 from managers import AuthenticationManager, FeedManager
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
@@ -163,6 +163,36 @@ def create_post():
         return redirect(url_for('home'))
 
     return render_template('create_post.html')
+
+@app.route('/like/<int:post_id>', methods=['POST'])
+def like_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.like += 1
+    db.session.commit()
+    return redirect(url_for('home'))
+
+@app.route('/comment/<int:post_id>', methods=['POST'])
+def add_comment(post_id):
+    post = Post.query.get_or_404(post_id)
+    content = request.form.get('comment')
+
+    parent_comment_id = request.form.get('parentCommentId')
+
+    # Convert '0' to None (top-level comment)
+    if parent_comment_id in (None, '0', 0):
+        parent_comment_id = None
+
+    if content:
+        new_comment = Comment(
+            commentContent=content,
+            authorId=session['user_id'],
+            postId=post.postId,
+            timestamp=datetime.utcnow(),
+            parentCommentId=parent_comment_id
+        )
+        db.session.add(new_comment)
+        db.session.commit()
+    return redirect(url_for('home'))
 
 
 

@@ -71,3 +71,38 @@ html {
     background-color: var(--color-primary);
     color: var(--color-white);
 }
+
+.feed {
+  max-width: 600px;
+  width: 100%;
+}
+
+.post {
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.post img {
+  width: 100%;
+  object-fit: cover;
+  height: auto;
+}
+
+.card-header img {
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.card-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  background-color: white;
+}
+
+.card-body {
+  padding: 0.75rem 1rem;
+}
+
+
