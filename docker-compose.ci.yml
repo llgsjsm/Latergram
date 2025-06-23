@@ -9,9 +9,9 @@ services:
     volumes:
       - ./app-server:/app
     command: sh -c "pip install -r requirements.txt && python app.py"
-    networks:
-      laternet:
-        ipv4_address: 10.20.0.2
+    # networks:
+    #   laternet:
+    #     ipv4_address: 10.20.0.2
 
   nginx:
     container_name: nginx
@@ -26,9 +26,9 @@ services:
       # For CD - Include the certbot for SSL implementation
       # - ./certbot/conf:/etc/letsencrypt
       # - ./certbot/www:/var/www/certbot
-    networks:
-      laternet:
-        ipv4_address: 10.20.0.3
+    # networks:
+    #   laternet:
+    #     ipv4_address: 10.20.0.3
 
   mysqldb:
     container_name: mysqldb
@@ -43,9 +43,9 @@ services:
       MYSQL_DATABASE: laterdb
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    networks:
-      laternet:
-        ipv4_address: 10.20.0.4
+    # networks:
+    #   laternet:
+    #     ipv4_address: 10.20.0.4
 
   splunk:
     image: splunk/splunk
@@ -65,14 +65,14 @@ services:
     #   - ./splunk/splunk-data:/opt/splunk/var
     #   - ./splunk/splunk-etc:/opt/splunk/etc
     restart: unless-stopped
-    networks:
-      laternet:
-        ipv4_address: 10.20.0.100
+    # networks:
+    #   laternet:
+    #     ipv4_address: 10.20.0.100
 
-networks:
-  laternet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.20.0.0/16
-          gateway: 10.20.0.1
+# networks:
+#   laternet:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 10.20.0.0/16
+#           gateway: 10.20.0.1
