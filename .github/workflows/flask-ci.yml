@@ -25,10 +25,10 @@ jobs:
         sudo apt-get install -y docker-compose
 
     - name: Build Flask Container
-      run: docker-compose -f docker-compose.ci.yml build flask mysqldb 
+      run: docker-compose -f docker-compose.ci.yml up -d --build flask mysqldb 
 
-    - name: Run Flask Container in Foreground (Live Logs)
-      run: docker-compose -f docker-compose.ci.yml run --rm flask
+    # - name: Run Flask Container in Foreground (Live Logs)
+    #   run: docker-compose -f docker-compose.ci.yml run --rm flask
 
     # - name: Wait for Flask to be Ready
     #   run: |
@@ -38,8 +38,8 @@ jobs:
     #       sleep 3
     #     done
 
-    # - name: Run Flask Tests in Container
-    #   run: docker exec flask python -m pytest /app/tests
+    - name: Run Flask Tests in Container
+      run: docker exec flask python -m pytest /app/tests
 
     # This shit too strict LMAO
     # - name: Lint Flask App in Container
