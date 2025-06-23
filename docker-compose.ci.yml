@@ -7,6 +7,12 @@ services:
     volumes:
       - ./app-server:/app
     command: sh -c "pip install -r requirements.txt && python app.py"
+    environment:
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_HOST=10.20.0.4
+      - DB_PORT=3306
+      - DB_NAME=testdb
     networks:
       laternet:
         ipv4_address: 10.20.0.2
