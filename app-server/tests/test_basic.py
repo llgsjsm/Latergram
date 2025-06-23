@@ -1,27 +1,20 @@
-# import pytest
-
-# from app import app 
-
-# @pytest.fixture
-# def client():
-#     app.config['TESTING'] = True
-#     with app.test_client() as client:
-#         yield client
-
-# def test_home_status_code(client):
-#     """Check if the home page loads correctly (200 OK)"""
-#     response = client.get('/home')
-#     assert response.status_code == 200
-
 import sys
-from app import app
+import time
+import requests
 
-client = app.test_client()
-response = client.get("/")
+FLASK_URL = "http://localhost:8080/healthz"  
 
-if response.status_code == 200 or response.status_code == 302:
-    print("✅ / is working!")
-    sys.exit(0)
-else:
-    print(f"❌ /home returned {response.status_code}")
-    sys.exit(1)
+for i in range(10):
+    try:
+        res = requests.get(FLASK_URL)
+        if res.status_code == 200:
+            print("✅ Flask is running and returned 200 OK")
+            sys.exit(0)
+        else:
+            print(f"❌ Received {res.status_code}")
+    except Exception as e:
+        print(f"⌛ Attempt {i+1}/10: Flask not ready yet... {e}")
+    time.sleep(3)
+
+print("❌ Flask did not become ready in time.")
+sys.exit(1)
