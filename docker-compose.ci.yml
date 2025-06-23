@@ -45,27 +45,27 @@ services:
       laternet:
         ipv4_address: 10.20.0.4
 
-  # splunk:
-  #   image: splunk/splunk
-  #   container_name: splunk
-  #   environment:
-  #     - SPLUNK_START_ARGS=${SPLUNK_START_ARGS}
-  #     - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-  #     - OPTIMISTIC_ABOUT_FILE_LOCKING=1
-  #   ports:
-  #     - "8888:8000"   # Splunk Web
-  #     - "8088:8088"   # HEC
-  #     - "9997:9997"   # UF forwarder
-  #     - "514:514/udp" # Syslog
-  #   # For CI - Need not include volume mount
-  #   # For CD - Inlcude the volumes to ensure persistence
-  #   # volumes:
-  #   #   - ./splunk/splunk-data:/opt/splunk/var
-  #   #   - ./splunk/splunk-etc:/opt/splunk/etc
-  #   restart: unless-stopped
-  #   networks:
-  #     laternet:
-  #       ipv4_address: 10.20.0.100
+  splunk:
+    image: splunk/splunk
+    container_name: splunk
+    environment:
+      - SPLUNK_START_ARGS=${SPLUNK_START_ARGS}
+      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
+      - OPTIMISTIC_ABOUT_FILE_LOCKING=1
+    ports:
+      - "8888:8000"   # Splunk Web
+      - "8088:8088"   # HEC
+      - "9997:9997"   # UF forwarder
+      - "514:514/udp" # Syslog
+    # For CI - Need not include volume mount
+    # For CD - Inlcude the volumes to ensure persistence
+    # volumes:
+    #   - ./splunk/splunk-data:/opt/splunk/var
+    #   - ./splunk/splunk-etc:/opt/splunk/etc
+    restart: unless-stopped
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.100
 
 networks:
   laternet:
