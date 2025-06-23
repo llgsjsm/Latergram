@@ -7,7 +7,7 @@ FLASK_URL = "http://localhost:8080/"
 for attempt in range(10):
     try:
         response = requests.get(FLASK_URL)
-        if response.status_code == 200 | response.status_code == 302:
+        if response.status_code == 200 or response.status_code == 302:
             print("✅ Flask health check passed (200 OK)")
             sys.exit(0)
         else:
