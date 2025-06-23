@@ -25,10 +25,13 @@ jobs:
         sudo apt-get install -y docker-compose
 
     - name: Build and Start Flask Container
-      run: docker-compose -f docker-compose.ci.yml up -d --build flask
+      run: docker-compose -f docker-compose.ci.yml up -d --build
 
-    - name: Print Flask Container Logs (for debugging)
-      run: docker logs flask
+    - name: Print Flask container logs (debugging)
+      run: docker logs flask || true
+
+    - name: Print MySQL container logs (debugging)
+      run: docker logs mysqldb || true
 
     - name: Wait for Flask to be Ready
       run: |
