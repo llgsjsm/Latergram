@@ -39,7 +39,7 @@ jobs:
     #     done
 
     - name: Run Simple Flask Test
-      run: docker exec flask python app/tests/test_basic.py
+      run: docker exec flask python /app/tests/test_basic.py
 
     # This shit too strict LMAO
     # - name: Lint Flask App in Container
