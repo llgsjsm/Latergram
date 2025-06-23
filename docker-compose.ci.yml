@@ -2,7 +2,6 @@
 services:
   flask:
     container_name: flask
-    image: python:3.8-slim
     build:
       context: ./app-server
       dockerfile: Dockerfile
