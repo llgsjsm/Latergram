@@ -3,9 +3,11 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db
+from models import db, Post, Likes
 from managers import AuthenticationManager, FeedManager
 from managers.authentication_manager import bcrypt
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -119,6 +121,57 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
+
+
+@app.route('/create-post', methods=['GET', 'POST'])
+def create_post():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        visibility = request.form.get('visibility', 'followers')  # You can handle visibility if you want
+
+        new_likes = Likes(
+            user_userId=session['user_id'],  # must NOT be None
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(new_likes)
+        db.session.flush()
+
+        # Create the post record first
+        new_post = Post(
+            authorId=session['user_id'],  # use session user id
+            title=title,
+            content=content,
+            timeOfPost=datetime.utcnow(),
+            like=0,
+            likesId=new_likes.likesId,  # You can update this if Likes is linked
+            image="https://fastly.picsum.photos/id/404/200/300.jpg?hmac=1i6ra6DJN9kJ9AQVfSf3VD1w08FkegBgXuz9lNDk1OM"  # No image for now
+        )
+
+        db.session.add(new_post)
+        # db.session.flush()  # Flush to get new_post.id before commit
+
+        # # Now create a Likes record linked to the post (optional)
+        # # Assuming Likes has a post_id field linking to Post
+        # new_like = Likes(post_id=new_post.id, user_id=session['user_id'])  # Adjust fields as per your model
+        # db.session.add(new_like)
+
+        # # Update the post with likesId if needed (optional)
+        # new_post.likesId = new_like.id
+
+        db.session.commit()
+
+        flash("Post created successfully!", "success")
+        return redirect(url_for('home'))
+
+    return render_template('create_post.html')
+
+
+
+
 if __name__ == '__main__':
     with app.app_context():
         try:
@@ -128,3 +181,6 @@ if __name__ == '__main__':
             print(f"Error creating database tables: {e}")
     
     app.run(host='0.0.0.0', port=8080)
+
+
+
