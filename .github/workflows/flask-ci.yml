@@ -24,11 +24,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y docker-compose
 
-    - name: Build and Start Flask Container
-      run: docker-compose -f docker-compose.ci.yml up -d --build flask
+    - name: Build Flask Container
+      run: docker-compose -f docker-compose.ci.yml build flask
 
-    - name: Stream Flask Logs (setup/debugging)
-      run: docker logs --follow --since 0s flask &
+    - name: Run Flask Container in Foreground (Live Logs)
+      run: docker-compose -f docker-compose.ci.yml run --rm flask
 
     # - name: Wait for Flask to be Ready
     #   run: |
