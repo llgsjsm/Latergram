@@ -27,6 +27,9 @@ jobs:
     - name: Build and Start Flask Container
       run: docker-compose -f docker-compose.ci.yml up -d --build flask
 
+    - name: Print Flask Container Logs (for debugging)
+      run: docker logs flask
+
     - name: Wait for Flask to be Ready
       run: |
         for i in {1..20}; do
