@@ -29,7 +29,7 @@ jobs:
       run: sleep 10
 
     - name: Run Flask Test
-      run: docker exec flask python /app/tests/ test_basic_nginx.py
+      run: docker exec flask python /app/tests/test_basic_nginx.py
 
     - name: Test Flask via NGINX
       run: |
