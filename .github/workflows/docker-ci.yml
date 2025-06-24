@@ -29,9 +29,9 @@ jobs:
       run: sleep 10
 
     - name: Run Flask Test
-      run: docker exec flask python /app/tests/test_basic_nginx.py
+      run: docker exec flask python /app/tests/test_basic_nonginx.py
 
-    - name: Test Flask via NGINX
+    - name: Check Flask via NGINX
       run: |
         curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
 
