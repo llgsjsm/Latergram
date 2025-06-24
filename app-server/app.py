@@ -4,9 +4,6 @@ import json
 import os
 from dotenv import load_dotenv  # Add this import
 from models import db, Post, Comment, User
-from managers import AuthenticationManager, FeedManager
-from managers.profile_manager import ProfileManager
-from managers.post_manager import PostManager
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -31,10 +28,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 bcrypt.init_app(app)
 
-auth_manager = AuthenticationManager()
-feed_manager = FeedManager()
-profile_manager = ProfileManager()
-post_manager = PostManager()
+# Use the optimized singleton managers
+from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager
+
+auth_manager = get_auth_manager()
+feed_manager = get_feed_manager()
+profile_manager = get_profile_manager()
+post_manager = get_post_manager()
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
@@ -88,8 +88,8 @@ def home():
         posts = []
     
     try:
-        # Get user stats
-        user_stats = profile_manager.get_user_stats(session['user_id'])
+        # Get user stats with caching
+        user_stats = profile_manager.get_user_stats_cached(session['user_id'])
     except Exception as e:
         print(f"Error getting user stats: {e}")
         user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}

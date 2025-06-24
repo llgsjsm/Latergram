@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
 from flask_bcrypt import Bcrypt
+from sqlalchemy import or_
 import re
 
 bcrypt = Bcrypt()
@@ -8,10 +9,10 @@ bcrypt = Bcrypt()
 class AuthenticationManager:
     def login(self, username_or_email: str, password: str) -> Dict[str, Any]:
         """Authenticate user login - supports both username and email"""
-        # Try to find user by username or email
-        user = User.query.filter_by(username=username_or_email).first()
-        if not user:
-            user = User.query.filter_by(email=username_or_email).first()
+        # Optimize: Single query using OR condition instead of two separate queries
+        user = User.query.filter(
+            or_(User.username == username_or_email, User.email == username_or_email)
+        ).first()
         
         if not user:
             return {'success': False, 'error': 'User not found'}
@@ -44,14 +45,16 @@ class AuthenticationManager:
         if not validation_result['valid']:
             return validation_result
         
-        # Check if username or email already exists
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            return {'success': False, 'error': 'Username already exists'}
+        # Check if username or email already exists - single query optimization
+        existing_user = User.query.filter(
+            or_(User.username == username, User.email == email)
+        ).first()
         
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
-            return {'success': False, 'error': 'Email already exists'}
+        if existing_user:
+            if existing_user.username == username:
+                return {'success': False, 'error': 'Username already exists'}
+            else:
+                return {'success': False, 'error': 'Email already exists'}
         
         try:
             # Create user with profile information in the same table

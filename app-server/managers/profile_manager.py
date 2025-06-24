@@ -5,6 +5,31 @@ from sqlalchemy import text
 class ProfileManager:
     def __init__(self, current_user: User = None):
         self.current_user = current_user
+        # Simple in-memory cache for frequently accessed data
+        self._user_stats_cache = {}
+        self._cache_timeout = 300  # 5 minutes cache timeout
+
+    def _clear_user_cache(self, user_id: int):
+        """Clear cache for a specific user"""
+        if user_id in self._user_stats_cache:
+            del self._user_stats_cache[user_id]
+
+    def get_user_stats_cached(self, user_id: int) -> Dict[str, int]:
+        """Get user stats with caching for better performance"""
+        import time
+        
+        # Check cache first
+        if user_id in self._user_stats_cache:
+            cached_data, timestamp = self._user_stats_cache[user_id]
+            if time.time() - timestamp < self._cache_timeout:
+                return cached_data
+        
+        # If not in cache or expired, fetch from database
+        stats = self.get_user_stats(user_id)
+        
+        # Cache the result
+        self._user_stats_cache[user_id] = (stats, time.time())
+        return stats
 
     def update_profile(self, user_id: int, display_name: str = None, 
                       bio: str = None, profile_picture_url: str = None, 
@@ -47,26 +72,34 @@ class ProfileManager:
         return self.update_profile(user_id, visibility=visibility_type)
 
     def follow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
-        """Follow another user"""
+        """Follow another user - optimized with cache clearing"""
         if follower_user_id == followed_user_id:
             return {'success': False, 'error': 'Cannot follow yourself'}
         
-        # Check if users exist
-        follower_user = User.query.filter_by(userId=follower_user_id).first()
-        followed_user = User.query.filter_by(userId=followed_user_id).first()
+        # Single query to check if both users exist and if already following
+        result = db.session.execute(text("""
+            SELECT 
+                (SELECT COUNT(*) FROM user WHERE userId = :follower_id) as follower_exists,
+                (SELECT COUNT(*) FROM user WHERE userId = :followed_id) as followed_exists,
+                (SELECT COUNT(*) FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id) as already_following
+        """), {"follower_id": follower_user_id, "followed_id": followed_user_id}).fetchone()
         
-        if not follower_user or not followed_user:
+        if not result.follower_exists or not result.followed_exists:
             return {'success': False, 'error': 'One or both users not found'}
         
-        # Check if already following
-        if self.is_following(follower_user_id, followed_user_id):
+        if result.already_following > 0:
             return {'success': False, 'error': 'Already following this user'}
         
         try:
             # Insert follow relationship
-            query = text("INSERT INTO followers (followerUserId, followedUserId) VALUES (:follower_id, :followed_id)")
+            query = text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower_id, :followed_id, NOW())")
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
             db.session.commit()
+            
+            # Clear cache for both users
+            self._clear_user_cache(follower_user_id)
+            self._clear_user_cache(followed_user_id)
+            
             return {
                 'success': True,
                 'message': 'Successfully followed user'
@@ -76,7 +109,7 @@ class ProfileManager:
             return {'success': False, 'error': f'Failed to follow user: {str(e)}'}
     
     def unfollow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
-        """Unfollow a user"""
+        """Unfollow a user - optimized with cache clearing"""
         if not self.is_following(follower_user_id, followed_user_id):
             return {'success': False, 'error': 'Not following this user'}
         
@@ -84,6 +117,11 @@ class ProfileManager:
             query = text("DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id")
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
             db.session.commit()
+            
+            # Clear cache for both users
+            self._clear_user_cache(follower_user_id)
+            self._clear_user_cache(followed_user_id)
+            
             return {
                 'success': True,
                 'message': 'Successfully unfollowed user'
@@ -93,11 +131,11 @@ class ProfileManager:
             return {'success': False, 'error': f'Failed to unfollow user: {str(e)}'}
     
     def is_following(self, follower_user_id: int, followed_user_id: int) -> bool:
-        """Check if one user follows another"""
+        """Check if one user follows another - optimized query"""
         try:
-            query = text("SELECT COUNT(*) as count FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id")
-            result = db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id}).fetchone()
-            return result[0] > 0 if result else False
+            query = text("SELECT 1 FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id LIMIT 1")
+            result = db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id}).first()
+            return result is not None
         except Exception:
             return False
     
@@ -251,69 +289,84 @@ class ProfileManager:
             'query': query
         }
 
-    def get_user_stats(self, user_id: int) -> Dict[str, Any]:
-        """Get user statistics (posts, followers, following counts)"""
+    def get_user_stats(self, user_id: int) -> Dict[str, int]:
+        """Get user statistics with optimized single query"""
         try:
-            # Get posts count
-            posts_query = text("SELECT COUNT(*) as count FROM post WHERE authorId = :user_id")
-            posts_result = db.session.execute(posts_query, {"user_id": user_id}).fetchone()
-            posts_count = posts_result[0] if posts_result else 0
+            # Single query to get all stats at once
+            result = db.session.execute(text("""
+                SELECT 
+                    (SELECT COUNT(*) FROM post WHERE authorId = :user_id) as posts_count,
+                    (SELECT COUNT(*) FROM followers WHERE followedUserId = :user_id) as followers_count,
+                    (SELECT COUNT(*) FROM followers WHERE followerUserId = :user_id) as following_count
+            """), {"user_id": user_id}).fetchone()
             
-            # Get followers count
-            followers_count = self.get_follower_count(user_id)
-            
-            # Get following count
-            following_count = self.get_following_count(user_id)
-            
-            return {
-                'posts_count': posts_count,
-                'followers_count': followers_count,
-                'following_count': following_count
-            }
+            if result:
+                return {
+                    'posts_count': result.posts_count or 0,
+                    'followers_count': result.followers_count or 0,
+                    'following_count': result.following_count or 0
+                }
+            return {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
         except Exception as e:
             print(f"Error getting user stats: {e}")
-            return {
-                'posts_count': 0,
-                'followers_count': 0,
-                'following_count': 0
-            }
-    
-    def get_user_posts(self, user_id: int) -> List[Dict[str, Any]]:
-        """Get all posts by a user"""
+            return {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
+
+    def get_suggested_users(self, user_id: int, limit: int = 5) -> List[Dict]:
+        """Get suggested users to follow with optimized query"""
         try:
-            from models.post import Post
-            posts = Post.query.filter_by(authorId=user_id).order_by(Post.timeOfPost.desc()).all()
+            # Get users not being followed, excluding self, with efficient query
+            result = db.session.execute(text("""
+                SELECT u.userId, u.username, u.profilePicture, u.bio
+                FROM user u
+                WHERE u.userId != :user_id 
+                AND u.userId NOT IN (
+                    SELECT followedUserId FROM followers WHERE followerUserId = :user_id
+                )
+                AND u.visibility = 'public'
+                ORDER BY u.followers DESC, u.createdAt DESC
+                LIMIT :limit
+            """), {"user_id": user_id, "limit": limit}).fetchall()
+            
+            suggestions = []
+            for row in result:
+                # Create a dict that matches the template expectations
+                suggestions.append({
+                    'userId': row.userId,  # Changed from user_id to userId for template compatibility
+                    'username': row.username,
+                    'profilePicture': row.profilePicture or '',
+                    'bio': row.bio or ''
+                })
+            
+            return suggestions
+        except Exception as e:
+            print(f"Error getting suggested users: {e}")
+            return []
+    
+    def get_user_posts(self, user_id: int, page: int = 1, per_page: int = 20) -> List:
+        """Get posts by a specific user with pagination for better performance"""
+        try:
+            from models import Post
+            
+            offset = (page - 1) * per_page
+            
+            # Get user's posts with pagination, ordered by most recent first
+            posts = (Post.query
+                    .filter_by(authorId=user_id)
+                    .order_by(Post.timeOfPost.desc())
+                    .offset(offset)
+                    .limit(per_page)
+                    .all())
+            
             return posts
         except Exception as e:
             print(f"Error getting user posts: {e}")
             return []
-    
-    def get_suggested_users(self, current_user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get suggested users to follow (users not currently followed)"""
+
+    def get_user_posts_count(self, user_id: int) -> int:
+        """Get total count of user's posts"""
         try:
-            # Get users that the current user is not following
-            query = text("""
-                SELECT u.* FROM user u 
-                WHERE u.userId != :current_user_id 
-                AND u.userId NOT IN (
-                    SELECT followedUserId FROM followers 
-                    WHERE followerUserId = :current_user_id
-                )
-                ORDER BY u.createdAt DESC
-                LIMIT :limit
-            """)
-            result = db.session.execute(query, {
-                "current_user_id": current_user_id,
-                "limit": limit
-            })
-            
-            suggested_users = []
-            for row in result:
-                user = User.query.filter_by(userId=row[0]).first()
-                if user:
-                    suggested_users.append(user)
-            
-            return suggested_users
+            from models import Post
+            return Post.query.filter_by(authorId=user_id).count()
         except Exception as e:
-            print(f"Error getting suggested users: {e}")
-            return []
+            print(f"Error getting user posts count: {e}")
+            return 0

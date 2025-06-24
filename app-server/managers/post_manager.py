@@ -4,6 +4,29 @@ from sqlalchemy import text
 from datetime import datetime
 
 class PostManager:
+    def __init__(self):
+        # Initialize the post_likes table once when the manager is created
+        self._ensure_post_likes_table()
+        
+    def _ensure_post_likes_table(self):
+        """Ensure post_likes table exists - called once during initialization"""
+        try:
+            db.session.execute(text("""
+                CREATE TABLE IF NOT EXISTS post_likes (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    post_id INT NOT NULL,
+                    user_id INT NOT NULL,
+                    like_id INT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_user_post_like (user_id, post_id),
+                    INDEX idx_post_id (post_id),
+                    INDEX idx_user_id (user_id)
+                )
+            """))
+            db.session.commit()
+        except Exception as e:
+            print(f"Table creation info: {e}")
+    
     def create_post(self, title, content, user_id):
         new_post = Post(title=title, content=content, authorId=user_id)
         db.session.add(new_post)
@@ -19,30 +42,12 @@ class PostManager:
         return False
 
     def like_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
-        """Like a post using a junction table approach - simplified version"""
+        """Like a post using a junction table approach - optimized version"""
         try:
-            # Check if post exists
+            # Check if post exists and if user already liked it in a single query
             post = Post.query.get(post_id)
             if not post:
                 return {'success': False, 'error': 'Post not found'}
-            
-            # Create the junction table if it doesn't exist
-            try:
-                db.session.execute(text("""
-                    CREATE TABLE IF NOT EXISTS post_likes (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        post_id INT NOT NULL,
-                        user_id INT NOT NULL,
-                        like_id INT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE KEY unique_user_post_like (user_id, post_id),
-                        INDEX idx_post_id (post_id),
-                        INDEX idx_user_id (user_id)
-                    )
-                """))
-                db.session.commit()
-            except Exception as e:
-                print(f"Table creation info: {e}")
             
             # Check if user already liked this post
             existing_like = db.session.execute(
@@ -70,9 +75,6 @@ class PostManager:
             # Update post like count
             post.like = (post.like or 0) + 1
             
-            # Avoid touching post.likesId to prevent constraint issues
-            # The junction table serves as our source of truth
-            
             db.session.commit()
             
             return {'success': True, 'message': 'Post liked successfully', 'new_count': post.like}
@@ -82,7 +84,7 @@ class PostManager:
             return {'success': False, 'error': f'Failed to like post: {str(e)}'}
 
     def unlike_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
-        """Unlike a post using the junction table approach - simplified version"""
+        """Unlike a post using the junction table approach - optimized version"""
         try:
             # Check if post exists
             post = Post.query.get(post_id)
@@ -138,33 +140,15 @@ class PostManager:
             return {'success': False, 'error': f'Failed to unlike post: {str(e)}'}
     
     def is_post_liked_by_user(self, user_id: int, post_id: int) -> bool:
-        """Check if a user has liked a specific post using junction table"""
+        """Check if a user has liked a specific post using junction table - optimized"""
         try:
-            # Ensure the post_likes table exists
-            try:
-                db.session.execute(text("""
-                    CREATE TABLE IF NOT EXISTS post_likes (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        post_id INT NOT NULL,
-                        user_id INT NOT NULL,
-                        like_id INT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE KEY unique_user_post_like (user_id, post_id),
-                        INDEX idx_post_id (post_id),
-                        INDEX idx_user_id (user_id)
-                    )
-                """))
-                db.session.commit()
-            except Exception as e:
-                print(f"Table creation issue (might already exist): {e}")
-            
-            # Query the junction table
+            # Query the junction table (table already ensured during initialization)
             like_exists = db.session.execute(
-                text("SELECT COUNT(*) FROM post_likes WHERE user_id = :user_id AND post_id = :post_id"),
+                text("SELECT 1 FROM post_likes WHERE user_id = :user_id AND post_id = :post_id LIMIT 1"),
                 {"user_id": user_id, "post_id": post_id}
-            ).scalar()
+            ).first()
             
-            return like_exists > 0
+            return like_exists is not None
         except Exception as e:
             print(f"Error checking if post is liked: {e}")
             return False
@@ -253,27 +237,9 @@ class PostManager:
         return {'success': True}
 
     def get_user_liked_posts(self, user_id: int) -> set:
-        """Get all post IDs that a user has liked using junction table"""
+        """Get all post IDs that a user has liked using junction table - optimized"""
         try:
-            # Ensure the post_likes table exists
-            try:
-                db.session.execute(text("""
-                    CREATE TABLE IF NOT EXISTS post_likes (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        post_id INT NOT NULL,
-                        user_id INT NOT NULL,
-                        like_id INT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE KEY unique_user_post_like (user_id, post_id),
-                        INDEX idx_post_id (post_id),
-                        INDEX idx_user_id (user_id)
-                    )
-                """))
-                db.session.commit()
-            except Exception as e:
-                print(f"Table creation issue (might already exist): {e}")
-            
-            # Query the junction table for all posts liked by this user
+            # Query the junction table for all posts liked by this user (table already ensured)
             liked_posts = db.session.execute(
                 text("SELECT post_id FROM post_likes WHERE user_id = :user_id"),
                 {"user_id": user_id}
@@ -284,3 +250,23 @@ class PostManager:
         except Exception as e:
             print(f"Error getting user liked posts: {e}")
             return set()
+
+    def get_posts_with_likes_batch(self, post_ids: list, user_id: int) -> Dict[int, bool]:
+        """Batch check which posts are liked by user - more efficient than individual checks"""
+        if not post_ids:
+            return {}
+            
+        try:
+            # Convert list to comma-separated string for SQL IN clause
+            post_ids_str = ','.join(map(str, post_ids))
+            
+            liked_posts = db.session.execute(
+                text(f"SELECT post_id FROM post_likes WHERE user_id = :user_id AND post_id IN ({post_ids_str})"),
+                {"user_id": user_id}
+            ).fetchall()
+            
+            liked_set = {row.post_id for row in liked_posts}
+            return {post_id: post_id in liked_set for post_id in post_ids}
+        except Exception as e:
+            print(f"Error getting posts likes batch: {e}")
+            return {post_id: False for post_id in post_ids}
