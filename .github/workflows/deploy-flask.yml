@@ -54,7 +54,7 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: admin-dev
         key: ${{ secrets.EC2_SSH_KEY }}
-        # Can manually start & stop if you'd like
+        # Maybe don't need to rebuild when replacing app-server/
         script: |
           cd /home/admin-dev/latergram
           echo "Rebuilding and restarting Flask container..."

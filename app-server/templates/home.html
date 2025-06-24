@@ -1,52 +1,134 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Latergram</title>
-
-    <!-- Local CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/main.css') }}">
-</head>
-
-<body>
-    <div class="d-flex">
-        <nav id="main-nav" class="flex-column bg-light py-5 px-3">
-            <a class="navbar-brand mb-4" href="">
-                Later<span class="beau">G</span>ram
-            </a>
-            <ul class="nav nav-pills flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#"><i class="fas fa-house"></i>Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-magnifying-glass"></i>Search</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-plus"></i>Create Post</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-user"></i>Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a id="logout-btn" class="nav-link" href="#"><i class="fas fa-arrow-right-from-bracket"></i>Logout</a>
-                </li>
-            </ul>
-        </nav>
-
-        <div class="flex-grow-1 py-5 px-3">
-            <h1>Welcome</h1>
-            <p>This is the main content area.</p>
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <!-- Main Feed - Centered -->
+    <div class="col-12 col-md-8 col-lg-6">
+      <h2 class="mb-4 text-center">Welcome to Latergram</h2>
+      <!-- Posts Feed -->
+      {% if posts %}
+      <h5 class="mb-3">Recent Posts</h5>
+      {% for post in posts %}
+      <div class="card mb-3">
+        {% if post.image %}
+        <img src="{{ post.image }}" class="card-img-top" style="max-height: 300px; object-fit: cover" alt="Post image" />
+        {% endif %}
+        <div class="card-body">
+          <!-- Post Header -->
+          <div class="d-flex align-items-center mb-2">
+            {% if post.author %}
+            <img src="{{ post.author.profilePicture or 'https://via.placeholder.com/40' }}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover" />
+            <div>
+              <a href="{{ url_for('profile', user_id=post.authorId) }}" class="text-decoration-none fw-bold">{{ post.author.username }}</a>
+              <div class="text-muted small">{{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else '' }}</div>
+            </div>
+            {% endif %}
+          </div>
+          <!-- Post Content -->
+          {% if post.title %}
+          <h6 class="card-title">{{ post.title }}</h6>
+          {% endif %}
+          <p class="card-text">{{ post.content }}</p>
+          <!-- Post Actions -->
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              {% if liked_posts.get(post.postId, False) %}
+              <!-- Unlike button -->
+              <form method="POST" action="{{ url_for('unlike_post', post_id=post.postId) }}" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="bi bi-heart-fill"></i> {{ post.like or 0 }}
+                </button>
+              </form>
+              {% else %}
+              <!-- Like button -->
+              <form method="POST" action="{{ url_for('like_post', post_id=post.postId) }}" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-heart"></i> {{ post.like or 0 }}
+                </button>
+              </form>
+              {% endif %}
+              <button class="btn btn-outline-secondary btn-sm ms-2" onclick="toggleCommentForm('{{ post.postId }}')">
+                <i class="fas fa-comment"></i> Comment
+              </button>
+            </div>
+            <small class="text-muted">{{ post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else '' }}</small>
+          </div>
+          <!-- Comments Section -->
+          {% if post.comments %}
+          <div class="mt-3 border-top pt-2">
+            <small class="text-muted">Comments:</small>
+            {% set real_comments = [] %} {% for comment in post.comments %} {% if comment.parentCommentId == None and not comment.commentContent.startswith('__LIKE__') %} {% set _ = real_comments.append(comment) %} {% endif %} {% endfor %} {% for comment in real_comments[:3] %}
+            <div class="mb-1">
+              <strong>{{ comment.author.username if comment.author else 'Unknown' }}</strong>: {{ comment.commentContent }}
+            </div>
+            {% endfor %} {% if real_comments|length > 3 %}
+            <small class="text-muted">and {{ real_comments|length - 3 }} more comments...</small>
+            {% endif %}
+          </div>
+          {% endif %}
+          <!-- Comment Form -->
+          <div id="comment-form-{{ post.postId }}" class="mt-2" style="display: none">
+            <form action="{{ url_for('add_comment', post_id=post.postId) }}" method="POST">
+              <div class="input-group input-group-sm">
+                <input type="text" class="form-control" name="comment" placeholder="Add a comment..." required />
+                <button class="btn btn-primary" type="submit">Post</button>
+              </div>
+            </form>
+          </div>
         </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No posts yet</h5>
+        <p class="text-muted">Be the first to share something!</p>
+        <a href="{{ url_for('create_post') }}" class="btn btn-primary">Create Your First Post</a>
+      </div>
+      {% endif %}
     </div>
+  </div>
+</div>
+<script>
+  // Simple comment form toggle
+  function toggleCommentForm(postId) {
+    const form = document.getElementById(`comment-form-${postId}`);
+    if (form.style.display === "none" || form.style.display === "") {
+      form.style.display = "block";
+      form.querySelector("input").focus();
+    } else {
+      form.style.display = "none";
+    }
+  }
+</script>
+{% endblock %}
 
-    <!-- Local JS -->
-    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-</body>
-
-</html>
+{% block rightpanel %}
+{% if suggested_users %}
+<div class="card m-3 mt-4">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-users"></i> People you might know
+    </h6>
+  </div>
+  <div class="card-body">
+    {% for user in suggested_users[:3] %}
+    <div class="d-flex align-items-center mb-3">
+      <img src="{{ user.profilePicture or 'https://via.placeholder.com/35' }}" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover" />
+      <div class="flex-grow-1">
+        <a href="{{ url_for('profile', user_id=user.userId) }}" class="text-decoration-none">
+          <strong>{{ user.username }}</strong>
+        </a>
+        {% if user.bio %}
+        <div class="text-muted small">
+          {{ user.bio[:30] }}{% if user.bio|length > 30 %}...{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('profile', user_id=user.userId) }}" class="btn btn-primary btn-sm">View</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
