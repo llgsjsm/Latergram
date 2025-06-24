@@ -52,11 +52,14 @@
                         <div class="mb-4">
                             <label for="visibility" class="form-label">Profile Visibility</label>
                             <select class="form-select" id="visibility" name="visibility">
-                                <option value="public" {% if user.visibility == 'public' %}selected{% endif %}>
-                                    Public - Anyone can see your profile
+                                <option value="Public" {% if user.visibility == 'Public' %}selected{% endif %}>
+                                    Public - Anyone can see your profile and posts
                                 </option>
-                                <option value="private" {% if user.visibility == 'private' %}selected{% endif %}>
-                                    Private - Only followers can see your posts
+                                <option value="FollowersOnly" {% if user.visibility == 'FollowersOnly' %}selected{% endif %}>
+                                    Followers Only - Only your followers can see your posts
+                                </option>
+                                <option value="Private" {% if user.visibility == 'Private' %}selected{% endif %}>
+                                    Private - Your posts are hidden from everyone
                                 </option>
                             </select>
                         </div>

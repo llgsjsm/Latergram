@@ -11,7 +11,7 @@ class User(db.Model):
     password = db.Column(db.String(100), nullable=False)
     createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     profilePicture = db.Column(db.String(255), nullable=True, default='')
-    visibility = db.Column(db.String(20), default='public')
+    visibility = db.Column(db.String(20), default='Public')
     bio = db.Column(db.Text, nullable=True, default='')
     followers = db.Column(db.Integer, default=0)  # Added missing followers field
 
@@ -87,4 +87,17 @@ class Moderator(db.Model):
         return self.modLevel
         
     def set_mod_level(self, level):
-        self.modLevel = level 
+        self.modLevel = level
+
+# Follower relationship model  
+class Follower(db.Model):
+    __tablename__ = 'followers'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    followerUserId = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
+    followedUserId = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
+    createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    # Relationships
+    follower = db.relationship('User', foreign_keys=[followerUserId], backref='following_relationships')
+    followed = db.relationship('User', foreign_keys=[followedUserId], backref='follower_relationships')
