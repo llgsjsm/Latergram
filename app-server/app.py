@@ -373,6 +373,30 @@ def edit_profile():
     
     return render_template('edit_profile.html', user=user)
 
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    # Validate inputs
+    if not current_password or not new_password or not confirm_password:
+        return jsonify({'success': False, 'error': 'All fields are required'}), 400
+    
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'error': 'New passwords do not match'}), 400
+    
+    # Change the password
+    result = profile_manager.change_password(session['user_id'], current_password, new_password)
+    
+    if result['success']:
+        return jsonify({'success': True, 'message': 'Password changed successfully'})
+    else:
+        return jsonify({'success': False, 'error': result['error']}), 400
+
 @app.route('/api/followers/<int:user_id>')
 def get_followers(user_id):
     if 'user_id' not in session:

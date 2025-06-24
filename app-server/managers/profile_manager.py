@@ -370,3 +370,40 @@ class ProfileManager:
         except Exception as e:
             print(f"Error getting user posts count: {e}")
             return 0
+    
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> Dict[str, Any]:
+        """Change user password with validation"""
+        try:
+            from flask_bcrypt import Bcrypt
+            bcrypt = Bcrypt()
+            
+            # Get the user
+            user = User.query.filter_by(userId=user_id).first()
+            if not user:
+                return {'success': False, 'error': 'User not found'}
+            
+            # Verify current password
+            if not bcrypt.check_password_hash(user.password, current_password):
+                return {'success': False, 'error': 'Current password is incorrect'}
+            
+            # Validate new password (similar to registration)
+            if len(new_password) < 6:
+                return {'success': False, 'error': 'New password must be at least 6 characters long'}
+            elif len(new_password) > 255:
+                return {'success': False, 'error': 'New password must be less than 255 characters'}
+            
+            # Hash the new password
+            hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            
+            # Update the password
+            user.password = hashed_password
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'message': 'Password changed successfully'
+            }
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to change password: {str(e)}'}
