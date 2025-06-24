@@ -97,6 +97,7 @@ class Follower(db.Model):
     followerUserId = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
     followedUserId = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
     createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    status = db.Column(db.String(20), default='accepted')  # 'pending', 'accepted', 'declined'
     
     # Relationships
     follower = db.relationship('User', foreign_keys=[followerUserId], backref='following_relationships')

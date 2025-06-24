@@ -101,6 +101,14 @@ def home():
         print(f"Error getting suggested users: {e}")
         suggested_users = []
     
+    try:
+        # Get pending follow requests
+        follow_requests = profile_manager.get_pending_follow_requests(session['user_id'])
+        pending_requests = follow_requests.get('requests', []) if follow_requests.get('success') else []
+    except Exception as e:
+        print(f"Error getting follow requests: {e}")
+        pending_requests = []
+    
     # Check which posts the current user has liked (efficient single query)
     try:
         liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
@@ -109,7 +117,7 @@ def home():
         print(f"Error getting liked posts: {e}")
         liked_posts = {post.postId: False for post in posts}
 
-    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts)
+    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests)
 
 @app.route('/')
 def hello_world():
@@ -290,10 +298,14 @@ def profile(user_id=None):
             if 'message' in visibility_check:
                 visibility_message = visibility_check['message']
         
-        # Check if current user is following this user
+        # Check if current user is following this user and get follow status
         is_following = False
+        follow_status = {'status': 'none', 'is_following': False, 'request_pending': False}
         if user_id != session['user_id']:
-            is_following = profile_manager.is_following(session['user_id'], user_id)
+            follow_status_result = profile_manager.get_follow_status(session['user_id'], user_id)
+            if follow_status_result.get('success'):
+                follow_status = follow_status_result
+                is_following = follow_status.get('is_following', False)
         
         # Check if this is the current user's profile
         is_own_profile = (user_id == session['user_id'])
@@ -315,6 +327,7 @@ def profile(user_id=None):
                              user_stats=user_stats, 
                              user_posts=user_posts,
                              is_following=is_following,
+                             follow_status=follow_status,
                              is_own_profile=is_own_profile,
                              liked_posts=liked_posts,
                              visibility_message=visibility_message,
@@ -330,7 +343,7 @@ def follow_user(user_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
-    result = profile_manager.follow_user(session['user_id'], user_id)
+    result = profile_manager.send_follow_request(session['user_id'], user_id)
     return jsonify(result)
 
 @app.route('/api/unfollow/<int:user_id>', methods=['POST'])
@@ -339,6 +352,44 @@ def unfollow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.unfollow_user(session['user_id'], user_id)
+    return jsonify(result)
+
+@app.route('/api/follow-request/cancel/<int:target_user_id>', methods=['POST'])
+def cancel_follow_request(target_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.cancel_follow_request(session['user_id'], target_user_id)
+    return jsonify(result)
+
+@app.route('/api/follow-request/respond/<int:requester_id>', methods=['POST'])
+def respond_to_follow_request(requester_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    action = data.get('action')  # 'accept' or 'decline'
+    
+    if not action or action not in ['accept', 'decline']:
+        return jsonify({'success': False, 'error': 'Invalid action'}), 400
+    
+    result = profile_manager.respond_to_follow_request(session['user_id'], requester_id, action)
+    return jsonify(result)
+
+@app.route('/api/follow-requests')
+def get_follow_requests():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.get_pending_follow_requests(session['user_id'])
+    return jsonify(result)
+
+@app.route('/api/follow-status/<int:target_user_id>')
+def get_follow_status(target_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.get_follow_status(session['user_id'], target_user_id)
     return jsonify(result)
 
 @app.route('/api/like/<int:post_id>', methods=['POST'])
