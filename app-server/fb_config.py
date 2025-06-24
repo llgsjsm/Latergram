@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # Load service account key
-cred = credentials.Certificate("latergram-e9a26-c2cd54fe5321.json")
+cred = credentials.Certificate("image.json")
 
 # Prevent double initialization (important in some server contexts)
 if not firebase_admin._apps:
