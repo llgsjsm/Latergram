@@ -30,6 +30,4 @@ venv/
 # IGNORE SECRETS
 *.env
 *.secret
-
-# FIREBASE SERVICE KEY
-latergram-e9a26-c2cd54fe5321.json
+*e.json

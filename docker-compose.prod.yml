@@ -7,11 +7,12 @@
 services:
   flask:
     container_name: flask
-    image: python:3.8-slim
+    build:
+      context: ./app-server
+      dockerfile: Dockerfile
     working_dir: /app
     volumes:
       - ./app-server:/app
-    command: sh -c "pip install -r requirements.txt && python app.py"
     networks:
       laternet:
         ipv4_address: 10.20.0.2
@@ -39,7 +40,7 @@ services:
       - ./mysql-data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: laterdb
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     networks:
