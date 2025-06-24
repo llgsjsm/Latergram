@@ -272,11 +272,23 @@ def profile(user_id=None):
             flash('User not found', 'danger')
             return redirect(url_for('home'))
         
+        # Check if current user can view this profile
+        visibility_check = profile_manager.can_view_profile(session['user_id'], user_id)
+        if not visibility_check['can_view']:
+            flash('Profile not found', 'danger')
+            return redirect(url_for('home'))
+        
         # Get user stats
         user_stats = profile_manager.get_user_stats(user_id)
         
-        # Get user's posts
-        user_posts = profile_manager.get_user_posts(user_id)
+        # Get user's posts only if visibility allows
+        user_posts = []
+        visibility_message = None
+        if visibility_check['can_see_posts']:
+            user_posts = profile_manager.get_user_posts(user_id, session['user_id'])
+        else:
+            if 'message' in visibility_check:
+                visibility_message = visibility_check['message']
         
         # Check if current user is following this user
         is_following = False
@@ -304,7 +316,9 @@ def profile(user_id=None):
                              user_posts=user_posts,
                              is_following=is_following,
                              is_own_profile=is_own_profile,
-                             liked_posts=liked_posts)
+                             liked_posts=liked_posts,
+                             visibility_message=visibility_message,
+                             can_see_posts=visibility_check['can_see_posts'])
     
     except Exception as e:
         print(f"Error in profile route: {e}")

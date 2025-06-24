@@ -342,10 +342,18 @@ class ProfileManager:
             print(f"Error getting suggested users: {e}")
             return []
     
-    def get_user_posts(self, user_id: int, page: int = 1, per_page: int = 20) -> List:
-        """Get posts by a specific user with pagination for better performance"""
+    def get_user_posts(self, user_id: int, viewer_user_id: int = None, page: int = 1, per_page: int = 20) -> List:
+        """Get posts by a specific user with pagination and visibility filtering"""
         try:
             from models import Post
+            
+            # If no viewer specified, assume they're viewing their own profile
+            if viewer_user_id is None:
+                viewer_user_id = user_id
+            
+            # Check if viewer can see the user's posts
+            if not self._can_view_user_posts(viewer_user_id, user_id):
+                return []
             
             offset = (page - 1) * per_page
             
@@ -361,6 +369,32 @@ class ProfileManager:
         except Exception as e:
             print(f"Error getting user posts: {e}")
             return []
+    
+    def _can_view_user_posts(self, viewer_user_id: int, profile_user_id: int) -> bool:
+        """Check if a user can view another user's posts based on visibility settings"""
+        # If viewing own posts, always allow
+        if viewer_user_id == profile_user_id:
+            return True
+        
+        # Get the profile user's visibility setting
+        profile_user = User.query.filter_by(userId=profile_user_id).first()
+        if not profile_user:
+            return False
+        
+        # If profile is public, allow viewing
+        if profile_user.visibility == 'Public':
+            return True
+        
+        # If profile is private, deny viewing
+        if profile_user.visibility == 'Private':
+            return False
+        
+        # If profile is followers only, check if viewer follows the profile user
+        if profile_user.visibility == 'FollowersOnly':
+            return self.is_following(viewer_user_id, profile_user_id)
+        
+        # Default to deny if visibility setting is unknown
+        return False
 
     def get_user_posts_count(self, user_id: int) -> int:
         """Get total count of user's posts"""
@@ -510,3 +544,33 @@ class ProfileManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to delete account: {str(e)}'}
+    
+    def can_view_profile(self, viewer_user_id: int, profile_user_id: int) -> Dict[str, Any]:
+        """Check if a user can view another user's profile based on visibility settings"""
+        # If viewing own profile, always allow
+        if viewer_user_id == profile_user_id:
+            return {'can_view': True, 'can_see_posts': True}
+        
+        # Get the profile user's visibility setting
+        profile_user = User.query.filter_by(userId=profile_user_id).first()
+        if not profile_user:
+            return {'can_view': False, 'can_see_posts': False, 'error': 'User not found'}
+        
+        # If profile is public, allow viewing everything
+        if profile_user.visibility == 'Public':
+            return {'can_view': True, 'can_see_posts': True}
+        
+        # If profile is private, can view basic info but not posts
+        if profile_user.visibility == 'Private':
+            return {'can_view': True, 'can_see_posts': False, 'message': 'This account is private'}
+        
+        # If profile is followers only, check if viewer follows the profile user
+        if profile_user.visibility == 'FollowersOnly':
+            is_following = self.is_following(viewer_user_id, profile_user_id)
+            if is_following:
+                return {'can_view': True, 'can_see_posts': True}
+            else:
+                return {'can_view': True, 'can_see_posts': False, 'message': 'Follow this user to see their posts'}
+        
+        # Default to basic view only
+        return {'can_view': True, 'can_see_posts': False}

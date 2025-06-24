@@ -59,8 +59,9 @@
     color: inherit !important;
   }
 
-  body, .profile-bg {
-    background: var(--color-bg, #10121D) !important;
+  body,
+  .profile-bg {
+    background: var(--color-bg, #10121d) !important;
     color: var(--color-white, #fff) !important;
   }
   .profile-header-card {
@@ -72,7 +73,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    box-shadow: 0 2px 16px 0 rgba(0,0,0,0.10);
+    box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.1);
   }
   .profile-header-left {
     display: flex;
@@ -103,7 +104,7 @@
     transition: color 0.2s;
   }
   .profile-header-stats a:hover {
-    color: var(--color-primary, #5F77F8);
+    color: var(--color-primary, #5f77f8);
     text-decoration: none;
   }
   #following-count {
@@ -116,7 +117,7 @@
     align-items: flex-end;
   }
   .profile-header-actions .btn {
-    background: var(--color-primary, #5F77F8);
+    background: var(--color-primary, #5f77f8);
     color: #fff !important;
     border: none;
     border-radius: 10px;
@@ -126,7 +127,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px 0 rgba(95,119,248,0.10);
+    box-shadow: 0 2px 8px 0 rgba(95, 119, 248, 0.1);
     transition: background 0.2s;
   }
   .profile-header-actions .btn:hover {
@@ -159,11 +160,25 @@
       <div class="profile-header-bio">{{ user.bio }}</div>
       {% endif %}
       <div class="profile-header-stats">
-        <a href="#" id="followers-link" data-bs-toggle="modal" data-bs-target="#followersModal">
-          <span id="follower-count">{{ user_stats.followers_count or 0 }}</span> Followers
+        <a
+          href="#"
+          id="followers-link"
+          data-bs-toggle="modal"
+          data-bs-target="#followersModal"
+        >
+          <span id="follower-count">{{ user_stats.followers_count or 0 }}</span>
+          Followers
         </a>
-        <a href="#" id="following-link" data-bs-toggle="modal" data-bs-target="#followingModal">
-          <span id="following-count">{{ user_stats.following_count or 0 }}</span> Following
+        <a
+          href="#"
+          id="following-link"
+          data-bs-toggle="modal"
+          data-bs-target="#followingModal"
+        >
+          <span id="following-count"
+            >{{ user_stats.following_count or 0 }}</span
+          >
+          Following
         </a>
       </div>
     </div>
@@ -176,22 +191,48 @@
         <i class="fas fa-cog"></i>
       </button>
       <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="{{ url_for('edit_profile') }}">Settings</a></li>
-        <li><a class="dropdown-item" href="#" onclick="alert('Feature coming soon!')">Privacy</a></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('edit_profile') }}"
+            >Settings</a
+          >
+        </li>
+        <li>
+          <a
+            class="dropdown-item"
+            href="#"
+            onclick="alert('Feature coming soon!')"
+            >Privacy</a
+          >
+        </li>
         <li><hr class="dropdown-divider" /></li>
-        <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a>
+        </li>
       </ul>
-      {% else %}
-      {% if is_following %}
-      <button class="btn" data-user-id="{{ user.userId }}" data-action="unfollow" title="Unfollow">
+      {% else %} {% if is_following %}
+      <button
+        class="btn"
+        data-user-id="{{ user.userId }}"
+        data-action="unfollow"
+        title="Unfollow"
+      >
         <i class="fas fa-user-check"></i>
       </button>
       {% else %}
-      <button class="btn" data-user-id="{{ user.userId }}" data-action="follow" title="Follow">
+      <button
+        class="btn"
+        data-user-id="{{ user.userId }}"
+        data-action="follow"
+        title="Follow"
+      >
         <i class="fas fa-user-plus"></i>
       </button>
       {% endif %}
-      <button class="btn" title="Message" onclick="alert('Message feature coming soon!')">
+      <button
+        class="btn"
+        title="Message"
+        onclick="alert('Message feature coming soon!')"
+      >
         <i class="fas fa-comment"></i>
       </button>
       {% endif %}
@@ -202,14 +243,16 @@
 <!-- Posts Section Header -->
 <div class="pt-4 posts-section">
   <div class="d-flex justify-content-center mb-4">
-    <div class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header">
+    <div
+      class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header"
+    >
       <i class="fas fa-th-large me-2"></i>
       <span class="fw-bold text-uppercase small">POSTS</span>
     </div>
   </div>
 
   <!-- Posts Grid -->
-  {% if user_posts and user_posts|length > 0 %}
+  {% if can_see_posts %} {% if user_posts and user_posts|length > 0 %}
   <div class="row">
     {% for post in user_posts %}
     <div class="col-lg-4 col-md-6 mb-4">
@@ -234,8 +277,7 @@
           <div class="text-center">
             <i class="fas fa-file-text fa-2x mb-2"></i>
             <div class="small">
-              {{ post.title[:20] }}{% if post.title|length > 20 %}...{%
-              endif %}
+              {{ post.title[:20] }}{% if post.title|length > 20 %}...{% endif %}
             </div>
           </div>
         </div>
@@ -305,10 +347,7 @@
                 action="{{ url_for('like_post', post_id=post.postId) }}"
                 class="d-inline"
               >
-                <button
-                  type="submit"
-                  class="btn btn-outline-danger btn-sm"
-                >
+                <button type="submit" class="btn btn-outline-danger btn-sm">
                   <i class="bi bi-heart"></i> {{ post.like or 0 }}
                 </button>
               </form>
@@ -338,9 +377,7 @@
                       placeholder="Add a comment..."
                       required
                     />
-                    <button class="btn btn-primary" type="submit">
-                      Post
-                    </button>
+                    <button class="btn btn-primary" type="submit">Post</button>
                   </div>
                 </form>
               </div>
@@ -352,7 +389,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <!-- Empty State -->
+  <!-- Empty State for visible profiles -->
   <div class="text-center py-5">
     <div class="mb-4">
       <i class="fas fa-camera fa-3x text-muted"></i>
@@ -364,7 +401,20 @@
       <i class="fas fa-plus"></i> Create Your First Post
     </a>
     {% else %}
-    <p>When <span>{{ user.username }}</span> shares photos, they'll appear here.</p>
+    <p>
+      When <span>{{ user.username }}</span> shares photos, they'll appear here.
+    </p>
+    {% endif %}
+  </div>
+  {% endif %} {% else %}
+  <!-- Private/Restricted Profile -->
+  <div class="text-center py-5">
+    <div class="mb-4">
+      <i class="fas fa-lock fa-3x text-muted"></i>
+    </div>
+    <h4>{{ visibility_message or "This account is private" }}</h4>
+    {% if not is_following and not is_own_profile %}
+    <p>Follow <span>{{ user.username }}</span> to see their posts.</p>
     {% endif %}
   </div>
   {% endif %}
@@ -428,7 +478,11 @@
 
 <script>
   // Follow/Unfollow functionality
-  [...document.querySelectorAll(".follow-btn, .profile-header-actions .btn[data-action]")].forEach((button) => {
+  [
+    ...document.querySelectorAll(
+      ".follow-btn, .profile-header-actions .btn[data-action]"
+    ),
+  ].forEach((button) => {
     button.addEventListener("click", function () {
       const userId = this.dataset.userId;
       const action = this.dataset.action;
@@ -453,11 +507,13 @@
             if (action === "follow") {
               btn.innerHTML = '<i class="fas fa-user-check"></i>';
               btn.dataset.action = "unfollow";
-              if (!isNaN(followerCount)) followerCountElem.textContent = followerCount + 1;
+              if (!isNaN(followerCount))
+                followerCountElem.textContent = followerCount + 1;
             } else {
               btn.innerHTML = '<i class="fas fa-user-plus"></i>';
               btn.dataset.action = "follow";
-              if (!isNaN(followerCount) && followerCount > 0) followerCountElem.textContent = followerCount - 1;
+              if (!isNaN(followerCount) && followerCount > 0)
+                followerCountElem.textContent = followerCount - 1;
             }
           } else {
             alert("Error: " + data.error);
@@ -572,13 +628,17 @@
   }
 </script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  document.getElementById("followers-link").addEventListener("click", function() {
-    loadFollowers('{{ user.userId }}');
+  document.addEventListener("DOMContentLoaded", function () {
+    document
+      .getElementById("followers-link")
+      .addEventListener("click", function () {
+        loadFollowers("{{ user.userId }}");
+      });
+    document
+      .getElementById("following-link")
+      .addEventListener("click", function () {
+        loadFollowing("{{ user.userId }}");
+      });
   });
-  document.getElementById("following-link").addEventListener("click", function() {
-    loadFollowing('{{ user.userId }}');
-  });
-});
 </script>
 {% endblock %}
