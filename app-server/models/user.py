@@ -1,8 +1,9 @@
+from .base_user import BaseUserMixin
 from .database import db
 from .enums import Role, VisibilityType
 import datetime
 
-class User(db.Model):
+class User(db.Model, BaseUserMixin):
     __tablename__ = 'user'
     
     userId = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -18,6 +19,16 @@ class User(db.Model):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    # Implementation of abstract methods from BaseUserMixin
+    def get_id(self):
+        """Implementation of abstract method from BaseUserMixin"""
+        return self.userId
+    
+    def set_id(self, user_id):
+        """Implementation of abstract method from BaseUserMixin"""
+        self.userId = user_id
+
+    # User-specific getter and setter methods
     def get_user_id(self):
         return self.userId
 
@@ -68,26 +79,15 @@ class User(db.Model):
         
     def set_followers(self, followers):
         self.followers = followers
-
-# Moderator model as separate table
-class Moderator(db.Model):
-    __tablename__ = 'moderator'
     
-    modID = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    modLevel = db.Column(db.Integer, nullable=False)
-    username = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), nullable=False)
-    password = db.Column(db.String(45), nullable=False)
-    createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    def get_role(self):
+        """Return the role for compatibility with ModeratorManager"""
+        return "student"  # Default role for regular users
     
-    def get_mod_id(self):
-        return self.modID
-        
-    def get_mod_level(self):
-        return self.modLevel
-        
-    def set_mod_level(self, level):
-        self.modLevel = level
+    @property
+    def role(self):
+        """Property accessor for role to maintain compatibility"""
+        return self.get_role()
 
 # Follower relationship model  
 class Follower(db.Model):

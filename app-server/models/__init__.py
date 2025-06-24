@@ -1,5 +1,7 @@
 from .database import db
-from .user import User, Moderator, Follower
+from .base_user import BaseUserMixin
+from .user import User, Follower
+from .moderator import Moderator
 from .post import Post
 from .comment import Comment
 from .report import Report
@@ -7,6 +9,7 @@ from .enums import Role, ReportStatus, VisibilityType
 
 __all__ = [
     "db",
+    "BaseUserMixin",
     "User",
     "Moderator", 
     "Follower",
