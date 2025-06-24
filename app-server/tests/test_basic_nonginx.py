@@ -2,7 +2,7 @@ import sys
 import time
 import requests
 
-FLASK_URL = "http://localhost:8080/"
+FLASK_URL = "http://localhost:80/login"
 
 for attempt in range(10):
     try:
