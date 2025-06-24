@@ -2,7 +2,8 @@ import sys
 import time
 import requests
 
-FLASK_URL = "http://localhost:80/login"
+# This checks the health of Flask. Note that this check is through 8080 as its executed within Flask container, without NGINX. The NGINX check comes after "curl ... http://...:80/"
+FLASK_URL = "http://localhost:8080/"
 
 for attempt in range(10):
     try:
