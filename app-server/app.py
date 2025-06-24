@@ -439,6 +439,38 @@ def api_get_comments(post_id):
         'parentCommentId': comment.parentCommentId
     } for comment in comments])
 
+@app.route('/search', methods=['GET'])
+def search():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    query = request.args.get('q', '')
+    results = []
+    if query:
+        search_result = profile_manager.search_users(query)
+        if search_result['success']:
+            results = search_result['users']
+    return render_template('search.html', query=query, results=results)
+
+@app.route('/api/search_users')
+def api_search_users():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'success': True, 'users': []})
+    search_result = profile_manager.search_users(query, per_page=5)
+    if search_result['success']:
+        users = [
+            {
+                'user_id': u['user']['user_id'],
+                'username': u['user']['username'],
+                'profile_picture': u['user']['profile_picture']
+            } for u in search_result['users']
+        ]
+        return jsonify({'success': True, 'users': users})
+    else:
+        return jsonify({'success': False, 'error': 'Search failed'})
+
 if __name__ == '__main__':
     with app.app_context():
         try:
