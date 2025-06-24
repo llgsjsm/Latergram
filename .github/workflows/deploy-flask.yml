@@ -1,10 +1,10 @@
 name: Deploy Flask to EC2
 
-# on:
-#   workflow_run:
-#     workflows: ["Application stack CI Pipeline to Main"]
-#     types:
-#       - completed
+on:
+  workflow_run:
+    workflows: ["Application stack CI Pipeline to Main"]
+    types:
+      - completed
   # push:
   #   branches: [ main ]
   #   paths:
