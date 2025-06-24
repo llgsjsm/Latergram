@@ -516,6 +516,31 @@ def api_search_users():
     else:
         return jsonify({'success': False, 'error': 'Search failed'})
 
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    password = request.form.get('password')
+    confirm_deletion = request.form.get('confirm_deletion')
+    
+    # Validate inputs
+    if not password:
+        return jsonify({'success': False, 'error': 'Password is required for account deletion'}), 400
+    
+    if confirm_deletion != 'DELETE':
+        return jsonify({'success': False, 'error': 'Please type DELETE to confirm account deletion'}), 400
+    
+    # Delete the account
+    result = profile_manager.delete_account(session['user_id'], password)
+    
+    if result['success']:
+        # Clear the session after successful deletion
+        session.clear()
+        return jsonify({'success': True, 'message': 'Account deleted successfully'})
+    else:
+        return jsonify({'success': False, 'error': result['error']}), 400
+
 if __name__ == '__main__':
     with app.app_context():
         try:

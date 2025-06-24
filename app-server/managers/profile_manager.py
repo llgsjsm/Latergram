@@ -407,3 +407,106 @@ class ProfileManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to change password: {str(e)}'}
+
+    def delete_account(self, user_id: int, password: str) -> Dict[str, Any]:
+        """Delete user account with password confirmation"""
+        try:
+            from flask_bcrypt import Bcrypt
+            bcrypt = Bcrypt()
+            
+            # Get the user
+            user = User.query.filter_by(userId=user_id).first()
+            if not user:
+                return {'success': False, 'error': 'User not found'}
+            
+            # Verify password before deletion
+            if not bcrypt.check_password_hash(user.password, password):
+                return {'success': False, 'error': 'Password is incorrect'}
+            
+            # Use a simpler approach: delete in order that respects foreign key constraints
+            
+            # 1. Delete user's post likes from junction table
+            db.session.execute(text("DELETE FROM post_likes WHERE user_id = :user_id"), {"user_id": user_id})
+            
+            # 2. Delete user's comments
+            db.session.execute(text("DELETE FROM comment WHERE authorId = :user_id"), {"user_id": user_id})
+            
+            # 3. Delete reports made by this user (using correct column name)
+            db.session.execute(text("DELETE FROM report WHERE reportedBy = :user_id"), {"user_id": user_id})
+            
+            # 4. Delete follower relationships (both following and followers)
+            db.session.execute(text("DELETE FROM followers WHERE followerUserId = :user_id OR followedUserId = :user_id"), {"user_id": user_id})
+            
+            # 5. Handle posts and likes carefully to avoid foreign key constraints
+            # The challenge: other users' posts might reference likes created by this user
+            
+            # First, get all likes created by this user that are referenced by OTHER users' posts
+            referenced_likes = db.session.execute(text("""
+                SELECT DISTINCT l.likesId 
+                FROM likes l 
+                INNER JOIN post p ON p.likesId = l.likesId 
+                WHERE l.user_userId = :user_id 
+                AND p.authorId != :user_id
+            """), {"user_id": user_id}).fetchall()
+            
+            # Create a placeholder/system like to replace references if needed
+            placeholder_like_id = None
+            if referenced_likes:
+                # Create a system like (using user ID 1 as system user, or any existing user)
+                # First, check if there's at least one other user to use as placeholder
+                system_user = db.session.execute(text("SELECT userId FROM user WHERE userId != :user_id LIMIT 1"), {"user_id": user_id}).first()
+                
+                if system_user:
+                    placeholder_result = db.session.execute(
+                        text("INSERT INTO likes (user_userId, timestamp) VALUES (:system_user_id, NOW())"),
+                        {"system_user_id": system_user.userId}
+                    )
+                    placeholder_like_id = placeholder_result.lastrowid
+                
+                    # Update other users' posts to use the placeholder like
+                    for like_row in referenced_likes:
+                        db.session.execute(text("""
+                            UPDATE post SET likesId = :placeholder_id 
+                            WHERE likesId = :old_like_id AND authorId != :user_id
+                        """), {
+                            "placeholder_id": placeholder_like_id,
+                            "old_like_id": like_row.likesId,
+                            "user_id": user_id
+                        })
+            
+            # Now get all posts by this user and their associated like IDs
+            user_posts = db.session.execute(text("""
+                SELECT postId, likesId FROM post WHERE authorId = :user_id
+            """), {"user_id": user_id}).fetchall()
+            
+            # Delete the user's posts (this removes the foreign key references from user's own posts)
+            db.session.execute(text("DELETE FROM post WHERE authorId = :user_id"), {"user_id": user_id})
+            
+            # Now delete the likes that were associated with the user's posts
+            for post in user_posts:
+                if post.likesId:
+                    try:
+                        db.session.execute(text("DELETE FROM likes WHERE likesId = :like_id"), {"like_id": post.likesId})
+                    except Exception as e:
+                        # If we can't delete a like (maybe it's still referenced), that's okay
+                        print(f"Could not delete like {post.likesId}: {e}")
+            
+            # Finally, delete any remaining likes created by this user
+            # These should now be safe to delete since we've handled the references
+            db.session.execute(text("DELETE FROM likes WHERE user_userId = :user_id"), {"user_id": user_id})
+            
+            # 6. Finally, delete the user account
+            db.session.delete(user)
+            db.session.commit()
+            
+            # Clear any cached data for this user
+            self._clear_user_cache(user_id)
+            
+            return {
+                'success': True,
+                'message': 'Account deleted successfully'
+            }
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to delete account: {str(e)}'}
