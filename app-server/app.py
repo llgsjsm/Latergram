@@ -377,17 +377,38 @@ def edit_profile():
 def get_followers(user_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
     followers = profile_manager.get_followers(user_id)
-    return jsonify(followers)
+    # Flatten the user info for the frontend
+    if followers.get('success'):
+        followers_list = [
+            {
+                'userId': f['user']['user_id'],
+                'username': f['user']['username'],
+                'profilePicture': f['user']['profile_picture'],
+                'bio': f['user']['bio'],
+            } for f in followers['followers']
+        ]
+        return jsonify({'success': True, 'followers': followers_list})
+    else:
+        return jsonify({'success': False, 'error': followers.get('error', 'Unknown error')})
 
 @app.route('/api/following/<int:user_id>')
 def get_following(user_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
     following = profile_manager.get_following(user_id)
-    return jsonify(following)
+    if following.get('success'):
+        following_list = [
+            {
+                'userId': f['user']['user_id'],
+                'username': f['user']['username'],
+                'profilePicture': f['user']['profile_picture'],
+                'bio': f['user']['bio'],
+            } for f in following['following']
+        ]
+        return jsonify({'success': True, 'following': following_list})
+    else:
+        return jsonify({'success': False, 'error': following.get('error', 'Unknown error')})
 
 @app.route('/api/profile/<int:user_id>', methods=['GET'])
 def api_get_profile(user_id):
