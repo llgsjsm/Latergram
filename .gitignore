@@ -31,3 +31,4 @@ venv/
 *.env
 *.secret
 *e.json
+*.json
