@@ -34,12 +34,33 @@ class PostManager:
         return new_post
 
     def delete_post(self, post_id, user_id):
-        post = Post.query.get(post_id)
-        if post and post.authorId == user_id:
+        try:
+            post = Post.query.get(post_id)
+            if not post:
+                return {'success': False, 'error': 'Post not found'}
+            
+            if post.authorId != user_id:
+                return {'success': False, 'error': 'You can only delete your own posts'}
+            
+            # Delete related comments first (if any)
+            Comment.query.filter_by(postId=post_id).delete()
+            
+            # Delete related likes from junction table
+            db.session.execute(
+                text("DELETE FROM post_likes WHERE post_id = :post_id"),
+                {"post_id": post_id}
+            )
+            
+            # Delete the post
             db.session.delete(post)
             db.session.commit()
-            return True
-        return False
+            
+            return {'success': True, 'message': 'Post deleted successfully'}
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting post: {e}")
+            return {'success': False, 'error': f'Failed to delete post: {str(e)}'}
 
     def like_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
         """Like a post using a junction table approach - optimized version"""

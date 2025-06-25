@@ -60,26 +60,22 @@
             <div>
               {% if liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
-              <form
-                method="POST"
-                action="{{ url_for('unlike_post', post_id=post.postId) }}"
-                class="d-inline"
+              <button 
+                class="btn btn-danger btn-sm like-btn" 
+                data-post-id="{{ post.postId }}" 
+                data-action="unlike"
               >
-                <button type="submit" class="btn btn-danger btn-sm">
-                  <i class="bi bi-heart-fill"></i> {{ post.like or 0 }}
-                </button>
-              </form>
+                <i class="bi bi-heart-fill"></i> <span class="like-count">{{ post.like or 0 }}</span>
+              </button>
               {% else %}
               <!-- Like button -->
-              <form
-                method="POST"
-                action="{{ url_for('like_post', post_id=post.postId) }}"
-                class="d-inline"
+              <button 
+                class="btn btn-outline-danger btn-sm like-btn" 
+                data-post-id="{{ post.postId }}" 
+                data-action="like"
               >
-                <button type="submit" class="btn btn-danger btn-sm">
-                  <i class="bi bi-heart"></i> {{ post.like or 0 }}
-                </button>
-              </form>
+                <i class="bi bi-heart"></i> <span class="like-count">{{ post.like or 0 }}</span>
+              </button>
               {% endif %}
               <button
                 class="btn btn-light btn-sm ms-2"
@@ -193,6 +189,61 @@
       commentsDiv.style.display = 'none';
     }
   }
+
+  // Like/Unlike functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for like buttons
+    document.querySelectorAll('.like-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const postId = this.dataset.postId;
+        const action = this.dataset.action;
+        const btn = this;
+        const likeCountSpan = btn.querySelector('.like-count');
+        
+        // Disable button during request
+        btn.disabled = true;
+        
+        const url = action === 'like' ? `/api/like/${postId}` : `/api/unlike/${postId}`;
+        
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update like count
+            if (data.new_count !== undefined) {
+              likeCountSpan.textContent = data.new_count;
+            }
+            
+            // Toggle button state
+            if (action === 'like') {
+              btn.className = 'btn btn-danger btn-sm like-btn';
+              btn.dataset.action = 'unlike';
+              btn.querySelector('i').className = 'bi bi-heart-fill';
+            } else {
+              btn.className = 'btn btn-outline-danger btn-sm like-btn';
+              btn.dataset.action = 'like';
+              btn.querySelector('i').className = 'bi bi-heart';
+            }
+          } else {
+            alert('Error: ' + (data.error || 'Failed to update like'));
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while updating the like');
+        })
+        .finally(() => {
+          // Re-enable button
+          btn.disabled = false;
+        });
+      });
+    });
+  });
 
 </script>
 {% endblock %}

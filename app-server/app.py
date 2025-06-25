@@ -315,6 +315,86 @@ def add_comment(post_id):
         db.session.commit()
     return redirect(url_for('home'))
 
+@app.route('/edit_comment/<int:comment_id>', methods=['POST'])
+def edit_comment(comment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        comment = Comment.query.get_or_404(comment_id)
+        
+        # Check if user owns the comment
+        if comment.authorId != session['user_id']:
+            return jsonify({'success': False, 'error': 'You can only edit your own comments'}), 403
+        
+        data = request.get_json()
+        new_content = data.get('content', '').strip()
+        
+        if not new_content:
+            return jsonify({'success': False, 'error': 'Comment cannot be empty'}), 400
+        
+        if len(new_content) > 500:
+            return jsonify({'success': False, 'error': 'Comment too long (max 500 characters)'}), 400
+        
+        # Update comment
+        comment.commentContent = new_content
+        comment.timestamp = datetime.utcnow()  # Update timestamp to show it was edited
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Comment updated successfully'})
+        
+    except Exception as e:
+        print(f"Error editing comment: {e}")
+        return jsonify({'success': False, 'error': 'Failed to edit comment'}), 500
+
+@app.route('/delete_comment/<int:comment_id>', methods=['POST'])
+def delete_comment(comment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        comment = Comment.query.get_or_404(comment_id)
+        
+        # Check if user owns the comment
+        if comment.authorId != session['user_id']:
+            return jsonify({'success': False, 'error': 'You can only delete your own comments'}), 403
+        
+        # Delete the comment
+        db.session.delete(comment)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Comment deleted successfully'})
+        
+    except Exception as e:
+        print(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'error': 'Failed to delete comment'}), 500
+
+@app.route('/delete-post/<int:post_id>', methods=['POST'])
+def delete_post_route(post_id):
+    print(f"Delete post route called for post_id: {post_id}")
+    print(f"Session user_id: {session.get('user_id')}")
+    
+    if 'user_id' not in session:
+        print("User not logged in")
+        return jsonify({'success': False, 'error': 'Please log in'}), 401
+    
+    try:
+        # Use the existing delete_post method from PostManager
+        result = post_manager.delete_post(post_id, session['user_id'])
+        print(f"Delete result: {result}")
+        
+        if result.get('success'):
+            flash('Post deleted successfully', 'success')
+            return jsonify({'success': True, 'message': result.get('message', 'Post deleted successfully')})
+        else:
+            error_message = result.get('error', 'Failed to delete post')
+            print(f"Delete failed: {error_message}")
+            flash(error_message, 'danger')
+            return jsonify({'success': False, 'error': error_message}), 403
+    except Exception as e:
+        print(f"Exception in delete route: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
+
 # Profile Routes
 @app.route('/profile')
 @app.route('/profile/<int:user_id>')
