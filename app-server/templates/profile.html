@@ -1,157 +1,8 @@
-{% extends "base.html" %} {% block content %}
-<style>
-  /* Ensure text visibility with proper contrast */
-  .profile-container {
-    background-color: #ffffff !important;
-    color: #333333 !important;
-  }
-      >
-        <i class="fas fa-clock me-1"></i>Requested
-      </button>
-  .profile-container h4,
-  .profile-container h5,
-  .profile-container h6 {
-    color: #333333 !important;
-  }
-
-  .profile-container .text-dark {
-    color: #333333 !important;
-  }
-
-  .profile-container .text-muted {
-    color: #6c757d !important;
-  }
-
-  .stats-link {
-    color: #333333 !important;
-    text-decoration: none !important;
-  }
-
-  .stats-link:hover {
-    color: #0066cc !important;
-  }
-
-  .profile-container strong {
-    color: #333333 !important;
-  }
-
-  .profile-container p {
-    color: #333333 !important;
-  }
-
-  .profile-container div {
-    color: #333333 !important;
-  }
-
-  .profile-container span {
-    color: #333333 !important;
-  }
-
-  /* Override any global dark theme */
-  body .profile-container * {
-    color: #333333 !important;
-  }
-
-  body .profile-container .text-muted {
-    color: #6c757d !important;
-  }
-
-  body .profile-container .btn {
-    color: inherit !important;
-  }
-
-  body,
-  .profile-bg {
-    background: var(--color-bg, #10121d) !important;
-    color: var(--color-white, #fff) !important;
-  }
-  .profile-header-card {
-    background: #181a23;
-    border-radius: 12px;
-    padding: 2rem 2.5rem;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.1);
-  }
-  .profile-header-left {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .profile-header-username {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--color-white, #fff);
-  }
-  .profile-header-bio {
-    color: #d2d3d6;
-    margin-top: 0.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 1.1rem;
-  }
-  .profile-header-stats {
-    color: #fff;
-    font-size: 1.1rem;
-    margin-top: 0.5rem;
-  }
-  .profile-header-stats a {
-    color: #fff;
-    text-decoration: none;
-    cursor: pointer;
-    margin-right: 2.5rem;
-    transition: color 0.2s;
-  }
-  .profile-header-stats a:hover {
-    color: var(--color-primary, #5f77f8);
-    text-decoration: none;
-  }
-  #following-count {
-    margin-left: 2.5rem;
-  }
-  .profile-header-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    align-items: flex-end;
-  }
-  .profile-header-actions .btn {
-    background: var(--color-primary, #5f77f8);
-    color: #fff !important;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.3rem;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px 0 rgba(95, 119, 248, 0.1);
-    transition: background 0.2s;
-  }
-  .profile-header-actions .btn:hover {
-    background: #4660c7;
-  }
-  @media (max-width: 767px) {
-    .profile-header-card {
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 1.2rem 1rem;
-    }
-    .profile-header-actions {
-      flex-direction: row;
-      gap: 1rem;
-      margin-top: 1.5rem;
-      align-items: center;
-    }
-  }
-  .posts-section,
-  .posts-section * {
-    color: #fff !important;
-  }
-</style>
+{% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/profile.css') }}">
+{% endblock %}
+{% block content %}
 
 <div class="container-fluid profile-bg">
   <div class="profile-header-card">
@@ -214,41 +65,37 @@
       {% if follow_status and follow_status.is_following %}
       <!-- Currently following -->
       <button
-        class="btn btn-outline-primary"
+        class="btn btn-outline-primary profile-action-btn"
         data-user-id="{{ user.userId }}"
         data-action="unfollow"
         title="Unfollow"
+        style="width: auto; padding: 0.5rem 1.5rem;"
       >
         <i class="fas fa-user-check me-1"></i>Following
       </button>
       {% elif follow_status and follow_status.request_pending %}
       <!-- Request pending -->
       <button
-        class="btn btn-outline-secondary"
+        class="btn btn-outline-secondary profile-action-btn"
         data-user-id="{{ user.userId }}"
         data-action="cancel-request"
         title="Click to cancel request"
+        style="width: auto; padding: 0.5rem 1.5rem;"
       >
         <i class="fas fa-clock me-1"></i>Requested
       </button>
       {% else %}
       <!-- Not following -->
       <button
-        class="btn btn-primary"
+        class="btn btn-primary profile-action-btn"
         data-user-id="{{ user.userId }}"
         data-action="follow"
         title="Follow"
+        style="width: auto; padding: 0.5rem 1.5rem;"
       >
         <i class="fas fa-user-plus me-1"></i>Follow
       </button>
       {% endif %}
-      <button
-        class="btn"
-        title="Message"
-        onclick="alert('Message feature coming soon!')"
-      >
-        <i class="fas fa-comment"></i>
-      </button>
       {% endif %}
     </div>
   </div>
@@ -343,7 +190,7 @@
             </div>
 
             <!-- Like and Comment buttons -->
-            <div class="mt-3 pt-3 border-top">
+            <div class="mt-3 pt-3 border-top post-action-bar">
               {% if liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
               <form
@@ -368,7 +215,7 @@
               </form>
               {% endif %}
               <button
-                class="btn btn-outline-secondary btn-sm ms-2"
+                class="btn btn-outline-light btn-sm ms-2"
                 onclick="toggleCommentForm('modal-{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i> Comment
@@ -532,6 +379,7 @@
                 btn.className = "btn btn-outline-primary";
                 btn.dataset.action = "unfollow";
                 btn.title = "Unfollow";
+                btn.style.width = "auto";
                 if (!isNaN(followerCount))
                   followerCountElem.textContent = followerCount + 1;
               } else {
@@ -540,12 +388,16 @@
                 btn.className = "btn btn-outline-secondary";
                 btn.dataset.action = "cancel-request";
                 btn.title = "Cancel Request";
+                btn.style.width = "auto";
+                btn.style.padding = "0.5rem 1.5rem";
+
               }
             } else if (action === "unfollow" || action === "cancel-request") {
               btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Follow';
               btn.className = "btn btn-primary";
               btn.dataset.action = "follow";
               btn.title = "Follow";
+              btn.style.width = "auto";
               if (
                 action === "unfollow" &&
                 !isNaN(followerCount) &&
@@ -613,6 +465,7 @@
                                 : ""
                             }
                         </div>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="removeFollower('${follower.userId}', this)">Remove</button>
                     </div>
                 `
             )
@@ -658,6 +511,7 @@
                                 : ""
                             }
                         </div>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="unfollowUser('${user.userId}', this)">Remove</button>
                     </div>
                 `
             )
@@ -684,8 +538,42 @@
       form.style.display = "none";
     }
   }
-</script>
-<script>
+
+  function removeFollower(userId, btn) {
+    fetch(`/api/remove-follower/${userId}`, { method: "POST" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Remove the follower from the list
+          btn.closest(".d-flex").remove();
+          // Refresh the page to update counts
+          window.location.reload();
+        } else {
+          alert("Error: " + (data.error || "Could not remove follower."));
+        }
+      })
+      .catch((error) => {
+        alert("An error occurred");
+      });
+  }
+  function unfollowUser(userId, btn) {
+    fetch(`/api/unfollow/${userId}`, { method: "POST" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Remove the user from the list
+          btn.closest(".d-flex").remove();
+          // Refresh the page to update counts
+          window.location.reload();
+        } else {
+          alert("Error: " + (data.error || "Could not unfollow user."));
+        }
+      })
+      .catch((error) => {
+        alert("An error occurred");
+      });
+  }
+  
   document.addEventListener("DOMContentLoaded", function () {
     document
       .getElementById("followers-link")

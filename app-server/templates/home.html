@@ -1,4 +1,8 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/home.css') }}">
+{% endblock %}
+{% block content %}
 <div class="container-fluid">
   <div class="row justify-content-center">
     <!-- Main Feed - Centered -->
@@ -129,7 +133,7 @@
               </form>
               {% endif %}
               <button
-                class="btn btn-outline-secondary btn-sm ms-2"
+                class="btn btn-outline-light btn-sm ms-2"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i> Comment
@@ -142,7 +146,7 @@
           </div>
           <!-- Comments Section -->
           {% if post.comments %}
-          <div class="mt-3 border-top pt-2">
+          <div class="mt-3 border-top pt-2 comments-section-border">
             <small class="text-muted">Comments:</small>
             {% set real_comments = [] %} {% for comment in post.comments %} {%
             if comment.parentCommentId == None and not

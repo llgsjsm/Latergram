@@ -15,6 +15,9 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
+# Enable debug mode for development (auto-reload on code changes)
+app.debug = True
+
 # MySQL Database Configuration
 DB_USER = os.environ.get('DB_USER', '') 
 DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
@@ -606,6 +609,13 @@ def delete_account():
     else:
         return jsonify({'success': False, 'error': result['error']}), 400
 
+@app.route('/api/remove-follower/<int:follower_user_id>', methods=['POST'])
+def remove_follower_api(follower_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    result = profile_manager.remove_follower(session['user_id'], follower_user_id)
+    return jsonify(result)
+
 if __name__ == '__main__':
     with app.app_context():
         try:
@@ -614,7 +624,7 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Error creating database tables: {e}")
     
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8080, debug=True, use_reloader=True)
 
 
 

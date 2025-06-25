@@ -8,10 +8,6 @@
     <!-- Local CSS -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='styles.css') }}"
-    />
-    <link
-      rel="stylesheet"
       href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
     />
     <link
@@ -31,6 +27,7 @@
       href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}"
     />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    {% block head %}{% endblock %}
     {% if request.endpoint == 'home' %}
     <style>
     #main-content {

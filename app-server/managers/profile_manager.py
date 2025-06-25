@@ -742,3 +742,30 @@ class ProfileManager:
         
         # Default to basic view only
         return {'can_view': True, 'can_see_posts': False}
+
+    def remove_follower(self, user_id: int, follower_user_id: int) -> dict:
+        """Remove a follower from the current user's followers list."""
+        try:
+            # Check if the follower relationship exists
+            result = db.session.execute(text("""
+                SELECT status FROM followers 
+                WHERE followerUserId = :follower_id AND followedUserId = :user_id
+            """), {"follower_id": follower_user_id, "user_id": user_id}).fetchone()
+
+            if not result:
+                return {'success': False, 'error': 'This user is not your follower.'}
+
+            # Remove the follower relationship
+            db.session.execute(text("""
+                DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :user_id
+            """), {"follower_id": follower_user_id, "user_id": user_id})
+            db.session.commit()
+
+            # Clear cache for both users
+            self._clear_user_cache(user_id)
+            self._clear_user_cache(follower_user_id)
+
+            return {'success': True, 'message': 'Follower removed successfully.'}
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to remove follower: {str(e)}'}

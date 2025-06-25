@@ -35,13 +35,13 @@
         <p>Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--color-primary);">Sign Up</a></p>
       </form>
 
-      {% with messages = get_flashed_messages() %}
+      {% with messages = get_flashed_messages(with_categories=True) %}
       {% if messages %}
-      <div class="alert alert-danger mt-3">
-        {% for message in messages %}
+      {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-3">
         {{ message }}
-        {% endfor %}
       </div>
+      {% endfor %}
       {% endif %}
       {% endwith %}
     </div>
