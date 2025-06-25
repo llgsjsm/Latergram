@@ -7,12 +7,20 @@ class ProfileManager:
         self.current_user = current_user
         # Simple in-memory cache for frequently accessed data
         self._user_stats_cache = {}
+        self._suggested_users_cache = {}
+        self._user_profile_cache = {}
         self._cache_timeout = 300  # 5 minutes cache timeout
 
     def _clear_user_cache(self, user_id: int):
         """Clear cache for a specific user"""
         if user_id in self._user_stats_cache:
             del self._user_stats_cache[user_id]
+        if user_id in self._suggested_users_cache:
+            del self._suggested_users_cache[user_id]
+        if user_id in self._user_profile_cache:
+            del self._user_profile_cache[user_id]
+        if user_id in self._user_profile_cache:
+            del self._user_profile_cache[user_id]
 
     def get_user_stats_cached(self, user_id: int) -> Dict[str, int]:
         """Get user stats with caching for better performance"""
@@ -429,6 +437,35 @@ class ProfileManager:
             'following_count': following_count
         }
     
+    def get_user_profile_cached(self, user_id: int) -> Dict:
+        """Get user profile with caching for better performance"""
+        import time
+        
+        # Check cache first
+        if user_id in self._user_profile_cache:
+            cached_data, timestamp = self._user_profile_cache[user_id]
+            if time.time() - timestamp < self._cache_timeout:
+                return cached_data
+        
+        # If not in cache or expired, fetch from database
+        try:
+            user = User.query.filter_by(userId=user_id).first()
+            if user:
+                profile_data = {
+                    'userId': user.userId,
+                    'username': user.username,
+                    'profilePicture': user.profilePicture,
+                    'bio': user.bio,
+                    'visibility': user.visibility
+                }
+                # Cache the result
+                self._user_profile_cache[user_id] = (profile_data, time.time())
+                return profile_data
+        except Exception as e:
+            print(f"Error getting user profile: {e}")
+        
+        return None
+
     def search_users(self, query: str, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """Search for users by username"""
         offset = (page - 1) * per_page
@@ -510,6 +547,24 @@ class ProfileManager:
             print(f"Error getting suggested users: {e}")
             return []
     
+    def get_suggested_users_cached(self, user_id: int, limit: int = 5) -> List[Dict]:
+        """Get suggested users with caching for better performance"""
+        import time
+        
+        # Check cache first
+        cache_key = f"{user_id}_{limit}"
+        if cache_key in self._suggested_users_cache:
+            cached_data, timestamp = self._suggested_users_cache[cache_key]
+            if time.time() - timestamp < self._cache_timeout:
+                return cached_data
+        
+        # If not in cache or expired, fetch from database
+        suggested_users = self.get_suggested_users(user_id, limit)
+        
+        # Cache the result
+        self._suggested_users_cache[cache_key] = (suggested_users, time.time())
+        return suggested_users
+
     def get_user_posts(self, user_id: int, viewer_user_id: int = None, page: int = 1, per_page: int = 20) -> List:
         """Get posts by a specific user with pagination and visibility filtering"""
         try:
@@ -741,7 +796,7 @@ class ProfileManager:
                 return {'can_view': True, 'can_see_posts': False, 'message': 'Follow this user to see their posts'}
         
         # Default to basic view only
-        return {'can_view': True, 'can_see_posts': False}
+        return {'can_view': True, 'can_see_posts': False, 'message': 'No posts available'}
 
     def remove_follower(self, user_id: int, follower_user_id: int) -> dict:
         """Remove a follower from the current user's followers list."""
@@ -769,3 +824,42 @@ class ProfileManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to remove follower: {str(e)}'}
+    
+    def prefetch_user_profiles(self, user_ids: List[int]) -> Dict[int, Dict]:
+        """Prefetch multiple user profiles in a single query to warm the cache"""
+        if not user_ids:
+            return {}
+        
+        try:
+            # Remove duplicates and get uncached users
+            import time
+            uncached_ids = []
+            cached_profiles = {}
+            
+            for user_id in set(user_ids):
+                if user_id in self._user_profile_cache:
+                    cached_data, timestamp = self._user_profile_cache[user_id]
+                    if time.time() - timestamp < self._cache_timeout:
+                        cached_profiles[user_id] = cached_data
+                        continue
+                uncached_ids.append(user_id)
+            
+            # Fetch uncached profiles in batch
+            if uncached_ids:
+                users = User.query.filter(User.userId.in_(uncached_ids)).all()
+                for user in users:
+                    profile_data = {
+                        'userId': user.userId,
+                        'username': user.username,
+                        'profilePicture': user.profilePicture,
+                        'bio': user.bio,
+                        'visibility': user.visibility
+                    }
+                    # Cache the result
+                    self._user_profile_cache[user.userId] = (profile_data, time.time())
+                    cached_profiles[user.userId] = profile_data
+            
+            return cached_profiles
+        except Exception as e:
+            print(f"Error prefetching user profiles: {e}")
+            return {}

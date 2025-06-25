@@ -13,7 +13,7 @@ class Comment(db.Model):
     
     # Relationships
     author = db.relationship('User', backref=db.backref('comments', lazy=True))
-    post = db.relationship('Post', backref=db.backref('comments', lazy=True))
+    post = db.relationship('Post', backref=db.backref('comments', lazy='dynamic'))
 
     def get_comment_id(self):
         return self.commentId

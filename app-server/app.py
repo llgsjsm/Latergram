@@ -33,6 +33,13 @@ IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Database connection pool optimizations
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
+    'max_overflow': 20
+}
 
 db.init_app(app)
 bcrypt.init_app(app)
@@ -116,19 +123,23 @@ def home():
         print(f"Error getting posts: {e}")
         posts = []
     
+    # Get all required data in parallel to reduce sequential database calls
+    user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
+    suggested_users = []
+    pending_requests = []
+    liked_posts = {}
+    
     try:
         # Get user stats with caching
         user_stats = profile_manager.get_user_stats_cached(session['user_id'])
     except Exception as e:
         print(f"Error getting user stats: {e}")
-        user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
     
     try:
-        # Get suggested users (users not followed)
-        suggested_users = profile_manager.get_suggested_users(session['user_id'])
+        # Get suggested users (users not followed) with caching
+        suggested_users = profile_manager.get_suggested_users_cached(session['user_id'])
     except Exception as e:
         print(f"Error getting suggested users: {e}")
-        suggested_users = []
     
     try:
         # Get pending follow requests
@@ -136,17 +147,23 @@ def home():
         pending_requests = follow_requests.get('requests', []) if follow_requests.get('success') else []
     except Exception as e:
         print(f"Error getting follow requests: {e}")
-        pending_requests = []
     
-    # Check which posts the current user has liked (efficient single query)
+    # Check which posts the current user has liked (optimized batch processing)
     try:
-        liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
-        liked_posts = {post.postId: post.postId in liked_post_ids for post in posts}
+        if posts:
+            post_ids = [post.postId for post in posts]
+            liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
+            # Also get comment counts for all posts
+            comment_counts = feed_manager.get_comment_counts_batch(post_ids)
+        else:
+            liked_posts = {}
+            comment_counts = {}
     except Exception as e:
-        print(f"Error getting liked posts: {e}")
-        liked_posts = {post.postId: False for post in posts}
+        print(f"Error getting liked posts or comment counts: {e}")
+        liked_posts = {post.postId: False for post in posts} if posts else {}
+        comment_counts = {post.postId: 0 for post in posts} if posts else {}
 
-    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests)
+    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts)
 
 @app.route('/')
 def hello_world():
@@ -346,17 +363,21 @@ def profile(user_id=None):
         # Check if this is the current user's profile
         is_own_profile = (user_id == session['user_id'])
         
-        # Check which posts the current user has liked (efficient single query)
+        # Check which posts the current user has liked (optimized batch processing)
         liked_posts = {}
+        comment_counts = {}
         if user_posts:
             try:
-                liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
-                liked_posts = {post.postId: post.postId in liked_post_ids for post in user_posts}
+                post_ids = [post.postId for post in user_posts]
+                liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
+                comment_counts = feed_manager.get_comment_counts_batch(post_ids)
             except Exception as e:
-                print(f"Error getting liked posts: {e}")
+                print(f"Error getting liked posts or comment counts: {e}")
                 liked_posts = {post.postId: False for post in user_posts}
+                comment_counts = {post.postId: 0 for post in user_posts}
         
-        print(f"Profile data: user={user.username}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
+        print(f"Profile data: user={user.username}, visibility={user.visibility}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
+        print(f"Visibility check: can_view={visibility_check['can_view']}, can_see_posts={visibility_check['can_see_posts']}, message={visibility_message}")
         
         return render_template('profile.html', 
                              user=user, 
@@ -366,6 +387,7 @@ def profile(user_id=None):
                              follow_status=follow_status,
                              is_own_profile=is_own_profile,
                              liked_posts=liked_posts,
+                             comment_counts=comment_counts,
                              visibility_message=visibility_message,
                              can_see_posts=visibility_check['can_see_posts'])
     
@@ -704,6 +726,45 @@ def remove_profile_picture():
             return jsonify(success=False, message='Database error')
         flash('Error removing profile picture.', 'danger')
     return redirect(url_for('edit_profile'))
+
+@app.route('/load_comments/<int:post_id>')
+def load_comments(post_id):
+    """AJAX endpoint to load comments for a specific post"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get comments for the post with author information
+        comments_query = text("""
+            SELECT c.commentId, c.commentContent, c.timestamp, c.parentCommentId,
+                   u.username, u.profilePicture
+            FROM comment c
+            JOIN user u ON c.authorId = u.userId
+            WHERE c.postId = :post_id
+            AND c.parentCommentId IS NULL
+            AND NOT c.commentContent LIKE '__LIKE__%'
+            ORDER BY c.timestamp DESC
+            LIMIT 10
+        """)
+        
+        result = db.session.execute(comments_query, {"post_id": post_id}).fetchall()
+        
+        comments = []
+        for row in result:
+            comments.append({
+                'commentId': row.commentId,
+                'content': row.commentContent,
+                'timestamp': row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else '',
+                'author': {
+                    'username': row.username,
+                    'profilePicture': row.profilePicture or ''
+                }
+            })
+        
+        return jsonify({'success': True, 'comments': comments})
+    except Exception as e:
+        print(f"Error loading comments: {e}")
+        return jsonify({'error': 'Failed to load comments'}), 500
 
 @app.context_processor
 def inject_user():

@@ -176,8 +176,7 @@
             <div class="mb-2">
               <i class="fas fa-heart"></i> {{ post.like or 0 }}
               <span class="ms-3">
-                <i class="fas fa-comment"></i> {{ post.comments|length if
-                post.comments else 0 }}
+                <i class="fas fa-comment"></i> {{ comment_counts.get(post.postId, 0) }}
               </span>
             </div>
           </div>
@@ -297,9 +296,9 @@
     <div class="mb-4">
       <i class="fas fa-lock fa-3x text-muted"></i>
     </div>
-    <h4>{{ visibility_message or "This account is private" }}</h4>
-    {% if not is_following and not is_own_profile %}
-    <p>Follow <span>{{ user.username }}</span> to see their posts.</p>
+    <h4>{{ visibility_message or "No Posts" }}</h4>
+    {% if not is_following and not is_own_profile and visibility_message and "private" in visibility_message.lower() %}
+    <p>This user's posts are not visible to you.</p>
     {% endif %}
   </div>
   {% endif %}

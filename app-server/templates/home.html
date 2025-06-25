@@ -85,7 +85,7 @@
                 class="btn btn-light btn-sm ms-2"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
-                <i class="fas fa-comment"></i> Comment
+                <i class="fas fa-comment"></i> {{ comment_counts.get(post.postId, 0) }} Comments
               </button>
             </div>
             <small class="text-muted"
@@ -93,26 +93,13 @@
               '' }}</small
             >
           </div>
-          <!-- Comments Section -->
-          {% if post.comments %}
+          <!-- Comments Section - Only show if there are comments -->
+          {% if comment_counts.get(post.postId, 0) > 0 %}
           <div class="mt-3 border-top pt-2 comments-section-border">
-            <small class="text-muted">Comments:</small>
-            {% set real_comments = [] %} {% for comment in post.comments %} {%
-            if comment.parentCommentId == None and not
-            comment.commentContent.startswith('__LIKE__') %} {% set _ =
-            real_comments.append(comment) %} {% endif %} {% endfor %} {% for
-            comment in real_comments[:3] %}
-            <div class="mb-1">
-              <strong
-                >{{ comment.author.username if comment.author else 'Unknown'
-                }}</strong
-              >: {{ comment.commentContent }}
+            <small class="text-muted">{{ comment_counts.get(post.postId, 0) }} Comments - <a href="#" onclick="loadComments('{{ post.postId }}')">View All</a></small>
+            <div id="comments-{{ post.postId }}" style="display: none;">
+              <!-- Comments will be loaded dynamically -->
             </div>
-            {% endfor %} {% if real_comments|length > 3 %}
-            <small class="text-muted"
-              >and {{ real_comments|length - 3 }} more comments...</small
-            >
-            {% endif %}
           </div>
           {% endif %}
           <!-- Comment Form -->
@@ -163,6 +150,50 @@
       form.style.display = "none";
     }
   }
+
+  // Function to load comments dynamically
+  function loadComments(postId) {
+    const commentsDiv = document.getElementById('comments-' + postId);
+    
+    if (commentsDiv.style.display === 'none') {
+      // Load comments via AJAX
+      fetch('/load_comments/' + postId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            let commentsHtml = '';
+            data.comments.forEach(comment => {
+              const profileImg = comment.author.profilePicture ? 
+                `<img src="${comment.author.profilePicture}" class="rounded-circle me-2" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">` :
+                `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 25px; height: 25px; background: #23263a; color: #bfc7d5; font-size: 0.8rem;"><i class="fas fa-user"></i></span>`;
+              
+              commentsHtml += `
+                <div class="mb-2 d-flex">
+                  ${profileImg}
+                  <div>
+                    <strong>${comment.author.username}</strong>: ${comment.content}
+                    <div class="text-muted small">${comment.timestamp}</div>
+                  </div>
+                </div>
+              `;
+            });
+            commentsDiv.innerHTML = commentsHtml;
+            commentsDiv.style.display = 'block';
+          } else {
+            commentsDiv.innerHTML = '<p class="text-muted">Failed to load comments</p>';
+            commentsDiv.style.display = 'block';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading comments:', error);
+          commentsDiv.innerHTML = '<p class="text-muted">Error loading comments</p>';
+          commentsDiv.style.display = 'block';
+        });
+    } else {
+      commentsDiv.style.display = 'none';
+    }
+  }
+
 </script>
 {% endblock %}
 {% block rightpanel %}
