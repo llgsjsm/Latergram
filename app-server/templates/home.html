@@ -242,7 +242,7 @@
     }
   }
 
-  // Like/Unlike functionality
+  // Like/Unlike functionality with instant UI updates
   document.addEventListener('DOMContentLoaded', function() {
     // Add click handlers for like buttons
     document.querySelectorAll('.like-btn').forEach(button => {
@@ -251,10 +251,37 @@
         const action = this.dataset.action;
         const btn = this;
         const likeCountSpan = btn.querySelector('.like-count');
+        
+        // Store original state for rollback
+        const originalCount = parseInt(likeCountSpan.textContent) || 0;
+        const originalClass = btn.className;
+        const originalAction = btn.dataset.action;
+        const originalIconClass = btn.querySelector('i').className;
 
-        // Disable button during request
+        // INSTANT UI UPDATE (Optimistic)
+        let newCount;
+        if (action === 'like') {
+          newCount = originalCount + 1;
+          btn.className = 'btn btn-danger btn-sm like-btn';
+          btn.dataset.action = 'unlike';
+          btn.querySelector('i').className = 'bi bi-heart-fill';
+        } else {
+          newCount = Math.max(0, originalCount - 1);
+          btn.className = 'btn btn-outline-danger btn-sm like-btn';
+          btn.dataset.action = 'like';
+          btn.querySelector('i').className = 'bi bi-heart';
+        }
+        likeCountSpan.textContent = newCount;
+
+        // Add animation for visual feedback
+        btn.classList.add('liked-animation');
+        setTimeout(() => btn.classList.remove('liked-animation'), 300);
+
+        // Briefly disable button to prevent spam clicking
         btn.disabled = true;
+        setTimeout(() => { btn.disabled = false; }, 300);
 
+        // Send background request
         const url = action === 'like' ? `/api/like/${postId}` : `/api/unlike/${postId}`;
 
         fetch(url, {
@@ -266,32 +293,33 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            // Update like count
-            if (data.new_count !== undefined) {
+            // Sync with server response if different from optimistic update
+            if (data.new_count !== undefined && data.new_count !== newCount) {
               likeCountSpan.textContent = data.new_count;
             }
-
-            // Toggle button state
-            if (action === 'like') {
-              btn.className = 'btn btn-danger btn-sm like-btn';
-              btn.dataset.action = 'unlike';
-              btn.querySelector('i').className = 'bi bi-heart-fill';
-            } else {
-              btn.className = 'btn btn-outline-danger btn-sm like-btn';
-              btn.dataset.action = 'like';
-              btn.querySelector('i').className = 'bi bi-heart';
-            }
+            // UI is already updated optimistically, no need to change unless correcting
           } else {
-            alert('Error: ' + (data.error || 'Failed to update like'));
+            // Rollback on error
+            likeCountSpan.textContent = originalCount;
+            btn.className = originalClass;
+            btn.dataset.action = originalAction;
+            btn.querySelector('i').className = originalIconClass;
+            
+            // Show error without blocking UI
+            if (!data.already_liked && !data.not_liked) {
+              showNotification('Error: ' + (data.error || 'Failed to update like'), 'danger');
+            }
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          alert('An error occurred while updating the like');
-        })
-        .finally(() => {
-          // Re-enable button
-          btn.disabled = false;
+          // Rollback on network error
+          likeCountSpan.textContent = originalCount;
+          btn.className = originalClass;
+          btn.dataset.action = originalAction;
+          btn.querySelector('i').className = originalIconClass;
+          
+          showNotification('Network error occurred while updating like', 'danger');
         });
       });
     });

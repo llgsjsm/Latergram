@@ -1,7 +1,7 @@
 .card-body a {
   text-decoration: none;
   color: var(--color-primary);
-} 
+}
 
 .comments-section-border {
   border-color: #363947 !important;
@@ -17,12 +17,13 @@
   background: var(--color-navbg);
   z-index: 1000;
   overflow-y: auto;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.03);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.03);
 }
 
-#right-panel .card-header, #right-panel .card-body {
+#right-panel .card-header,
+#right-panel .card-body {
   color: #fff;
-  background-color: #151722 ;
+  background-color: #151722;
   border: none;
 }
 
@@ -42,12 +43,57 @@
   }
 }
 
-.base-btn:hover, .base-btn:focus {
+.base-btn:hover,
+.base-btn:focus {
   background: #4660c7 !important;
   color: #fff !important;
 }
 
-.request-item > div:last-child {
+.request-item>div:last-child {
   display: flex;
   gap: 0.5rem;
+}
+
+/* Like button animations and effects */
+.like-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.like-btn:hover {
+  transform: scale(1.05);
+}
+
+.like-btn:active {
+  transform: scale(0.95);
+}
+
+.like-btn.liked-animation {
+  animation: likeSuccess 0.3s ease-in-out;
+}
+
+@keyframes likeSuccess {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.like-btn .like-count {
+  transition: color 0.2s ease-in-out;
+}
+
+/* Heart icon animation */
+.like-btn i {
+  transition: all 0.2s ease-in-out;
+}
+
+.like-btn:hover i {
+  transform: scale(1.1);
 }
