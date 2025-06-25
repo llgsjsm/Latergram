@@ -5,28 +5,8 @@ from datetime import datetime
 
 class PostManager:
     def __init__(self):
-        # Initialize the post_likes table once when the manager is created
-        self._ensure_post_likes_table()
+        pass
         
-    def _ensure_post_likes_table(self):
-        """Ensure post_likes table exists - called once during initialization"""
-        try:
-            db.session.execute(text("""
-                CREATE TABLE IF NOT EXISTS post_likes (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    post_id INT NOT NULL,
-                    user_id INT NOT NULL,
-                    like_id INT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_user_post_like (user_id, post_id),
-                    INDEX idx_post_id (post_id),
-                    INDEX idx_user_id (user_id)
-                )
-            """))
-            db.session.commit()
-        except Exception as e:
-            print(f"Table creation info: {e}")
-    
     def create_post(self, title, content, user_id):
         new_post = Post(title=title, content=content, authorId=user_id)
         db.session.add(new_post)

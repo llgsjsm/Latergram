@@ -6,33 +6,6 @@ from typing import Dict
 class FeedManager:
     def __init__(self):
         self.default_page_size = 20  # Load only 20 posts at a time
-        self._ensure_database_indexes()
-    
-    def _ensure_database_indexes(self):
-        """Ensure database indexes exist for optimal query performance"""
-        indexes_to_create = [
-            "CREATE INDEX IF NOT EXISTS idx_post_timeofpost ON post(timeOfPost DESC)",
-            "CREATE INDEX IF NOT EXISTS idx_post_authorid ON post(authorId)",
-            "CREATE INDEX IF NOT EXISTS idx_user_visibility ON user(visibility)",
-            "CREATE INDEX IF NOT EXISTS idx_followers_follower ON followers(followerUserId)",
-            "CREATE INDEX IF NOT EXISTS idx_followers_followed ON followers(followedUserId)",
-            "CREATE INDEX IF NOT EXISTS idx_followers_composite ON followers(followerUserId, followedUserId)",
-            "CREATE INDEX IF NOT EXISTS idx_comment_postid ON comment(postId)",
-            "CREATE INDEX IF NOT EXISTS idx_comment_parent ON comment(parentCommentId)"
-        ]
-        
-        for index_query in indexes_to_create:
-            try:
-                db.session.execute(text(index_query))
-                db.session.commit()
-            except Exception as e:
-                print(f"Index creation info for '{index_query}': {e}")
-                # Individual index failures shouldn't stop the application
-                try:
-                    db.session.rollback()
-                except:
-                    pass
-                continue
     
     def _can_view_user_posts(self, viewer_user_id, post_author_id):
         """Check if a user can view posts from another user based on visibility settings"""
