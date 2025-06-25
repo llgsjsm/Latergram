@@ -242,60 +242,6 @@
     }
   }
 
-  // Like/Unlike functionality
-  document.addEventListener('DOMContentLoaded', function() {
-    // Add click handlers for like buttons
-    document.querySelectorAll('.like-btn').forEach(button => {
-      button.addEventListener('click', function() {
-        const postId = this.dataset.postId;
-        const action = this.dataset.action;
-        const btn = this;
-        const likeCountSpan = btn.querySelector('.like-count');
-
-        // Disable button during request
-        btn.disabled = true;
-
-        const url = action === 'like' ? `/api/like/${postId}` : `/api/unlike/${postId}`;
-
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Update like count
-            if (data.new_count !== undefined) {
-              likeCountSpan.textContent = data.new_count;
-            }
-
-            // Toggle button state
-            if (action === 'like') {
-              btn.className = 'btn btn-danger btn-sm like-btn';
-              btn.dataset.action = 'unlike';
-              btn.querySelector('i').className = 'bi bi-heart-fill';
-            } else {
-              btn.className = 'btn btn-outline-danger btn-sm like-btn';
-              btn.dataset.action = 'like';
-              btn.querySelector('i').className = 'bi bi-heart';
-            }
-          } else {
-            alert('Error: ' + (data.error || 'Failed to update like'));
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while updating the like');
-        })
-        .finally(() => {
-          // Re-enable button
-          btn.disabled = false;
-        });
-      });
-    });
-
     // Handle comment form submissions with AJAX
     document.querySelectorAll('form[action*="/comment/"]').forEach(form => {
       form.addEventListener('submit', function(e) {
@@ -715,6 +661,11 @@
         notification.remove();
       }
     }, 3000);
+  }
+
+  // Function to show error toast (less intrusive than alert)
+  function showErrorToast(message) {
+    showNotification(message, "danger");
   }
 </script>
 
