@@ -44,9 +44,10 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
 # SPLUNK HEC Configuration
-SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
+
+SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
 # Please remind me to hide this
-SPLUNK_HEC_TOKEN = "e4e0bbe8-2549-4a8e-bafa-28d0eb22244b"
+SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 
 
 cred = credentials.Certificate('C:/Users/User/Desktop/ray/SIT/Y2T3/SSD/Latergram/latergram-e9a26-firebase-adminsdk-fbsvc-229aa3b1e8.json') #Change this to wherever .json file is located
