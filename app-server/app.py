@@ -29,6 +29,7 @@ DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
+IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -45,18 +46,20 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
 # SPLUNK HEC Configuration
-
 SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
-# Please remind me to hide this
 SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 
-
-cred = credentials.Certificate(f'{FILE_LOCATION}') #Change this to wherever .json file is located
-firebase_admin.initialize_app(cred, {
-    'storageBucket': f'{BUCKET}'
-})
-
-bucket = storage.bucket()
+if not IS_TESTING:
+    if FILE_LOCATION and BUCKET:
+        cred = credentials.Certificate(FILE_LOCATION)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': BUCKET
+        })
+        bucket = storage.bucket()
+    else:
+        print("Firebase FILE_LOCATION or BUCKET not set — skipping Firebase init")
+else:
+    print("Skipping Firebase init — test mode enabled")
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')
