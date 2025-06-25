@@ -95,6 +95,15 @@ def log_to_splunk(event_data):
     except Exception as e:
         print(f"Failed to send log to Splunk: {e}")
 
+def ensure_firebase_initialized():
+    global bucket
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(r'C:\Users\andre\OneDrive\Documents\GitHub\Latergram\latergram-e9a26-firebase-adminsdk-fbsvc-229aa3b1e8.json')
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': BUCKET
+        })
+    bucket = storage.bucket()
+
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
@@ -182,10 +191,9 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
-
-
 @app.route('/create-post', methods=['GET', 'POST'])
 def create_post():
+    ensure_firebase_initialized()
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -438,6 +446,7 @@ def unlike_post_api(post_id):
 
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
+    ensure_firebase_initialized()
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -450,12 +459,23 @@ def edit_profile():
         display_name = request.form.get('display_name')
         bio = request.form.get('bio')
         visibility = request.form.get('visibility')
-        
+
+        # Handle profile picture upload
+        profile_pic_file = request.files.get('profile_picture')
+        profile_pic_url = user.profilePicture  # Default to current
+        if profile_pic_file and profile_pic_file.filename != '':
+            filename = secure_filename(profile_pic_file.filename)
+            blob = storage.bucket().blob(f'profile_pics/{uuid.uuid4()}_{filename}')
+            blob.upload_from_file(profile_pic_file, content_type=profile_pic_file.content_type)
+            blob.make_public()
+            profile_pic_url = blob.public_url
+
         result = profile_manager.update_profile(
             session['user_id'], 
             display_name=display_name, 
             bio=bio, 
-            visibility=visibility
+            visibility=visibility,
+            profile_picture_url=profile_pic_url
         )
         
         if result['success']:
@@ -640,6 +660,57 @@ def remove_follower_api(follower_user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     result = profile_manager.remove_follower(session['user_id'], follower_user_id)
     return jsonify(result)
+
+@app.route('/remove-profile-picture', methods=['POST'])
+def remove_profile_picture():
+    ensure_firebase_initialized()
+    if 'user_id' not in session:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message='Not logged in'), 401
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user or not user.profilePicture:
+        msg = 'No profile picture to remove.'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message=msg)
+        flash(msg, 'warning')
+        return redirect(url_for('edit_profile'))
+
+    # Delete from Firebase Storage if exists and is a Firebase URL
+    if user.profilePicture and 'appspot.com' in user.profilePicture:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(user.profilePicture)
+            blob_name = parsed.path.lstrip('/')
+            blob = storage.bucket().blob(blob_name)
+            blob.delete()
+        except Exception as e:
+            print(f"Error deleting profile picture from storage: {e}")
+
+    # Remove from user profile and commit
+    user.profilePicture = ''  # Set to empty string, not None
+    try:
+        db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=True)
+        flash('Profile picture removed.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error committing profile picture removal: {e}")
+        if 'NOT NULL' in str(e):
+            print("\n\nYour profilePicture column is NOT NULL. Run this SQL in MySQL Workbench to fix it:\nALTER TABLE user MODIFY profilePicture varchar(255) DEFAULT NULL;\n")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message='Database error')
+        flash('Error removing profile picture.', 'danger')
+    return redirect(url_for('edit_profile'))
+
+@app.context_processor
+def inject_user():
+    user = None
+    if 'user_id' in session:
+        user = User.query.filter_by(userId=session['user_id']).first()
+    return dict(user=user)
 
 if __name__ == '__main__':
     with app.app_context():

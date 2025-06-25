@@ -70,7 +70,14 @@
           </li>
           <li class="nav-item">
             <a class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}" href="{{ url_for('profile') }}">
-              <i class="fas fa-user"></i> Profile
+              <span id="main-nav-profile-pic" style="vertical-align: middle; margin-right: 8px;">
+                {% if user.profilePicture %}
+                  <img src="{{ user.profilePicture }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">
+                {% else %}
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 28px; height: 28px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>
+                {% endif %}
+              </span>
+              Profile
             </a>
           </li>
           <li class="nav-item">

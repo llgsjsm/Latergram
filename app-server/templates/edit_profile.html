@@ -9,16 +9,28 @@
                     <h4 class="mb-0">Edit Profile</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
                         <!-- Profile Picture Preview -->
                         <div class="text-center mb-4">
-                            <img src="{{ user.profilePicture or 'https://via.placeholder.com/150' }}" 
-                                 alt="Profile Picture" 
-                                 class="rounded-circle mb-3"
-                                 style="width: 120px; height: 120px; object-fit: cover;">
+                            <span id="profile-pic-preview">
+                                {% if user.profilePicture %}
+                                    <img src="{{ user.profilePicture }}" 
+                                         alt="Profile Picture" 
+                                         class="rounded-circle mb-3"
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                {% else %}
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;">
+                                        <i class="fas fa-user"></i>
+                                    </span>
+                                {% endif %}
+                            </span>
                             <div>
-                                <small class="text-muted">Profile picture changes coming soon!</small>
+                                <input type="file" name="profile_picture" accept="image/*" class="form-control mt-2" style="max-width: 250px; margin: 0 auto;">
+                                <small class="text-muted">Upload a new profile picture</small>
                             </div>
+                            {% if user.profilePicture %}
+                            <button type="button" class="btn btn-outline-danger btn-sm mt-2" id="removeProfilePicBtn">Remove Profile Picture</button>
+                            {% endif %}
                         </div>
                         
                         <!-- Display Name -->
@@ -346,6 +358,44 @@ document.getElementById('delete_password').addEventListener('input', function() 
         deleteBtn.disabled = true;
         deleteBtn.classList.remove('btn-danger');
         deleteBtn.classList.add('btn-secondary');
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const removeBtn = document.getElementById('removeProfilePicBtn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            fetch('{{ url_for("remove_profile_picture") }}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the preview to default icon
+                    document.querySelector('#profile-pic-preview').innerHTML =
+                        `<span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`;
+                    removeBtn.style.display = 'none';
+                    // Update on profile page if present
+                    const profileImg = document.querySelector('.profile-header-card .rounded-circle');
+                    if (profileImg) {
+                        profileImg.outerHTML =
+                            `<span class=\"d-inline-flex align-items-center justify-content-center rounded-circle me-3\" style=\"width: 64px; height: 64px; background: #23263a; color: #bfc7d5; font-size: 2rem; border: 2px solid #343a40;\"><i class=\"fas fa-user\"></i></span>`;
+                    }
+                    // Update main-nav profile image if present
+                    const navImg = document.querySelector('#main-nav .rounded-circle');
+                    if (navImg) {
+                        navImg.outerHTML = `<span class=\"d-inline-flex align-items-center justify-content-center rounded-circle\" style=\"width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1.3rem; border: 2px solid #343a40;\"><i class=\"fas fa-user\"></i></span>`;
+                    }
+                } else {
+                    alert(data.message || 'Failed to remove profile picture.');
+                }
+            });
+        });
     }
 });
 </script>
