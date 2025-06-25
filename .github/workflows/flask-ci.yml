@@ -32,17 +32,15 @@ jobs:
         SPLUNK_HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
         B64_KEY: ${{ secrets.B64_KEY }}
 
-      - name: Follow Container Logs
-      run: docker-compose -f docker-compose.ci.yml logs -f --no-color
-      
+    - name: Follow Container Logs
+    run: docker-compose -f docker-compose.ci.yml logs -f --no-color
+    
     - name: Decode Firebase Key and Export Path
       run: |
         echo "$B64_KEY" | base64 --decode > /tmp/test.json
         echo "Key decoded and ready to use"
         cat /tmp/test.json
 
-    - name: debugger
-      run: docker exec flask -rm
     # - name: Run Flask Test
     #   run: docker exec flask python /app/tests/test_basic_nonginx.py
 
