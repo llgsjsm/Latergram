@@ -201,7 +201,7 @@ body, .container {
   color: #f1f1f1 !important;
 }
 .card, .card-header, .card-body {
-  background: #23263a !important;
+  background: #23263a;
   color: #f1f1f1 !important;
   border-color: #23263a !important;
 }
@@ -239,4 +239,17 @@ h4.card-header,
 }
 .rounded-circle {
   border: 2px solid #343a40;
+}
+
+/* Center Bootstrap modals vertically and horizontally */
+.modal-dialog {
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - 1rem);
+}
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+}
+.modal.show .modal-dialog {
+  margin: auto;
 }

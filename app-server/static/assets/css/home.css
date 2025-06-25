@@ -20,20 +20,20 @@
   box-shadow: -2px 0 8px rgba(0,0,0,0.03);
 }
 
-#right-panel .card{
-  background: #363947;
-  color: #fff;
-  border: none;
-}
-
 #right-panel .card-header, #right-panel .card-body {
   color: #fff;
-  background-color: #363947;
+  background-color: #151722 ;
   border: none;
 }
 
 #right-panel .card-body a {
   color: #fff;
+}
+
+#right-panel .card {
+  background-color: #151722 !important;
+  color: #fff;
+  border: none;
 }
 
 @media (max-width: 991px) {
@@ -45,4 +45,9 @@
 .base-btn:hover, .base-btn:focus {
   background: #4660c7 !important;
   color: #fff !important;
+}
+
+.request-item > div:last-child {
+  display: flex;
+  gap: 0.5rem;
 }

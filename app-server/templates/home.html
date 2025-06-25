@@ -9,63 +9,6 @@
     <div class="col-12 col-md-8 col-lg-6">
       <h2 class="mb-4 text-center">Welcome to Latergram</h2>
 
-      <!-- Follow Requests Section -->
-      {% if pending_requests %}
-      <div class="card mb-4">
-        <div class="card-header">
-          <h6 class="mb-0">
-            <i class="fas fa-user-plus me-2"></i>Follow Requests ({{
-            pending_requests|length }})
-          </h6>
-        </div>
-        <div class="card-body">
-          {% for request in pending_requests %}
-          <div
-            class="d-flex align-items-center justify-content-between mb-3 request-item"
-            data-requester-id="{{ request.requester_id }}"
-          >
-            <div class="d-flex align-items-center">
-              <img
-                src="{{ request.profile_picture or 'https://via.placeholder.com/40' }}"
-                class="rounded-circle me-3"
-                style="width: 40px; height: 40px; object-fit: cover"
-              />
-              <div>
-                <strong>{{ request.username }}</strong>
-                {% if request.bio %}
-                <div class="text-muted small">
-                  {{ request.bio[:50] }}{% if request.bio|length > 50 %}...{%
-                  endif %}
-                </div>
-                {% endif %}
-                <div class="text-muted small">
-                  {{ request.requested_at.strftime('%b %d, %Y') if
-                  request.requested_at else '' }}
-                </div>
-              </div>
-            </div>
-            <div>
-              <button
-                class="btn btn-primary btn-sm me-2 request-btn"
-                data-action="accept"
-                data-requester-id="{{ request.requester_id }}"
-              >
-                Accept
-              </button>
-              <button
-                class="btn btn-outline-secondary btn-sm request-btn"
-                data-action="decline"
-                data-requester-id="{{ request.requester_id }}"
-              >
-                Decline
-              </button>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-
       <!-- Posts Feed -->
       {% if posts %}
       <h5 class="mb-3">Recent Posts</h5>
@@ -215,7 +158,61 @@
     }
   }
 </script>
-{% endblock %} {% block rightpanel %} {% if suggested_users %}
+{% endblock %}
+{% block rightpanel %}
+{% if pending_requests %}
+<div class="card m-3 mt-4">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-user-plus me-2"></i>Follow Requests ({{ pending_requests|length }})
+    </h6>
+  </div>
+  <div class="card-body">
+    {% for request in pending_requests %}
+    <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
+      <div class="text-muted small mb-1">
+        {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at else '' }}
+      </div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <img
+            src="{{ request.profile_picture or 'https://via.placeholder.com/40' }}"
+            class="rounded-circle me-3"
+            style="width: 40px; height: 40px; object-fit: cover"
+          />
+          <div>
+            <strong>{{ request.username }}</strong>
+            {% if request.bio %}
+            <div class="text-muted small">
+              {{ request.bio[:50] }}{% if request.bio|length > 50 %}...{% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <button
+            class="btn btn-primary btn-sm request-btn"
+            data-action="accept"
+            data-requester-id="{{ request.requester_id }}"
+          >
+            Accept
+          </button>
+          <button
+            class="btn btn-outline-secondary btn-sm request-btn"
+            data-action="decline"
+            data-requester-id="{{ request.requester_id }}"
+          >
+            Decline
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if suggested_users %}
 <div class="card m-3 mt-4">
   <div class="card-header">
     <h6 class="mb-0"><i class="fas fa-users"></i> People you might know</h6>

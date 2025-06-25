@@ -8,6 +8,17 @@
   <div class="profile-header-card">
     <div class="profile-header-left">
       <div class="profile-header-username">{{ user.username }}</div>
+      {% if user.visibility %}
+      <div class="profile-header-privacy-status text-muted small mb-2">
+        {% if user.visibility == 'Public' %}
+          <span class="badge bg-success">Public</span>
+        {% elif user.visibility == 'Private' %}
+          <span class="badge bg-danger">Private</span>
+        {% elif user.visibility == 'FollowersOnly' %}
+          <span class="badge bg-warning text-dark">Followers Only</span>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if user.bio %}
       <div class="profile-header-bio">{{ user.bio }}</div>
       {% endif %}
