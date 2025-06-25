@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
+from models.enums import VisibilityType
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
 import re
@@ -65,7 +66,7 @@ class AuthenticationManager:
                 password=hashed_password,
                 profilePicture='',
                 bio='',
-                visibility='public'
+                visibility=VisibilityType.PUBLIC.value
             )
             db.session.add(user)
             db.session.commit()

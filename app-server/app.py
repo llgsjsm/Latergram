@@ -888,6 +888,16 @@ def load_comments(post_id):
         print(f"Error loading comments: {e}")
         return jsonify({'error': 'Failed to load comments'}), 500
 
+@app.route('/admin/fix-visibility', methods=['POST'])
+def fix_visibility_case():
+    """Admin endpoint to fix visibility case for existing users"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    # Add admin check here if needed
+    result = profile_manager.fix_visibility_case()
+    return jsonify(result)
+
 @app.context_processor
 def inject_user():
     user = None

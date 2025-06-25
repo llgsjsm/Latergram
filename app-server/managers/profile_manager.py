@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
+from models.enums import VisibilityType
 from sqlalchemy import text
 
 class ProfileManager:
@@ -101,7 +102,8 @@ class ProfileManager:
         
         try:
             # If target user is public, auto-accept the follow
-            if result.target_visibility == 'Public':
+            # Handle both 'Public' and 'public' for backward compatibility
+            if result.target_visibility and result.target_visibility.lower() == 'public':
                 query = text("""
                     INSERT INTO followers (followerUserId, followedUserId, createdAt, status) 
                     VALUES (:requester_id, :target_id, NOW(), 'accepted')
@@ -126,7 +128,7 @@ class ProfileManager:
             return {
                 'success': True,
                 'message': message,
-                'status': 'accepted' if result.target_visibility == 'Public' else 'pending'
+                'status': 'accepted' if result.target_visibility and result.target_visibility.lower() == 'public' else 'pending'
             }
         except Exception as e:
             db.session.rollback()
@@ -863,3 +865,22 @@ class ProfileManager:
         except Exception as e:
             print(f"Error prefetching user profiles: {e}")
             return {}
+    
+    def fix_visibility_case(self) -> Dict[str, Any]:
+        """Fix visibility case for existing users - utility method for migration"""
+        try:
+            # Update all users with lowercase 'public' to uppercase 'Public'
+            query = text("""
+                UPDATE user SET visibility = 'Public' WHERE LOWER(visibility) = 'public'
+            """)
+            result = db.session.execute(query)
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'message': f'Fixed visibility case for {result.rowcount} users',
+                'updated_count': result.rowcount
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to fix visibility case: {str(e)}'}
