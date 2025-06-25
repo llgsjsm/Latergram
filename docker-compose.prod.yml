@@ -11,6 +11,8 @@ services:
       context: ./app-server
       dockerfile: Dockerfile
     working_dir: /app
+    environment:
+      - IS_TESTING=false
     volumes:
       - ./app-server:/app
     networks:

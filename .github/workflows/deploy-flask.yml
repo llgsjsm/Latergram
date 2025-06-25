@@ -46,6 +46,7 @@ jobs:
       run: |
         rsync -az --delete \
           --exclude='.env' \
+          --exclude='image.json' \
           -e "ssh -o StrictHostKeyChecking=no" \
           ./app-server/ admin-dev@${{ secrets.EC2_HOST }}:/home/admin-dev/latergram/app-server/
 
