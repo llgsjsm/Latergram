@@ -294,6 +294,9 @@ def unlike_post(post_id):
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
 def add_comment(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
     post = Post.query.get_or_404(post_id)
     content = request.form.get('comment')
 
@@ -313,6 +316,19 @@ def add_comment(post_id):
         )
         db.session.add(new_comment)
         db.session.commit()
+        
+        # Check if this is an AJAX request by looking for XMLHttpRequest header
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  'application/x-www-form-urlencoded' in request.headers.get('Content-Type', '') and \
+                  'HX-Request' not in request.headers  # Ensure it's our AJAX and not HTMX
+        
+        if is_ajax:
+            return jsonify({
+                'success': True, 
+                'message': 'Comment added successfully',
+                'comment_count': Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
+            })
+    
     return redirect(url_for('home'))
 
 @app.route('/edit_comment/<int:comment_id>', methods=['POST'])
@@ -354,16 +370,30 @@ def delete_comment(comment_id):
     
     try:
         comment = Comment.query.get_or_404(comment_id)
+        post = Post.query.get_or_404(comment.postId)
         
-        # Check if user owns the comment
-        if comment.authorId != session['user_id']:
-            return jsonify({'success': False, 'error': 'You can only delete your own comments'}), 403
+        # Check if user owns the comment OR owns the post
+        is_comment_owner = comment.authorId == session['user_id']
+        is_post_owner = post.authorId == session['user_id']
+        
+        if not (is_comment_owner or is_post_owner):
+            return jsonify({'success': False, 'error': 'You can only delete your own comments or comments on your posts'}), 403
+        
+        post_id = comment.postId
         
         # Delete the comment
         db.session.delete(comment)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Comment deleted successfully'})
+        # Get updated comment count
+        comment_count = Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Comment deleted successfully',
+            'is_post_owner_deletion': is_post_owner and not is_comment_owner,
+            'comment_count': comment_count
+        })
         
     except Exception as e:
         print(f"Error deleting comment: {e}")
@@ -814,6 +844,9 @@ def load_comments(post_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
+        # Get post information to check ownership
+        post = Post.query.get_or_404(post_id)
+        
         # Get comments for the post with author information
         comments_query = text("""
             SELECT c.commentId, c.commentContent, c.timestamp, c.parentCommentId,
@@ -841,7 +874,12 @@ def load_comments(post_id):
                 }
             })
         
-        return jsonify({'success': True, 'comments': comments})
+        return jsonify({
+            'success': True, 
+            'comments': comments,
+            'post_owner_id': post.authorId,
+            'current_user_id': session['user_id']
+        })
     except Exception as e:
         print(f"Error loading comments: {e}")
         return jsonify({'error': 'Failed to load comments'}), 500

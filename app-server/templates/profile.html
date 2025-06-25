@@ -191,10 +191,9 @@
         >
           <div class="text-white text-center">
             <div class="mb-2">
-              <i class="fas fa-heart"></i> {{ post.like or 0 }}
+              <i class="fas fa-heart"></i> <span id="hover-like-count-{{ post.postId }}">{{ post.like or 0 }}</span>
               <span class="ms-3">
-                <i class="fas fa-comment"></i> {{
-                comment_counts.get(post.postId, 0) }}
+                <i class="fas fa-comment"></i> <span id="hover-comment-count-{{ post.postId }}">{{ comment_counts.get(post.postId, 0) }}</span>
               </span>
             </div>
           </div>
@@ -232,33 +231,43 @@
             <div class="mt-3 pt-3 border-top post-action-bar">
               {% if liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
-              <button 
-                class="btn btn-danger btn-sm like-btn" 
-                data-post-id="{{ post.postId }}" 
+              <button
+                class="btn btn-danger btn-sm like-btn"
+                data-post-id="{{ post.postId }}"
                 data-action="unlike"
+                style="
+                  background-color: #dc3545;
+                  border-color: #dc3545;
+                  color: white;
+                "
               >
-                <i class="bi bi-heart-fill"></i> <span class="like-count">{{ post.like or 0 }}</span>
+                <i class="bi bi-heart-fill"></i>
+                <span class="like-count">{{ post.like or 0 }}</span>
               </button>
               {% else %}
               <!-- Like button -->
-              <button 
-                class="btn btn-outline-danger btn-sm like-btn" 
-                data-post-id="{{ post.postId }}" 
+              <button
+                class="btn btn-outline-danger btn-sm like-btn"
+                data-post-id="{{ post.postId }}"
                 data-action="like"
+                style="
+                  background-color: transparent;
+                  border-color: #dc3545;
+                  color: #dc3545;
+                "
               >
-                <i class="bi bi-heart"></i> <span class="like-count">{{ post.like or 0 }}</span>
+                <i class="bi bi-heart"></i>
+                <span class="like-count">{{ post.like or 0 }}</span>
               </button>
               {% endif %}
               <button
                 class="btn btn-outline-light btn-sm ms-2"
                 onclick="toggleCommentsSection('{{ post.postId }}')"
               >
-                <i class="fas fa-comment"></i> 
-                {% if comment_counts.get(post.postId, 0) > 0 %}
-                  {{ comment_counts.get(post.postId, 0) }} Comments
-                {% else %}
-                  Comment
-                {% endif %}
+                <i class="fas fa-comment"></i>
+                {% if comment_counts.get(post.postId, 0) > 0 %} {{
+                comment_counts.get(post.postId, 0) }} Comments {% else %}
+                Comment {% endif %}
               </button>
 
               <!-- Delete button (only for own posts) -->
@@ -273,7 +282,11 @@
               {% endif %}
 
               <!-- Comments Section -->
-              <div id="comments-section-modal-{{ post.postId }}" class="mt-3" style="display: none;">
+              <div
+                id="comments-section-modal-{{ post.postId }}"
+                class="mt-3"
+                style="display: none"
+              >
                 <!-- Comment Form -->
                 <div class="mb-3">
                   <form
@@ -290,21 +303,28 @@
                         placeholder="Add a comment..."
                         required
                       />
-                      <button class="btn btn-primary" type="submit">Post</button>
+                      <button class="btn btn-primary" type="submit">
+                        Post
+                      </button>
                     </div>
                   </form>
                 </div>
-                
+
                 <!-- Comments List -->
-                <div id="comments-list-modal-{{ post.postId }}" class="border-top pt-3">
+                <div
+                  id="comments-list-modal-{{ post.postId }}"
+                  class="border-top pt-3"
+                >
                   {% if comment_counts.get(post.postId, 0) > 0 %}
-                    <div class="text-center">
-                      <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Loading comments...</span>
-                      </div>
+                  <div class="text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading comments...</span>
                     </div>
+                  </div>
                   {% else %}
-                    <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
+                  <p class="text-muted text-center">
+                    No comments yet. Be the first to comment!
+                  </p>
                   {% endif %}
                 </div>
               </div>
@@ -522,8 +542,8 @@
                         <img src="${
                           follower.profilePicture ||
                           "https://via.placeholder.com/40"
-                        }" 
-                             class="rounded-circle me-3" 
+                        }"
+                             class="rounded-circle me-3"
                              style="width: 40px; height: 40px; object-fit: cover;">
                         <div class="flex-grow-1">
                             <a href="/profile/${
@@ -570,8 +590,8 @@
                         <img src="${
                           user.profilePicture ||
                           "https://via.placeholder.com/40"
-                        }" 
-                             class="rounded-circle me-3" 
+                        }"
+                             class="rounded-circle me-3"
                              style="width: 40px; height: 40px; object-fit: cover;">
                         <div class="flex-grow-1">
                             <a href="/profile/${
@@ -608,12 +628,12 @@
   function toggleCommentsSection(postId) {
     const section = document.getElementById(`comments-section-modal-${postId}`);
     const commentsList = document.getElementById(`comments-list-modal-${postId}`);
-    
+
     if (!section) {
       console.error('Comments section element not found:', `comments-section-modal-${postId}`);
       return;
     }
-    
+
     if (section.style.display === "none" || section.style.display === "") {
       section.style.display = "block";
       // Load comments if there are any and they haven't been loaded yet
@@ -633,29 +653,38 @@
   // Function to load comments for a specific post
   function loadCommentsForPost(postId) {
     const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
-    
+
     fetch('/load_comments/' + postId)
       .then(response => response.json())
       .then(data => {
         if (data.success && data.comments.length > 0) {
           let commentsHtml = '<h6 class="mb-3">Comments:</h6>';
           data.comments.forEach(comment => {
-            const profileImg = comment.author.profilePicture ? 
+            const profileImg = comment.author.profilePicture ?
               `<img src="${comment.author.profilePicture}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" alt="Profile">` :
               `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 32px; height: 32px; background: #23263a; color: #bfc7d5; font-size: 0.9rem;"><i class="fas fa-user"></i></span>`;
-            
+
             const isOwnComment = comment.author.username === currentUser.username;
-            const editDeleteButtons = isOwnComment ? `
+            const isPostOwner = data.current_user_id === data.post_owner_id;
+            const canDelete = isOwnComment || isPostOwner;
+            const canEdit = isOwnComment; // Only comment owner can edit
+
+            const editDeleteButtons = (canEdit || canDelete) ? `
               <div class="ms-auto">
-                <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})">
-                  <i class="fas fa-trash"></i>
-                </button>
+                ${canEdit ? `
+                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                ` : ''}
+                ${canDelete ? `
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})"
+                    title="${isOwnComment ? 'Delete your comment' : 'Delete comment (as post owner)'}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                ` : ''}
               </div>
             ` : '';
-            
+
             commentsHtml += `
               <div class="mb-3 d-flex comment-item" id="comment-${comment.commentId}">
                 ${profileImg}
@@ -683,7 +712,7 @@
   function editComment(commentId, currentContent) {
     const contentDiv = document.getElementById(`content-${commentId}`);
     const commentItem = document.getElementById(`comment-${commentId}`);
-    
+
     // Create edit form
     const editForm = document.createElement('div');
     editForm.innerHTML = `
@@ -693,11 +722,11 @@
         <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
       </div>
     `;
-    
+
     // Replace content with edit form
     contentDiv.innerHTML = '';
     contentDiv.appendChild(editForm);
-    
+
     // Focus on input
     document.getElementById(`edit-input-${commentId}`).focus();
   }
@@ -709,7 +738,7 @@
       alert('Comment cannot be empty');
       return;
     }
-    
+
     fetch(`/edit_comment/${commentId}`, {
       method: 'POST',
       headers: {
@@ -736,9 +765,7 @@
   // Function to cancel edit
   function cancelEdit(commentId, originalContent) {
     document.getElementById(`content-${commentId}`).innerHTML = originalContent;
-  }
-
-  // Function to delete comment
+  }  // Function to delete comment
   function deleteComment(commentId, postId) {
     if (confirm('Are you sure you want to delete this comment?')) {
       fetch(`/delete_comment/${commentId}`, {
@@ -752,8 +779,18 @@
         if (data.success) {
           // Remove comment from UI
           document.getElementById(`comment-${commentId}`).remove();
-          showNotification('Comment deleted successfully', 'success');
-          
+
+          // Update comment count with actual count from backend
+          if (data.comment_count !== undefined) {
+            updateCommentCount(postId, data.comment_count);
+          }
+
+          // Show success message
+          const message = data.is_post_owner_deletion ?
+            'Comment deleted successfully (as post owner)' :
+            'Comment deleted successfully';
+          showNotification(message, 'success');
+
           // Check if no comments left
           const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
           const remainingComments = commentsListDiv.querySelectorAll('.comment-item');
@@ -771,6 +808,25 @@
     }
   }
 
+  // Function to update comment count on buttons
+  function updateCommentCount(postId, newCount) {
+    // Find the comment button for this post
+    const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
+    if (commentButton) {
+      if (newCount > 0) {
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> ${newCount} Comments`;
+      } else {
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> Comment`;
+      }
+    }
+    
+    // Also update the hover overlay comment count
+    const hoverCommentCount = document.getElementById(`hover-comment-count-${postId}`);
+    if (hoverCommentCount) {
+      hoverCommentCount.textContent = newCount;
+    }
+  }
+
   // Function to show notification
   function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -781,7 +837,7 @@
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
       if (notification.parentNode) {
         notification.remove();
@@ -794,30 +850,53 @@
     document.querySelectorAll('.comment-form').forEach(form => {
       form.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const postId = this.dataset.postId;
         const commentInput = this.querySelector('input[name="comment"]');
         const content = commentInput.value.trim();
-        
+
         if (!content) return;
-        
+
         fetch(this.action, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
           },
           body: `comment=${encodeURIComponent(content)}`
         })
         .then(response => {
-          if (response.redirected) {
+          if (response.ok) {
+            return response.json();
+          } else if (response.redirected) {
+            // Fallback for redirect response
+            return { success: true };
+          } else {
+            throw new Error('Failed to add comment');
+          }
+        })
+        .then(data => {
+          if (data.success) {
             // Comment was added successfully, reload comments
             commentInput.value = '';
             loadCommentsForPost(postId);
+
+            // Update comment count with actual count from backend
+            if (data.comment_count !== undefined) {
+              updateCommentCount(postId, data.comment_count);
+            } else {
+              // Fallback: increment by 1 if we can't get exact count
+              const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
+              if (commentButton) {
+                const buttonText = commentButton.innerHTML;
+                const currentCount = parseInt(buttonText.match(/(\d+)\s+Comments/)?.[1] || '0');
+                updateCommentCount(postId, currentCount + 1);
+              }
+            }
+
             showNotification('Comment added successfully', 'success');
           } else {
-            return response.text().then(text => {
-              throw new Error('Failed to add comment');
-            });
+            throw new Error(data.error || 'Failed to add comment');
           }
         })
         .catch(error => {
@@ -837,12 +916,12 @@
         const action = this.dataset.action;
         const btn = this;
         const likeCountSpan = btn.querySelector('.like-count');
-        
+
         // Disable button during request
         btn.disabled = true;
-        
+
         const url = action === 'like' ? `/api/like/${postId}` : `/api/unlike/${postId}`;
-        
+
         fetch(url, {
           method: 'POST',
           headers: {
@@ -855,17 +934,25 @@
             // Update like count
             if (data.new_count !== undefined) {
               likeCountSpan.textContent = data.new_count;
+              
+              // Also update the hover overlay like count
+              const hoverLikeCount = document.getElementById(`hover-like-count-${postId}`);
+              if (hoverLikeCount) {
+                hoverLikeCount.textContent = data.new_count;
+              }
             }
-            
+
             // Toggle button state
             if (action === 'like') {
               btn.className = 'btn btn-danger btn-sm like-btn';
               btn.dataset.action = 'unlike';
               btn.querySelector('i').className = 'bi bi-heart-fill';
+              btn.style.cssText = 'background-color: #dc3545; border-color: #dc3545; color: white;';
             } else {
               btn.className = 'btn btn-outline-danger btn-sm like-btn';
               btn.dataset.action = 'like';
               btn.querySelector('i').className = 'bi bi-heart';
+              btn.style.cssText = 'background-color: transparent; border-color: #dc3545; color: #dc3545;';
             }
           } else {
             alert('Error: ' + (data.error || 'Failed to update like'));
