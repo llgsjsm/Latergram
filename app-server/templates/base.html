@@ -93,9 +93,10 @@
                 id="main-nav-profile-pic"
                 style="vertical-align: middle; margin-right: 8px"
               >
-                {% if user and user.profilePicture %}
+                {% set nav_user = current_user if current_user else user %}
+                {% if nav_user and nav_user.profilePicture %}
                 <img
-                  src="{{ user.profilePicture }}"
+                  src="{{ nav_user.profilePicture }}"
                   class="rounded-circle"
                   style="width: 28px; height: 28px; object-fit: cover"
                 />
@@ -115,7 +116,7 @@
                 {% endif %}
               </span>
               <span style="margin-left: 4px"
-                >{{ user.username if user else 'Profile' }}</span
+                >{{ nav_user.username if nav_user else 'Profile' }}</span
               >
             </a>
           </li>

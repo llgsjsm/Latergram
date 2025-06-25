@@ -489,8 +489,12 @@ def profile(user_id=None):
         print(f"Profile data: user={user.username}, visibility={user.visibility}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
         print(f"Visibility check: can_view={visibility_check['can_view']}, can_see_posts={visibility_check['can_see_posts']}, message={visibility_message}")
         
+        # Get current logged-in user for navbar
+        current_user = User.query.filter_by(userId=session['user_id']).first()
+        
         return render_template('profile.html', 
-                             user=user, 
+                             profile_user=user,  # Change user to profile_user
+                             current_user=current_user,  # Add current_user for navbar
                              user_stats=user_stats, 
                              user_posts=user_posts,
                              is_following=is_following,

@@ -9,9 +9,9 @@
   <div class="profile-header-card">
     <div class="profile-header-left">
       <div class="d-flex align-items-center mb-2">
-        {% if user.profilePicture %}
+        {% if profile_user.profilePicture %}
         <img
-          src="{{ user.profilePicture }}"
+          src="{{ profile_user.profilePicture }}"
           alt="Profile Picture"
           class="rounded-circle me-3"
           style="
@@ -37,19 +37,19 @@
         </span>
         {% endif %}
         <div>
-          <div class="profile-header-username">{{ user.username }}</div>
-          {% if user.visibility %}
+          <div class="profile-header-username">{{ profile_user.username }}</div>
+          {% if profile_user.visibility %}
           <div class="profile-header-privacy-status text-muted small mb-2">
-            {% if user.visibility == 'Public' %}
+            {% if profile_user.visibility == 'Public' %}
             <span class="badge bg-success">Public</span>
-            {% elif user.visibility == 'Private' %}
+            {% elif profile_user.visibility == 'Private' %}
             <span class="badge bg-danger">Private</span>
-            {% elif user.visibility == 'FollowersOnly' %}
+            {% elif profile_user.visibility == 'FollowersOnly' %}
             <span class="badge bg-warning text-dark">Followers Only</span>
             {% endif %}
           </div>
-          {% endif %} {% if user.bio %}
-          <div class="profile-header-bio">{{ user.bio }}</div>
+          {% endif %} {% if profile_user.bio %}
+          <div class="profile-header-bio">{{ profile_user.bio }}</div>
           {% endif %}
         </div>
       </div>
@@ -107,7 +107,7 @@
       <!-- Currently following -->
       <button
         class="btn btn-outline-primary profile-action-btn"
-        data-user-id="{{ user.userId }}"
+        data-user-id="{{ profile_user.userId }}"
         data-action="unfollow"
         title="Unfollow"
         style="width: auto; padding: 0.5rem 1.5rem"
@@ -118,7 +118,7 @@
       <!-- Request pending -->
       <button
         class="btn btn-outline-secondary profile-action-btn"
-        data-user-id="{{ user.userId }}"
+        data-user-id="{{ profile_user.userId }}"
         data-action="cancel-request"
         title="Click to cancel request"
         style="width: auto; padding: 0.5rem 1.5rem"
@@ -129,7 +129,7 @@
       <!-- Not following -->
       <button
         class="btn btn-primary profile-action-btn"
-        data-user-id="{{ user.userId }}"
+        data-user-id="{{ profile_user.userId }}"
         data-action="follow"
         title="Follow"
         style="width: auto; padding: 0.5rem 1.5rem"
@@ -227,7 +227,7 @@
               alt="Post image"
             />
             {% endif %}
-            <p><strong>{{ user.username }}</strong> {{ post.content }}</p>
+            <p><strong>{{ profile_user.username }}</strong> {{ post.content }}</p>
             <div class="text-muted small">
               {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
               post.timeOfPost else '' }}
@@ -355,7 +355,7 @@
     </a>
     {% else %}
     <p>
-      When <span>{{ user.username }}</span> shares photos, they'll appear here.
+      When <span>{{ profile_user.username }}</span> shares photos, they'll appear here.
     </p>
     {% endif %}
   </div>
@@ -433,8 +433,8 @@
 <script>
   // Current user info for JavaScript
   const currentUser = {
-    id: {{ user.userId if user else 'null' }},
-    username: "{{ user.username if user else '' }}"
+    id: {{ profile_user.userId if profile_user else 'null' }},
+    username: "{{ profile_user.username if profile_user else '' }}"
   };
 
   // Follow/Unfollow functionality
@@ -1137,12 +1137,12 @@
     document
       .getElementById("followers-link")
       .addEventListener("click", function () {
-        loadFollowers("{{ user.userId }}");
+        loadFollowers("{{ profile_user.userId }}");
       });
     document
       .getElementById("following-link")
       .addEventListener("click", function () {
-        loadFollowing("{{ user.userId }}");
+        loadFollowing("{{ profile_user.userId }}");
       });
   });
 </script>
