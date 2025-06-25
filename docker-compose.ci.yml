@@ -15,6 +15,10 @@ services:
       - DB_PORT=3306
       - DB_NAME=testdb
       - FILE_LOCATION=/tmp/test.json
+      - BUCKET=${BUCKET}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
+      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL}
+      - B64_KEY=${B64_KEY}
     networks:
       laternet:
         ipv4_address: 10.20.0.2

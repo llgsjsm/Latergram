@@ -36,6 +36,7 @@ jobs:
       run: |
         echo "$B64_KEY" | base64 --decode > /tmp/test.json
         echo "Key decoded and ready to use"
+        cat /tmp/test.json
 
     # - name: Run Flask Test
     #   run: docker exec flask python /app/tests/test_basic_nonginx.py
