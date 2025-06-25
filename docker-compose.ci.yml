@@ -14,6 +14,7 @@ services:
       - DB_HOST=10.20.0.4
       - DB_PORT=3306
       - DB_NAME=testdb
+      - FILE_LOCATION=/tmp/test.json
     networks:
       laternet:
         ipv4_address: 10.20.0.2
@@ -36,7 +37,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: laterdb
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     networks:

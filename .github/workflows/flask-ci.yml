@@ -26,6 +26,16 @@ jobs:
 
     - name: Build Flask Container
       run: docker-compose -f docker-compose.ci.yml up -d --build flask mysqldb nginx
+      env:
+        BUCKET: ${{ secrets.BUCKET }}
+        SPLUNK_HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN }}
+        SPLUNK_HEC_URL: ${{ secrets.SPLUNK_HEC_URL }}
+        B64_KEY: ${{ secrets.B64_KEY }}
+      
+    - name: Decode Firebase Key and Export Path
+      run: |
+        echo "$B64_KEY" | base64 --decode > /tmp/test.json
+        echo "Key decoded and ready to use"
 
     - name: Run Flask Test
       run: docker exec flask python /app/tests/test_basic_nonginx.py
