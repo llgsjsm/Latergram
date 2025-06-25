@@ -191,9 +191,15 @@
         >
           <div class="text-white text-center">
             <div class="mb-2">
-              <i class="fas fa-heart"></i> <span id="hover-like-count-{{ post.postId }}">{{ post.like or 0 }}</span>
+              <i class="fas fa-heart"></i>
+              <span id="hover-like-count-{{ post.postId }}"
+                >{{ post.like or 0 }}</span
+              >
               <span class="ms-3">
-                <i class="fas fa-comment"></i> <span id="hover-comment-count-{{ post.postId }}">{{ comment_counts.get(post.postId, 0) }}</span>
+                <i class="fas fa-comment"></i>
+                <span id="hover-comment-count-{{ post.postId }}"
+                  >{{ comment_counts.get(post.postId, 0) }}</span
+                >
               </span>
             </div>
           </div>
@@ -819,7 +825,7 @@
         commentButton.innerHTML = `<i class="fas fa-comment"></i> Comment`;
       }
     }
-    
+
     // Also update the hover overlay comment count
     const hoverCommentCount = document.getElementById(`hover-comment-count-${postId}`);
     if (hoverCommentCount) {
@@ -934,7 +940,7 @@
             // Update like count
             if (data.new_count !== undefined) {
               likeCountSpan.textContent = data.new_count;
-              
+
               // Also update the hover overlay like count
               const hoverLikeCount = document.getElementById(`hover-like-count-${postId}`);
               if (hoverLikeCount) {
