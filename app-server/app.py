@@ -28,6 +28,7 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
+FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -50,7 +51,7 @@ SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '')
 SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 
 
-cred = credentials.Certificate('C:/Users/User/Desktop/ray/SIT/Y2T3/SSD/Latergram/latergram-e9a26-firebase-adminsdk-fbsvc-229aa3b1e8.json') #Change this to wherever .json file is located
+cred = credentials.Certificate(f'{FILE_LOCATION}') #Change this to wherever .json file is located
 firebase_admin.initialize_app(cred, {
     'storageBucket': f'{BUCKET}'
 })
