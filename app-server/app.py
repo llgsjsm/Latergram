@@ -40,9 +40,10 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
 # SPLUNK HEC Configuration
-SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
+
+SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
 # Please remind me to hide this
-SPLUNK_HEC_TOKEN = "e4e0bbe8-2549-4a8e-bafa-28d0eb22244b"
+SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')
