@@ -67,6 +67,47 @@ html {
     font-weight: 600;
 }
 
+.base-btn {
+    border: none;
+    border-radius: var(--bs-border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 2px 8px 0 rgba(95, 119, 248, 0.1);
+    transition: background 0.2s;
+}
+
+.base-btn-primary {
+  height: 48px;
+  padding: 16px;
+  background: var(--color-primary);
+  color: #fff !important;
+}
+
+.base-btn-primary:hover, .base-btn-primary:focus {
+  background: #4660c7 !important;
+  color: #fff !important;
+}
+
+.base-btn-secondary {
+  height: 48px;
+  padding: 16px;
+  background: #363947 !important;
+  color: #fff !important;
+}
+
+.base-btn-secondary:hover, .base-btn-secondary:focus {
+  background: var(--color-navbg) !important;
+  color: #fff !important;
+}
+
+.base-btn i {margin-right: 8px;}
+
+.profile-header-actions .btn:hover {
+  background: #4660c7;
+}
+
 #logout-btn {
     background-color: var(--color-primary);
     color: var(--color-white);
@@ -120,7 +161,7 @@ html {
   padding: 0.75rem 1rem;
 }
 
-.text-muted {color: #6c757d !important;}
+.text-muted {color: #bfc7d5 !important;}
 
 #main-nav {
   position: fixed;
@@ -152,4 +193,50 @@ html {
     margin-left: 60px;
     padding: 1rem 0.5rem;
   }
+}
+
+/* --- Dark Mode Shared Styles --- */
+body, .container {
+  background: #151722 !important;
+  color: #f1f1f1 !important;
+}
+.card, .card-header, .card-body {
+  background: #23263a !important;
+  color: #f1f1f1 !important;
+  border-color: #23263a !important;
+}
+.form-control, .form-select {
+  background: #181a28 !important;
+  color: #f1f1f1 !important;
+  border: 1px solid #343a40 !important;
+}
+.form-control:focus, .form-select:focus {
+  background: #23263a !important;
+  color: #fff !important;
+  border-color: #495057 !important;
+  box-shadow: 0 0 0 0.2rem rgba(52,58,64,.25);
+}
+.form-label, .form-text, label, h2, h4, h6, p, small, .text-muted {
+  color: #bfc7d5 !important;
+}
+label[for="display_name"],
+label[for="bio"],
+label[for="visibility"],
+.card-header h6,
+.card-header h4,
+h6.card-header,
+h4.card-header,
+.mb-4 > h6 {
+  color: #fff !important;
+}
+::placeholder {
+  color: #7a7f9a !important;
+  opacity: 1;
+}
+.form-select option {
+  background: #23263a;
+  color: #f1f1f1;
+}
+.rounded-circle {
+  border: 2px solid #343a40;
 }

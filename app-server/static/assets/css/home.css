@@ -41,3 +41,8 @@
     display: none;
   }
 }
+
+.base-btn:hover, .base-btn:focus {
+  background: #4660c7 !important;
+  color: #fff !important;
+}

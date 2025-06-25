@@ -127,13 +127,13 @@
                 action="{{ url_for('like_post', post_id=post.postId) }}"
                 class="d-inline"
               >
-                <button type="submit" class="btn btn-outline-danger btn-sm">
+                <button type="submit" class="btn btn-danger btn-sm">
                   <i class="bi bi-heart"></i> {{ post.like or 0 }}
                 </button>
               </form>
               {% endif %}
               <button
-                class="btn btn-outline-light btn-sm ms-2"
+                class="btn btn-light btn-sm ms-2"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i> Comment
@@ -243,7 +243,7 @@
       </div>
       <a
         href="{{ url_for('profile', user_id=user.userId) }}"
-        class="btn btn-primary btn-sm"
+        class="btn btn-primary btn-sm base-btn"
         >View</a
       >
     </div>
