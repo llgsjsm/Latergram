@@ -8,6 +8,9 @@ from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy import text
+import firebase_admin
+from firebase_admin import credentials, storage
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +27,7 @@ DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
 DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
+BUCKET = os.environ.get('BUCKET', '')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -43,6 +47,14 @@ post_manager = get_post_manager()
 SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
 # Please remind me to hide this
 SPLUNK_HEC_TOKEN = "e4e0bbe8-2549-4a8e-bafa-28d0eb22244b"
+
+
+cred = credentials.Certificate('C:/Users/User/Desktop/ray/SIT/Y2T3/SSD/Latergram/latergram-e9a26-firebase-adminsdk-fbsvc-229aa3b1e8.json') #Change this to wherever .json file is located
+firebase_admin.initialize_app(cred, {
+    'storageBucket': f'{BUCKET}'
+})
+
+bucket = storage.bucket()
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')
@@ -175,27 +187,35 @@ def create_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        visibility = request.form.get('visibility', 'followers')  # You can handle visibility if you want
+        visibility = request.form.get('visibility', 'followers')
 
-        # Create a placeholder likes record to satisfy the foreign key constraint
+        image_url = "https://fastly.picsum.photos/id/404/200/300.jpg?hmac=..."  # default
+
+        # Handle file upload
+        image_file = request.files.get('image')
+        if image_file and image_file.filename != '':
+            filename = secure_filename(image_file.filename)
+            blob = storage.bucket().blob(f'posts/{uuid.uuid4()}_{filename}')
+            blob.upload_from_file(image_file, content_type=image_file.content_type)
+            blob.make_public()
+            image_url = blob.public_url
+
+        # Create likes record
         result = db.session.execute(
             text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
             {"user_id": session['user_id']}
         )
         db.session.flush()
-        
-        # Get the ID of the newly created likes record
         likes_id = result.lastrowid
 
-        # Create the post record
         new_post = Post(
-            authorId=session['user_id'],  # use session user id
+            authorId=session['user_id'],
             title=title,
             content=content,
             timeOfPost=datetime.utcnow(),
-            like=0,  # Start with 0 likes
-            likesId=likes_id,  # Use the likes record ID
-            image="https://fastly.picsum.photos/id/404/200/300.jpg?hmac=1i6ra6DJN9kJ9AQVfSf3VD1w08FkegBgXuz9lNDk1OM"  # No image for now
+            like=0,
+            likesId=likes_id,
+            image=image_url
         )
 
         db.session.add(new_post)
