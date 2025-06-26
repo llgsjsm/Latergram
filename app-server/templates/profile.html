@@ -167,7 +167,7 @@
             {% endif %}
             <p id="post-caption-{{ post.postId }}"
               class="{% if is_own_profile %}modal-body{% else %}modal-body readonly-edit{% endif %}"
-              style="cursor:pointer;" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)" {% endif
+              style="cursor:pointer; margin:0; padding:0;" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)" {% endif
               %}>
               <strong>{{ profile_user.username }}</strong> {{ post.content }}
             </p>
@@ -210,13 +210,13 @@
               </div>
               {% if is_own_profile %}
               <button class="btn profile-save-btn-primary btn-sm d-none" id="save-post-{{ post.postId }}"
-                onclick="savePostEdit({{ post.postId }})">Save</button>
+                onclick="savePostEdit('{{ post.postId }}')">Save</button>
               {% endif %}
             </div>
 
             <!-- Comments Section -->
             <div id="comments-section-modal-{{ post.postId }}" class="mt-3"
-              style="display: none; color: #fff !important;">
+              style="display: none; color: var(--color-white) !important;">
               <!-- Comment Form -->
               <div class="mb-3">
                 <form action="{{ url_for('add_comment', post_id=post.postId) }}" method="POST" class="comment-form"
@@ -335,8 +335,8 @@
 <script>
   // Current user info for JavaScript
   const currentUser = {
-    id: {{ profile_user.userId if profile_user else 'null' }},
-  username: "{{ profile_user.username if profile_user else '' }}"
+    id: "{{ profile_user.userId if profile_user else 'null' }}",
+    username: "{{ profile_user.username if profile_user else '' }}"
   };
 
   // Follow/Unfollow functionality
