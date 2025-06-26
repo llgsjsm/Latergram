@@ -265,7 +265,7 @@ body,
 }
 
 .post-action-bar .btn-primary, .post-action-bar .btn-primary:active {
-  background-color: var(--color-primary) !important;
+  background-color: #363947 !important;
   color: #fff !important;
   border: none !important;
   box-shadow: none !important;
@@ -279,7 +279,7 @@ body,
 }
 
 .post-action-bar .btn-primary:hover, .post-action-bar .btn-primary:focus {
-  background: #4660c7 !important;
+  background: var(--color-navbg) !important;
 }
 
 .post-action-bar .btn-danger:hover, .post-action-bar .btn-danger:focus {

@@ -91,7 +91,7 @@
               </button>
               {% endif %}
               <button
-                class="btn btn-light btn-sm ms-2"
+                class="btn btn-secondary btn-sm ms-2"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i> {{
@@ -109,8 +109,8 @@
             <small class="text-muted"
               >{{ comment_counts.get(post.postId, 0) }} Comments -
               <button
-                class="btn btn-link p-0 text-decoration-underline"
-                style="vertical-align: baseline; font-size: inherit"
+                class="btn btn-link p-0 text-decoration-none"
+                style="vertical-align: baseline; font-size: inherit; color: white;"
                 onclick="loadComments('{{ post.postId }}')"
               >
                 View All
@@ -505,7 +505,7 @@
       </div>
       <a
         href="{{ url_for('profile', user_id=user.userId) }}"
-        class="btn btn-primary btn-sm base-btn"
+        class="btn view-btn btn-sm"
         >View</a
       >
     </div>
@@ -718,7 +718,7 @@
       const parentSmall = viewAllButton.closest("small");
       if (parentSmall) {
         if (newCount > 0) {
-          parentSmall.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-underline" style="vertical-align: baseline; font-size: inherit;" onclick="loadComments('${postId}')">View All</button>`;
+          parentSmall.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none" style="vertical-align: baseline; font-size: inherit; color: white;" onclick="loadComments('${postId}')">View All</button>`;
         } else {
           parentSmall.innerHTML = "";
         }

@@ -212,7 +212,12 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">{{ post.title or 'Post' }}</h5>
+            <h5 class="modal-title" id="post-title-{{ post.postId }}" style="cursor:pointer;{% if not is_own_profile %}pointer-events:none;opacity:0.7;{% endif %}" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>
+              {{ post.title or 'Post' }}
+            </h5>
+            {% if is_own_profile %}
+            <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title or '' }}" style="font-size:1.25rem; font-weight:600; margin-bottom: 0.5rem;">
+            {% endif %}
             <button
               type="button"
               class="btn-close"
@@ -227,7 +232,12 @@
               alt="Post image"
             />
             {% endif %}
-            <p><strong>{{ profile_user.username }}</strong> {{ post.content }}</p>
+            <p id="post-caption-{{ post.postId }}" style="cursor:pointer;{% if not is_own_profile %}pointer-events:none;opacity:0.7;{% endif %}" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>
+              <strong>{{ profile_user.username }}</strong> {{ post.content }}
+            </p>
+            {% if is_own_profile %}
+            <textarea class="form-control d-none" id="edit-caption-{{ post.postId }}" rows="2">{{ post.content }}</textarea>
+            {% endif %}
             <div class="text-muted small">
               {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
               post.timeOfPost else '' }}
@@ -323,6 +333,14 @@
                 </div>
               </div>
             </div>
+
+            <!-- Save/Cancel buttons only for own posts, below action bar -->
+            {% if is_own_profile %}
+            <div class="mt-4 d-flex gap-2 justify-content-between">
+              <button class="btn base-btn base-btn-primary d-none" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
+              <button class="btn base-btn base-btn-secondary d-none" id="cancel-post-{{ post.postId }}" onclick="cancelPostEdit({{ post.postId }})">Cancel</button>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -1105,6 +1123,83 @@
       .addEventListener("click", function () {
         loadFollowing("{{ profile_user.userId }}");
       });
+  });
+
+  function enablePostEdit(postId, isCaption) {
+    if (!window._postEditOriginal) window._postEditOriginal = {};
+    if (!window._postEditOriginal[postId]) {
+      window._postEditOriginal[postId] = {
+        title: document.getElementById(`edit-title-${postId}`).value,
+        content: document.getElementById(`edit-caption-${postId}`).value
+      };
+    }
+    if (!isCaption) {
+      document.getElementById(`post-title-${postId}`).classList.add('d-none');
+      document.getElementById(`edit-title-${postId}`).classList.remove('d-none');
+      document.getElementById(`edit-title-${postId}`).focus();
+    } else {
+      document.getElementById(`post-caption-${postId}`).classList.add('d-none');
+      document.getElementById(`edit-caption-${postId}`).classList.remove('d-none');
+      document.getElementById(`edit-caption-${postId}`).focus();
+    }
+    document.getElementById(`save-post-${postId}`).classList.remove('d-none');
+    document.getElementById(`cancel-post-${postId}`).classList.remove('d-none');
+  }
+
+  function savePostEdit(postId) {
+    const titleInput = document.getElementById(`edit-title-${postId}`);
+    const captionInput = document.getElementById(`edit-caption-${postId}`);
+    const title = titleInput ? titleInput.value.trim() : '';
+    const content = captionInput ? captionInput.value.trim() : '';
+    fetch(`/api/edit-post/${postId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById(`post-title-${postId}`).textContent = data.title;
+        document.getElementById(`post-caption-${postId}`).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
+        document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+        document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+        document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+        document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+        document.getElementById(`save-post-${postId}`).classList.add('d-none');
+        document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
+        if (window._postEditOriginal) delete window._postEditOriginal[postId];
+        showNotification('Post updated!', 'success');
+      } else {
+        showNotification(data.error || 'Failed to update post', 'danger');
+      }
+    });
+  }
+
+  function cancelPostEdit(postId) {
+    if (!window._postEditOriginal || !window._postEditOriginal[postId]) return;
+    document.getElementById(`edit-title-${postId}`).value = window._postEditOriginal[postId].title;
+    document.getElementById(`edit-caption-${postId}`).value = window._postEditOriginal[postId].content;
+    document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+    document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+    document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+    document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+    document.getElementById(`save-post-${postId}`).classList.add('d-none');
+    document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
+  }
+
+  // Optional: handle Esc key to cancel edit
+  ['edit-title-', 'edit-caption-'].forEach(prefix => {
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
+        inputs.forEach(input => {
+          if (!input.classList.contains('d-none')) {
+            const postId = input.id.split('-').pop();
+            cancelPostEdit(postId);
+          }
+        });
+      }
+    });
   });
 </script>
 {% endblock %}

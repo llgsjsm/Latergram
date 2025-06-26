@@ -910,6 +910,26 @@ def inject_user():
         user = User.query.filter_by(userId=session['user_id']).first()
     return dict(user=user)
 
+@app.route('/api/edit-post/<int:post_id>', methods=['POST'])
+def api_edit_post(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    post = Post.query.get_or_404(post_id)
+    if post.authorId != session['user_id']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    if not title or not content:
+        return jsonify({'success': False, 'error': 'Title and caption required'}), 400
+
+    post.title = title
+    post.content = content
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content})
+
 if __name__ == '__main__':
     with app.app_context():
         try:

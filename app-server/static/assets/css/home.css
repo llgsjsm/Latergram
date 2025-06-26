@@ -7,6 +7,25 @@
   border-color: #363947 !important;
 }
 
+/* .comments-section-border button {
+  color: var(--color-white);
+  text-decoration: none !important;
+}
+
+.comments-section-border button:hover, 
+.comments-section-border button:focus {
+  color: #bfc7d5;
+} */
+
+.view-btn {
+  background-color: var(--color-primary) !important;
+  text-decoration: none !important;
+}
+
+.view-btn:hover {
+  background-color: #4660c7 !important;
+}
+
 #right-panel {
   position: fixed;
   top: 0;
@@ -96,4 +115,15 @@
 
 .like-btn:hover i {
   transform: scale(1.1);
+}
+
+.card-body .btn-secondary, .card-text .btn-secondary:active {
+  background-color: #363947 !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.card-body .btn-secondary:hover, .card-text .btn-secondary:focus {
+  background: var(--color-navbg) !important;
 }
