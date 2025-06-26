@@ -27,51 +27,82 @@
           <!-- Post Header -->
           <div class="d-flex align-items-center mb-2">
             {% if post.author %}
-            <img
-              src="{{ post.author.profilePicture or '' }}"
-              class="rounded-circle me-2"
-              style="width: 30px; height: 30px; object-fit: cover; display: {% if post.author and post.author.profilePicture %}inline{% else %}none{% endif %};"
-              alt="Profile Picture"
-            />
-            {% if not post.author or not post.author.profilePicture %}
-            <span
-              class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
-              style="
-                width: 30px;
-                height: 30px;
-                background: #23263a;
-                color: #bfc7d5;
-                font-size: 1rem;
-                border: 2px solid #343a40;
-              "
-            >
-              <i class="fas fa-user"></i>
-            </span>
-            {% endif %}
-            <div>
-              <a
-                href="{{ url_for('profile', user_id=post.authorId) }}"
-                class="text-decoration-none fw-bold"
-                >{{ post.author.username }}</a
-              >
-              <div class="text-muted small">
-                {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else
-                '' }}
+              {% if post.author.profilePicture %}
+                <img
+                  src="{{ post.author.profilePicture }}"
+                  class="rounded-circle me-2"
+                  style="width: 30px; height: 30px; object-fit: cover;"
+                  alt="Profile Picture"
+                />
+              {% else %}
+                <span
+                  class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
+                  style="
+                    width: 30px;
+                    height: 30px;
+                    background: #23263a;
+                    color: #bfc7d5;
+                    font-size: 1rem;
+                    border: 2px solid #343a40;
+                  "
+                >
+                  <i class="fas fa-user"></i>
+                </span>
+              {% endif %}
+              <div>
+                <a
+                  href="{{ url_for('profile', user_id=post.authorId) }}"
+                  class="text-decoration-none fw-bold"
+                >
+                  {{ post.author.username }}
+                </a>
+                <div class="text-muted small">
+                  {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else '' }}
+                </div>
               </div>
-            </div>
             {% endif %}
           </div>
+
           <!-- Post Content -->
           {% if post.title %}
-          <h6 class="card-title" id="post-title-{{ post.postId }}" {% if user and post.authorId == user.userId %}style="cursor:pointer;" onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>{{ post.title }}</h6>
           {% if user and post.authorId == user.userId %}
-          <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title }}" maxlength="100" style="font-size:1rem; font-weight:600; margin-bottom: 4px;">
+            <h6 class="card-title"
+                id="post-title-{{ post.postId }}"
+                style="cursor:pointer;"
+                onclick="enablePostEdit('{{ post.postId }}', false)">
+              {{ post.title }}
+            </h6>
+            <input type="text"
+                  class="form-control d-none"
+                  id="edit-title-{{ post.postId }}"
+                  value="{{ post.title }}"
+                  maxlength="100"
+                  style="font-size:1rem; font-weight:600; margin-bottom: 4px;">
+          {% else %}
+            <h6 class="card-title" id="post-title-{{ post.postId }}">
+              {{ post.title }}
+            </h6>
           {% endif %}
           {% endif %}
-          <p class="card-text" id="post-caption-{{ post.postId }}" {% if user and post.authorId == user.userId %}style="cursor:pointer;" onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>{{ post.content }}</p>
+
           {% if user and post.authorId == user.userId %}
-          <textarea class="form-control d-none" id="edit-caption-{{ post.postId }}" rows="2" maxlength="500" style="margin-bottom: 8px;">{{ post.content }}</textarea>
+          <p class="card-text"
+            id="post-caption-{{ post.postId }}"
+            style="cursor:pointer;"
+            onclick="enablePostEdit('{{ post.postId }}', true)">
+            {{ post.content }}
+          </p>
+          <textarea class="form-control d-none"
+                    id="edit-caption-{{ post.postId }}"
+                    rows="2"
+                    maxlength="500"
+                    style="margin-bottom: 8px;">{{ post.content }}</textarea>
+          {% else %}
+          <p class="card-text" id="post-caption-{{ post.postId }}">
+            {{ post.content }}
+          </p>
           {% endif %}
+
           <!-- Post Actions -->
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -104,7 +135,7 @@
                 comment_counts.get(post.postId, 0) }} Comments
               </button>
               {% if user and post.authorId == user.userId %}
-              <button class="btn card-btn-primary btn-sm d-none ms-2" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
+              <button class="btn card-btn-primary btn-sm d-none ms-2" id="save-post-{{ post.postId }}" onclick="savePostEdit('{{ post.postId }}')">Save</button>
               {% endif %}
             </div>
             <small class="text-muted"
@@ -170,7 +201,7 @@
 <script>
   // Current user info for JavaScript
   const currentUser = {
-    id: {{ user.userId if user else 'null' }},
+    id: "{{ user.userId if user else 'null' }}",
     username: "{{ user.username if user else '' }}"
   };
 
@@ -503,50 +534,45 @@
 <div class="card m-3 mt-4">
   <div class="card-header">
     <h6 class="mb-0">
-      <i class="fas fa-user-plus me-2"></i>Follow Requests ({{
-      pending_requests|length }})
+      <i class="fas fa-user-plus me-2"></i>Follow Requests ({{ pending_requests|length }})
     </h6>
   </div>
   <div class="card-body">
     {% for request in pending_requests %}
-    <div
-      class="mb-3 request-item"
-      data-requester-id="{{ request.requester_id }}"
-    >
+    <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
       <div class="text-muted small mb-1">
-        {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at
-        else '' }}
+        {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at else '' }}
       </div>
       <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
-          <img
-            src="{{ request.profile_picture or '' }}"
-            class="rounded-circle me-3"
-            style="width: 40px; height: 40px; object-fit: cover; display: {% if request.profile_picture %}inline{% else %}none{% endif %};"
-            alt="Profile Picture"
-          />
-          {% if not request.profile_picture %}
-          <span
-            class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
-            style="
-              width: 40px;
-              height: 40px;
-              background: #23263a;
-              color: #bfc7d5;
-              font-size: 1.3rem;
-              border: 2px solid #343a40;
-            "
-          >
-            <i class="fas fa-user"></i>
-          </span>
+          {% if request.profile_picture %}
+            <img
+              src="{{ request.profile_picture }}"
+              class="rounded-circle me-3"
+              style="width: 40px; height: 40px; object-fit: cover;"
+              alt="Profile Picture"
+            />
+          {% else %}
+            <span
+              class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
+              style="
+                width: 40px;
+                height: 40px;
+                background: #23263a;
+                color: #bfc7d5;
+                font-size: 1.3rem;
+                border: 2px solid #343a40;
+              "
+            >
+              <i class="fas fa-user"></i>
+            </span>
           {% endif %}
           <div>
             <strong>{{ request.username }}</strong>
             {% if request.bio %}
-            <div class="text-muted small">
-              {{ request.bio[:50] }}{% if request.bio|length > 50 %}...{% endif
-              %}
-            </div>
+              <div class="text-muted small">
+                {{ request.bio[:50] }}{% if request.bio|length > 50 %}...{% endif %}
+              </div>
             {% endif %}
           </div>
         </div>
@@ -571,7 +597,9 @@
     {% endfor %}
   </div>
 </div>
-{% endif %} {% if suggested_users %}
+{% endif %}
+
+{% if suggested_users %}
 <div class="card m-3 mt-4">
   <div class="card-header">
     <h6 class="mb-0"><i class="fas fa-users"></i> People you might know</h6>
@@ -579,26 +607,27 @@
   <div class="card-body">
     {% for user in suggested_users[:3] %}
     <div class="d-flex align-items-center mb-3">
-      <img
-        src="{{ user.profilePicture or '' }}"
-        class="rounded-circle me-2"
-        style="width: 35px; height: 35px; object-fit: cover; display: {% if user.profilePicture %}inline{% else %}none{% endif %};"
-        alt="Profile Picture"
-      />
-      {% if not user.profilePicture %}
-      <span
-        class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
-        style="
-          width: 35px;
-          height: 35px;
-          background: #23263a;
-          color: #bfc7d5;
-          font-size: 1.1rem;
-          border: 2px solid #343a40;
-        "
-      >
-        <i class="fas fa-user"></i>
-      </span>
+      {% if user.profilePicture %}
+        <img
+          src="{{ user.profilePicture }}"
+          class="rounded-circle me-2"
+          style="width: 35px; height: 35px; object-fit: cover;"
+          alt="Profile Picture"
+        />
+      {% else %}
+        <span
+          class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
+          style="
+            width: 35px;
+            height: 35px;
+            background: #23263a;
+            color: #bfc7d5;
+            font-size: 1.1rem;
+            border: 2px solid #343a40;
+          "
+        >
+          <i class="fas fa-user"></i>
+        </span>
       {% endif %}
       <div class="flex-grow-1">
         <a
@@ -608,16 +637,15 @@
           <strong>{{ user.username }}</strong>
         </a>
         {% if user.bio %}
-        <div class="text-muted small">
-          {{ user.bio[:30] }}{% if user.bio|length > 30 %}...{% endif %}
-        </div>
+          <div class="text-muted small">
+            {{ user.bio[:30] }}{% if user.bio|length > 30 %}...{% endif %}
+          </div>
         {% endif %}
       </div>
       <a
         href="{{ url_for('profile', user_id=user.userId) }}"
         class="btn card-btn-primary btn-sm"
-        >View</a
-      >
+      >View</a>
     </div>
     {% endfor %}
   </div>
