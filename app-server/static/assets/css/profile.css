@@ -1,3 +1,7 @@
+#main-content .container-fluid {
+  padding: 0;
+}
+
 .profile-container {
   background-color: #ffffff !important;
   color: #333333 !important;
@@ -63,7 +67,7 @@ body,
 
 .profile-header-card {
   background: #181a23;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 2rem 2.5rem;
   margin-top: 2rem;
   margin-bottom: 2rem;
@@ -155,9 +159,8 @@ body,
   }
 }
 
-.posts-section,
-.posts-section * {
-  color: #fff !important;
+.posts-section{
+  color: #bfc7d5;
 }
 
 /* Post thumbnail styling */
@@ -206,7 +209,6 @@ body,
 /* Post action buttons styling */
 .post-action-bar .btn {
   background-color: transparent;
-  border: 1px solid #495057;
   color: #fff;
 }
 
@@ -226,11 +228,60 @@ body,
 }
 
 .post-action-bar .btn-outline-danger {
-  color: #dc3545;
-  border-color: #dc3545;
+  border: 1.5px solid #dc3545 !important;
+  color: #dc3545 !important;
+  background: transparent !important;
 }
 
-.post-action-bar .btn-outline-danger:hover {
-  background-color: #dc3545;
-  color: #fff;
+.post-action-bar .btn-outline-danger i {
+  color: #dc3545 !important;
+}
+
+/* Make modal close (cross) button white in dark mode */
+.btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+  opacity: 1;
+}
+
+/* Make modal and divider borders darker for dark mode */
+.modal-content,
+.modal-header,
+.modal-body {
+  border-color: #23263a !important;
+}
+
+/* Section divider (border-top, border-bottom, etc.) darker for dark mode */
+.border-top,
+.border-bottom,
+.border-light {
+  border-color: #23263a !important;
+}
+
+#individual-post-modal img {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  height: 300px;
+}
+
+.post-action-bar .btn-primary, .post-action-bar .btn-primary:active {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.post-action-bar .btn-danger, .post-action-bar .btn-danger:active {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.post-action-bar .btn-primary:hover, .post-action-bar .btn-primary:focus {
+  background: #4660c7 !important;
+}
+
+.post-action-bar .btn-danger:hover, .post-action-bar .btn-danger:focus {
+  background-color: #b02a37 !important;
 }

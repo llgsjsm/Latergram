@@ -219,7 +219,7 @@
               data-bs-dismiss="modal"
             ></button>
           </div>
-          <div class="modal-body">
+          <div id="individual-post-modal" class="modal-body">
             {% if post.image %}
             <img
               src="{{ post.image }}"
@@ -236,38 +236,26 @@
             <!-- Like and Comment buttons -->
             <div class="mt-3 pt-3 border-top post-action-bar">
               {% if liked_posts.get(post.postId, False) %}
-              <!-- Unlike button -->
               <button
                 class="btn btn-danger btn-sm like-btn"
                 data-post-id="{{ post.postId }}"
                 data-action="unlike"
-                style="
-                  background-color: #dc3545;
-                  border-color: #dc3545;
-                  color: white;
-                "
               >
                 <i class="bi bi-heart-fill"></i>
                 <span class="like-count">{{ post.like or 0 }}</span>
               </button>
               {% else %}
-              <!-- Like button -->
               <button
                 class="btn btn-outline-danger btn-sm like-btn"
                 data-post-id="{{ post.postId }}"
                 data-action="like"
-                style="
-                  background-color: transparent;
-                  border-color: #dc3545;
-                  color: #dc3545;
-                "
               >
                 <i class="bi bi-heart"></i>
                 <span class="like-count">{{ post.like or 0 }}</span>
               </button>
               {% endif %}
               <button
-                class="btn btn-outline-light btn-sm ms-2"
+                class="btn btn-primary btn-sm ms-2"
                 onclick="toggleCommentsSection('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i>
@@ -279,8 +267,8 @@
               <!-- Delete button (only for own posts) -->
               {% if is_own_profile %}
               <button
-                class="btn btn-outline-danger btn-sm ms-2"
-                onclick="deletePost({{ post.postId }})"
+                class="btn btn-danger btn-sm ms-2"
+                onclick="deletePost('{{ post.postId }}')"
                 title="Delete Post"
               >
                 <i class="fas fa-trash"></i> Delete
@@ -291,7 +279,7 @@
               <div
                 id="comments-section-modal-{{ post.postId }}"
                 class="mt-3"
-                style="display: none"
+                style="display: none; color: #fff !important;"
               >
                 <!-- Comment Form -->
                 <div class="mb-3">
@@ -544,41 +532,25 @@
           followersList.innerHTML = data.followers
             .map(
               (follower) => `
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="${
-                          follower.profilePicture ||
-                          "https://via.placeholder.com/40"
-                        }"
-                             class="rounded-circle me-3"
-                             style="width: 40px; height: 40px; object-fit: cover;">
-                        <div class="flex-grow-1">
-                            <a href="/profile/${
-                              follower.userId
-                            }" class="text-decoration-none">
-                                <strong>${follower.username}</strong>
-                            </a>
-                            ${
-                              follower.bio
-                                ? `<div class="text-muted small">${follower.bio}</div>`
-                                : ""
-                            }
-                        </div>
-                        {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="removeFollower('${
-                          follower.userId
-                        }', this)">Remove</button>{% endif %}
-                    </div>
-                `
+                <div class="d-flex align-items-center mb-3">
+                  ${follower.profilePicture ?
+                    `<img src="${follower.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
+                    `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                  }
+                  <div class="flex-grow-1">
+                    <a href="/profile/${follower.userId}" class="text-decoration-none">
+                      <strong>${follower.username}</strong>
+                    </a>
+                    ${follower.bio ? `<div class="text-muted small">${follower.bio}</div>` : ""}
+                  </div>
+                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="removeFollower('${follower.userId}', this)">Remove</button>{% endif %}
+                </div>
+              `
             )
             .join("");
         } else {
-          followersList.innerHTML =
-            '<p class="text-muted text-center">No followers yet</p>';
+          followersList.innerHTML = '<p class="text-muted text-center">No followers yet</p>';
         }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        document.getElementById("followersList").innerHTML =
-          '<p class="text-danger text-center">Error loading followers</p>';
       });
   }
 
@@ -592,35 +564,24 @@
           followingList.innerHTML = data.following
             .map(
               (user) => `
-                    <div class="d-flex align-items-center mb-3">
-                        <img src="${
-                          user.profilePicture ||
-                          "https://via.placeholder.com/40"
-                        }"
-                             class="rounded-circle me-3"
-                             style="width: 40px; height: 40px; object-fit: cover;">
-                        <div class="flex-grow-1">
-                            <a href="/profile/${
-                              user.userId
-                            }" class="text-decoration-none">
-                                <strong>${user.username}</strong>
-                            </a>
-                            ${
-                              user.bio
-                                ? `<div class="text-muted small">${user.bio}</div>`
-                                : ""
-                            }
-                        </div>
-                        {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="unfollowUser('${
-                          user.userId
-                        }', this)">Remove</button>{% endif %}
-                    </div>
-                `
+                <div class="d-flex align-items-center mb-3">
+                  ${user.profilePicture ?
+                    `<img src="${user.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
+                    `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                  }
+                  <div class="flex-grow-1">
+                    <a href="/profile/${user.userId}" class="text-decoration-none">
+                      <strong>${user.username}</strong>
+                    </a>
+                    ${user.bio ? `<div class="text-muted small">${user.bio}</div>` : ""}
+                  </div>
+                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="unfollowUser('${user.userId}', this)">Remove</button>{% endif %}
+                </div>
+              `
             )
             .join("");
         } else {
-          followingList.innerHTML =
-            '<p class="text-muted text-center">Not following anyone yet</p>';
+          followingList.innerHTML = '<p class="text-muted text-center">Not following anyone yet</p>';
         }
       })
       .catch((error) => {
@@ -943,7 +904,7 @@
           btn.className = 'btn btn-outline-danger btn-sm like-btn';
           btn.dataset.action = 'like';
           btn.querySelector('i').className = 'bi bi-heart';
-          btn.style.cssText = 'background-color: transparent; border-color: #dc3545; color: #dc3545;';
+          btn.style.cssText = 'background-color: transparent; border: 1.5px solid #fff; color: #fff;';
         }
         likeCountSpan.textContent = newCount;
 
