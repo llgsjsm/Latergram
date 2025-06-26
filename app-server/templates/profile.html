@@ -1,14 +1,5 @@
 {% extends "base.html" %} {% block head %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename='assets/css/profile.css') }}"
-/>
-<style>
-  .readonly-edit {
-    pointer-events: none;
-    opacity: 0.7;
-  }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/profile.css') }}" />
 {% endblock %} {% block content %}
 
 <div class="container-fluid profile-bg">
@@ -16,29 +7,21 @@
     <div class="profile-header-left">
       <div class="d-flex align-items-center mb-2">
         {% if profile_user.profilePicture %}
-        <img
-          src="{{ profile_user.profilePicture }}"
-          alt="Profile Picture"
-          class="rounded-circle me-3"
-          style="
+        <img src="{{ profile_user.profilePicture }}" alt="Profile Picture" class="rounded-circle me-3" style="
             width: 64px;
             height: 64px;
             object-fit: cover;
             border: 2px solid #343a40;
-          "
-        />
+          " />
         {% else %}
-        <span
-          class="d-flex align-items-center justify-content-center rounded-circle me-3"
-          style="
+        <span class="d-flex align-items-center justify-content-center rounded-circle me-3" style="
             width: 64px;
             height: 64px;
             background: #23263a;
             color: #bfc7d5;
             font-size: 2rem;
             border: 2px solid #343a40;
-          "
-        >
+          ">
           <i class="fas fa-user"></i>
         </span>
         {% endif %}
@@ -60,24 +43,12 @@
         </div>
       </div>
       <div class="profile-header-stats">
-        <a
-          href="#"
-          id="followers-link"
-          data-bs-toggle="modal"
-          data-bs-target="#followersModal"
-        >
+        <a href="#" id="followers-link" data-bs-toggle="modal" data-bs-target="#followersModal">
           <span id="follower-count">{{ user_stats.followers_count or 0 }}</span>
           Followers
         </a>
-        <a
-          href="#"
-          id="following-link"
-          data-bs-toggle="modal"
-          data-bs-target="#followingModal"
-        >
-          <span id="following-count"
-            >{{ user_stats.following_count or 0 }}</span
-          >
+        <a href="#" id="following-link" data-bs-toggle="modal" data-bs-target="#followingModal">
+          <span id="following-count">{{ user_stats.following_count or 0 }}</span>
           Following
         </a>
       </div>
@@ -92,54 +63,34 @@
       </button>
       <ul class="dropdown-menu">
         <li>
-          <a class="dropdown-item" href="{{ url_for('edit_profile') }}"
-            >Settings</a
-          >
+          <a class="dropdown-item" href="{{ url_for('edit_profile') }}">Settings</a>
         </li>
         <li>
-          <a
-            class="dropdown-item"
-            href="#"
-            onclick="alert('Feature coming soon!')"
-            >Privacy</a
-          >
+          <a class="dropdown-item" href="#" onclick="alert('Feature coming soon!')">Privacy</a>
         </li>
-        <li><hr class="dropdown-divider" /></li>
+        <li>
+          <hr class="dropdown-divider" />
+        </li>
         <li>
           <a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a>
         </li>
       </ul>
       {% else %} {% if follow_status and follow_status.is_following %}
       <!-- Currently following -->
-      <button
-        class="btn btn-outline-primary profile-action-btn"
-        data-user-id="{{ profile_user.userId }}"
-        data-action="unfollow"
-        title="Unfollow"
-        style="width: auto; padding: 0.5rem 1.5rem"
-      >
+      <button class="btn btn-outline-primary profile-action-btn" data-user-id="{{ profile_user.userId }}"
+        data-action="unfollow" title="Unfollow" style="width: auto; padding: 0.5rem 1.5rem">
         <i class="fas fa-user-check me-1"></i>Following
       </button>
       {% elif follow_status and follow_status.request_pending %}
       <!-- Request pending -->
-      <button
-        class="btn btn-outline-secondary profile-action-btn"
-        data-user-id="{{ profile_user.userId }}"
-        data-action="cancel-request"
-        title="Click to cancel request"
-        style="width: auto; padding: 0.5rem 1.5rem"
-      >
+      <button class="btn btn-outline-secondary profile-action-btn" data-user-id="{{ profile_user.userId }}"
+        data-action="cancel-request" title="Click to cancel request" style="width: auto; padding: 0.5rem 1.5rem">
         <i class="fas fa-clock me-1"></i>Requested
       </button>
       {% else %}
       <!-- Not following -->
-      <button
-        class="btn btn-primary profile-action-btn"
-        data-user-id="{{ profile_user.userId }}"
-        data-action="follow"
-        title="Follow"
-        style="width: auto; padding: 0.5rem 1.5rem"
-      >
+      <button class="btn btn-primary profile-action-btn" data-user-id="{{ profile_user.userId }}" data-action="follow"
+        title="Follow" style="width: auto; padding: 0.5rem 1.5rem">
         <i class="fas fa-user-plus me-1"></i>Follow
       </button>
       {% endif %} {% endif %}
@@ -150,9 +101,7 @@
 <!-- Posts Section Header -->
 <div class="pt-4 posts-section">
   <div class="d-flex justify-content-center mb-4">
-    <div
-      class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header"
-    >
+    <div class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header">
       <i class="fas fa-th-large me-2"></i>
       <span class="fw-bold text-uppercase small">POSTS</span>
     </div>
@@ -163,24 +112,12 @@
   <div class="row">
     {% for post in user_posts %}
     <div class="col-lg-4 col-md-6 mb-4">
-      <div
-        class="position-relative post-thumbnail"
-        style="cursor: pointer"
-        data-bs-toggle="modal"
-        data-bs-target="#postModal{{ post.postId }}"
-      >
+      <div class="position-relative post-thumbnail" style="cursor: pointer" data-bs-toggle="modal"
+        data-bs-target="#postModal{{ post.postId }}">
         {% if post.image %}
-        <img
-          src="{{ post.image }}"
-          class="img-fluid w-100"
-          style="aspect-ratio: 1; object-fit: cover"
-          alt="Post"
-        />
+        <img src="{{ post.image }}" class="img-fluid w-100" style="aspect-ratio: 1; object-fit: cover" alt="Post" />
         {% else %}
-        <div
-          class="w-100 bg-light d-flex align-items-center justify-content-center text-muted"
-          style="aspect-ratio: 1"
-        >
+        <div class="w-100 bg-light d-flex align-items-center justify-content-center text-muted" style="aspect-ratio: 1">
           <div class="text-center">
             <i class="fas fa-file-text fa-2x mb-2"></i>
             <div class="small">
@@ -193,19 +130,14 @@
         <!-- Hover Overlay -->
         <div
           class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center post-overlay"
-          style="opacity: 0; transition: opacity 0.3s"
-        >
+          style="opacity: 0; transition: opacity 0.3s">
           <div class="text-white text-center">
             <div class="mb-2">
               <i class="fas fa-heart"></i>
-              <span id="hover-like-count-{{ post.postId }}"
-                >{{ post.like or 0 }}</span
-              >
+              <span id="hover-like-count-{{ post.postId }}">{{ post.like or 0 }}</span>
               <span class="ms-3">
                 <i class="fas fa-comment"></i>
-                <span id="hover-comment-count-{{ post.postId }}"
-                  >{{ comment_counts.get(post.postId, 0) }}</span
-                >
+                <span id="hover-comment-count-{{ post.postId }}">{{ comment_counts.get(post.postId, 0) }}</span>
               </span>
             </div>
           </div>
@@ -218,35 +150,30 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title{% if not is_own_profile %} readonly-edit{% endif %}" id="post-title-{{ post.postId }}"
-                style="cursor:pointer;"
-                {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>
+            <h5 class="modal-title{% if not is_own_profile %} readonly-edit{% endif %}"
+              id="post-title-{{ post.postId }}" style="cursor:pointer;" {% if is_own_profile
+              %}onclick="enablePostEdit({{ post.postId }}, false)" {% endif %}>
               {{ post.title or 'Post' }}
             </h5>
             {% if is_own_profile %}
-            <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title or '' }}" style="font-size:1.25rem; font-weight:600;">
+            <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}"
+              value="{{ post.title or '' }}" style="font-size:1.25rem; font-weight:600;">
             {% endif %}
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div id="individual-post-modal" class="modal-body">
             {% if post.image %}
-            <img
-              src="{{ post.image }}"
-              class="img-fluid mb-3"
-              alt="Post image"
-            />
+            <img src="{{ post.image }}" class="img-fluid mb-3" alt="Post image" />
             {% endif %}
-            <p id="post-caption-{{ post.postId }}" class="{% if is_own_profile %}modal-body{% else %}modal-body readonly-edit{% endif %}"
-               style="cursor:pointer;"
-               {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>
+            <p id="post-caption-{{ post.postId }}"
+              class="{% if is_own_profile %}modal-body{% else %}modal-body readonly-edit{% endif %}"
+              style="cursor:pointer;" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)" {% endif
+              %}>
               <strong>{{ profile_user.username }}</strong> {{ post.content }}
             </p>
             {% if is_own_profile %}
-            <textarea class="form-control d-none" style="margin-bottom: 8px;" id="edit-caption-{{ post.postId }}" rows="2">{{ post.content }}</textarea>
+            <textarea class="form-control d-none" style="margin-bottom: 8px;" id="edit-caption-{{ post.postId }}"
+              rows="2">{{ post.content }}</textarea>
             {% endif %}
             <div class="text-muted small">
               {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
@@ -257,70 +184,45 @@
             <div class="mt-3 post-action-bar d-flex justify-content-between align-items-center">
               <div>
                 {% if liked_posts.get(post.postId, False) %}
-                <button
-                  class="btn btn-danger btn-sm like-btn"
-                  data-post-id="{{ post.postId }}"
-                  data-action="unlike"
-                >
+                <button class="btn btn-danger btn-sm like-btn" data-post-id="{{ post.postId }}" data-action="unlike">
                   <i class="bi bi-heart-fill"></i>
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% else %}
-                <button
-                  class="btn btn-outline-danger btn-sm like-btn"
-                  data-post-id="{{ post.postId }}"
-                  data-action="like"
-                >
+                <button class="btn btn-outline-danger btn-sm like-btn" data-post-id="{{ post.postId }}"
+                  data-action="like">
                   <i class="bi bi-heart"></i>
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% endif %}
-                <button
-                  class="btn btn-primary btn-sm ms-2"
-                  onclick="toggleCommentsSection('{{ post.postId }}')"
-                >
+                <button class="btn btn-primary btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
                   <i class="fas fa-comment"></i>
                   {% if comment_counts.get(post.postId, 0) > 0 %} {{
                   comment_counts.get(post.postId, 0) }} Comments {% else %}
                   Comment {% endif %}
                 </button>
                 {% if is_own_profile %}
-                <button
-                  class="btn btn-danger btn-sm ms-2"
-                  onclick="deletePost('{{ post.postId }}')"
-                  title="Delete Post"
-                >
+                <button class="btn btn-danger btn-sm ms-2" onclick="deletePost('{{ post.postId }}')"
+                  title="Delete Post">
                   <i class="fas fa-trash"></i> Delete
                 </button>
                 {% endif %}
               </div>
               {% if is_own_profile %}
-              <button class="btn profile-save-btn-primary btn-sm d-none" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
+              <button class="btn profile-save-btn-primary btn-sm d-none" id="save-post-{{ post.postId }}"
+                onclick="savePostEdit({{ post.postId }})">Save</button>
               {% endif %}
             </div>
 
             <!-- Comments Section -->
-            <div
-              id="comments-section-modal-{{ post.postId }}"
-              class="mt-3"
-              style="display: none; color: #fff !important;"
-            >
+            <div id="comments-section-modal-{{ post.postId }}" class="mt-3"
+              style="display: none; color: #fff !important;">
               <!-- Comment Form -->
               <div class="mb-3">
-                <form
-                  action="{{ url_for('add_comment', post_id=post.postId) }}"
-                  method="POST"
-                  class="comment-form"
-                  data-post-id="{{ post.postId }}"
-                >
+                <form action="{{ url_for('add_comment', post_id=post.postId) }}" method="POST" class="comment-form"
+                  data-post-id="{{ post.postId }}">
                   <div class="input-group">
-                    <input
-                      type="text"
-                      class="form-control"
-                      name="comment"
-                      placeholder="Add a comment..."
-                      required
-                    />
+                    <input type="text" class="form-control" name="comment" placeholder="Add a comment..." required />
                     <button class="btn btn-primary" type="submit">
                       Post
                     </button>
@@ -329,10 +231,7 @@
               </div>
 
               <!-- Comments List -->
-              <div
-                id="comments-list-modal-{{ post.postId }}"
-                class="border-top pt-3"
-              >
+              <div id="comments-list-modal-{{ post.postId }}" class="border-top pt-3">
                 {% if comment_counts.get(post.postId, 0) > 0 %}
                 <div class="text-center">
                   <div class="spinner-border spinner-border-sm" role="status">
@@ -391,11 +290,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Followers</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div id="followersList">
@@ -416,11 +311,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Following</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-        ></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div id="followingList">
@@ -445,7 +336,7 @@
   // Current user info for JavaScript
   const currentUser = {
     id: {{ profile_user.userId if profile_user else 'null' }},
-    username: "{{ profile_user.username if profile_user else '' }}"
+  username: "{{ profile_user.username if profile_user else '' }}"
   };
 
   // Follow/Unfollow functionality
@@ -557,9 +448,9 @@
               (follower) => `
                 <div class="d-flex align-items-center mb-3">
                   ${follower.profilePicture ?
-                    `<img src="${follower.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
-                    `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
-                  }
+                  `<img src="${follower.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
+                  `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                }
                   <div class="flex-grow-1">
                     <a href="/profile/${follower.userId}" class="text-decoration-none">
                       <strong>${follower.username}</strong>
@@ -589,9 +480,9 @@
               (user) => `
                 <div class="d-flex align-items-center mb-3">
                   ${user.profilePicture ?
-                    `<img src="${user.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
-                    `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
-                  }
+                  `<img src="${user.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
+                  `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                }
                   <div class="flex-grow-1">
                     <a href="/profile/${user.userId}" class="text-decoration-none">
                       <strong>${user.username}</strong>
@@ -736,20 +627,20 @@
       },
       body: JSON.stringify({ content: newContent })
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Update the content
-        document.getElementById(`content-${commentId}`).innerHTML = newContent;
-        showNotification('Comment updated successfully', 'success');
-      } else {
-        alert('Error: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('An error occurred while updating the comment');
-    });
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update the content
+          document.getElementById(`content-${commentId}`).innerHTML = newContent;
+          showNotification('Comment updated successfully', 'success');
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the comment');
+      });
   }
 
   // Function to cancel edit
@@ -764,37 +655,37 @@
           'Content-Type': 'application/json',
         }
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Remove comment from UI
-          document.getElementById(`comment-${commentId}`).remove();
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Remove comment from UI
+            document.getElementById(`comment-${commentId}`).remove();
 
-          // Update comment count with actual count from backend
-          if (data.comment_count !== undefined) {
-            updateCommentCount(postId, data.comment_count);
+            // Update comment count with actual count from backend
+            if (data.comment_count !== undefined) {
+              updateCommentCount(postId, data.comment_count);
+            }
+
+            // Show success message
+            const message = data.is_post_owner_deletion ?
+              'Comment deleted successfully (as post owner)' :
+              'Comment deleted successfully';
+            showNotification(message, 'success');
+
+            // Check if no comments left
+            const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
+            const remainingComments = commentsListDiv.querySelectorAll('.comment-item');
+            if (remainingComments.length === 0) {
+              commentsListDiv.innerHTML = '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
+            }
+          } else {
+            alert('Error: ' + data.error);
           }
-
-          // Show success message
-          const message = data.is_post_owner_deletion ?
-            'Comment deleted successfully (as post owner)' :
-            'Comment deleted successfully';
-          showNotification(message, 'success');
-
-          // Check if no comments left
-          const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
-          const remainingComments = commentsListDiv.querySelectorAll('.comment-item');
-          if (remainingComments.length === 0) {
-            commentsListDiv.innerHTML = '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
-          }
-        } else {
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while deleting the comment');
-      });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while deleting the comment');
+        });
     }
   }
 
@@ -836,9 +727,9 @@
   }
 
   // Handle comment form submissions with AJAX
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.comment-form').forEach(form => {
-      form.addEventListener('submit', function(e) {
+      form.addEventListener('submit', function (e) {
         e.preventDefault();
 
         const postId = this.dataset.postId;
@@ -855,53 +746,53 @@
           },
           body: `comment=${encodeURIComponent(content)}`
         })
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          } else if (response.redirected) {
-            // Fallback for redirect response
-            return { success: true };
-          } else {
-            throw new Error('Failed to add comment');
-          }
-        })
-        .then(data => {
-          if (data.success) {
-            // Comment was added successfully, reload comments
-            commentInput.value = '';
-            loadCommentsForPost(postId);
-
-            // Update comment count with actual count from backend
-            if (data.comment_count !== undefined) {
-              updateCommentCount(postId, data.comment_count);
+          .then(response => {
+            if (response.ok) {
+              return response.json();
+            } else if (response.redirected) {
+              // Fallback for redirect response
+              return { success: true };
             } else {
-              // Fallback: increment by 1 if we can't get exact count
-              const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
-              if (commentButton) {
-                const buttonText = commentButton.innerHTML;
-                const currentCount = parseInt(buttonText.match(/(\d+)\s+Comments/)?.[1] || '0');
-                updateCommentCount(postId, currentCount + 1);
-              }
+              throw new Error('Failed to add comment');
             }
+          })
+          .then(data => {
+            if (data.success) {
+              // Comment was added successfully, reload comments
+              commentInput.value = '';
+              loadCommentsForPost(postId);
 
-            showNotification('Comment added successfully', 'success');
-          } else {
-            throw new Error(data.error || 'Failed to add comment');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while adding the comment');
-        });
+              // Update comment count with actual count from backend
+              if (data.comment_count !== undefined) {
+                updateCommentCount(postId, data.comment_count);
+              } else {
+                // Fallback: increment by 1 if we can't get exact count
+                const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
+                if (commentButton) {
+                  const buttonText = commentButton.innerHTML;
+                  const currentCount = parseInt(buttonText.match(/(\d+)\s+Comments/)?.[1] || '0');
+                  updateCommentCount(postId, currentCount + 1);
+                }
+              }
+
+              showNotification('Comment added successfully', 'success');
+            } else {
+              throw new Error(data.error || 'Failed to add comment');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the comment');
+          });
       });
     });
   });
 
   // Like/Unlike functionality with instant UI updates
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     // Add click handlers for like buttons
     document.querySelectorAll('.like-btn').forEach(button => {
-      button.addEventListener('click', function() {
+      button.addEventListener('click', function () {
         const postId = this.dataset.postId;
         const action = this.dataset.action;
         const btn = this;
@@ -954,20 +845,40 @@
             'Content-Type': 'application/json',
           },
         })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Sync with server response if different from optimistic update
-            if (data.new_count !== undefined && data.new_count !== newCount) {
-              likeCountSpan.textContent = data.new_count;
-              // Update hover overlay too
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Sync with server response if different from optimistic update
+              if (data.new_count !== undefined && data.new_count !== newCount) {
+                likeCountSpan.textContent = data.new_count;
+                // Update hover overlay too
+                if (hoverLikeCount) {
+                  hoverLikeCount.textContent = data.new_count;
+                }
+              }
+              // UI is already updated optimistically, no need to change unless correcting
+            } else {
+              // Rollback on error
+              likeCountSpan.textContent = originalCount;
+              btn.className = originalClass;
+              btn.dataset.action = originalAction;
+              btn.querySelector('i').className = originalIconClass;
+              btn.style.cssText = originalStyle;
+
+              // Rollback hover overlay too
               if (hoverLikeCount) {
-                hoverLikeCount.textContent = data.new_count;
+                hoverLikeCount.textContent = originalCount;
+              }
+
+              // Show error without blocking UI
+              if (!data.already_liked && !data.not_liked) {
+                showNotification('Error: ' + (data.error || 'Failed to update like'), 'danger');
               }
             }
-            // UI is already updated optimistically, no need to change unless correcting
-          } else {
-            // Rollback on error
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            // Rollback on network error
             likeCountSpan.textContent = originalCount;
             btn.className = originalClass;
             btn.dataset.action = originalAction;
@@ -979,28 +890,8 @@
               hoverLikeCount.textContent = originalCount;
             }
 
-            // Show error without blocking UI
-            if (!data.already_liked && !data.not_liked) {
-              showNotification('Error: ' + (data.error || 'Failed to update like'), 'danger');
-            }
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          // Rollback on network error
-          likeCountSpan.textContent = originalCount;
-          btn.className = originalClass;
-          btn.dataset.action = originalAction;
-          btn.querySelector('i').className = originalIconClass;
-          btn.style.cssText = originalStyle;
-
-          // Rollback hover overlay too
-          if (hoverLikeCount) {
-            hoverLikeCount.textContent = originalCount;
-          }
-
-          showNotification('Network error occurred while updating like', 'danger');
-        });
+            showNotification('Network error occurred while updating like', 'danger');
+          });
       });
     });
   });
@@ -1146,8 +1037,8 @@
       titleInput.classList.remove('d-none');
       titleInput.focus();
       // Hide on blur if not saving
-      titleInput.onblur = function() {
-        setTimeout(function() {
+      titleInput.onblur = function () {
+        setTimeout(function () {
           if (!_postEditSaving[postId]) hideEditFields(postId);
         }, 100);
       };
@@ -1157,8 +1048,8 @@
       captionInput.classList.remove('d-none');
       captionInput.focus();
       // Hide on blur if not saving
-      captionInput.onblur = function() {
-        setTimeout(function() {
+      captionInput.onblur = function () {
+        setTimeout(function () {
           if (!_postEditSaving[postId]) hideEditFields(postId);
         }, 100);
       };
@@ -1182,7 +1073,7 @@
 
   // Optional: handle Esc key to cancel edit
   ['edit-title-', 'edit-caption-'].forEach(prefix => {
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         const inputs = document.querySelectorAll(`[id^='${prefix}']`);
         inputs.forEach(input => {
@@ -1206,24 +1097,24 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, content })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        document.getElementById(`post-title-${postId}`).textContent = data.title;
-        document.getElementById(`post-caption-${postId}`).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
-        document.getElementById(`post-title-${postId}`).classList.remove('d-none');
-        document.getElementById(`edit-title-${postId}`).classList.add('d-none');
-        document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
-        document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
-        document.getElementById(`save-post-${postId}`).classList.add('d-none');
-        if (window._postEditOriginal) delete window._postEditOriginal[postId];
-        showNotification('Post updated!', 'success');
-      } else {
-        showNotification(data.error || 'Failed to update post', 'danger');
-      }
-      _postEditSaving[postId] = false;
-    })
-    .catch(() => { _postEditSaving[postId] = false; });
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById(`post-title-${postId}`).textContent = data.title;
+          document.getElementById(`post-caption-${postId}`).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
+          document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+          document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+          document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+          document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+          document.getElementById(`save-post-${postId}`).classList.add('d-none');
+          if (window._postEditOriginal) delete window._postEditOriginal[postId];
+          showNotification('Post updated!', 'success');
+        } else {
+          showNotification(data.error || 'Failed to update post', 'danger');
+        }
+        _postEditSaving[postId] = false;
+      })
+      .catch(() => { _postEditSaving[postId] = false; });
   }
 </script>
 {% endblock %}

@@ -1,3 +1,8 @@
+.readonly-edit {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 #main-content .container-fluid {
   padding: 0;
 }
@@ -7,12 +12,12 @@
 }
 
 .profile-save-btn-primary:hover, .profile-save-btn-primary:focus {
-  background-color: #4660c7 !important;
-  color: #fff !important;
+  background-color: var(--color-primary-hover) !important;
+  color: var(--color-white) !important;
 }
 
 .profile-container {
-  background-color: #ffffff !important;
+  background-color: var(--color-white) !important;
   color: #333333 !important;
 }
 
@@ -71,7 +76,7 @@ body .profile-container .btn {
 body,
 .profile-bg {
   background: var(--color-bg, #10121d) !important;
-  color: var(--color-white, #fff) !important;
+  color: var(--color-white, var(--color-white)) !important;
 }
 
 .profile-header-card {
@@ -95,24 +100,24 @@ body,
 .profile-header-username {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .profile-header-bio {
-  color: #d2d3d6;
+  color: #f1f1f1;
   margin-top: 0.5rem;
   margin-bottom: 1.5rem;
   font-size: 1.1rem;
 }
 
 .profile-header-stats {
-  color: #fff;
+  color: var(--color-white);
   font-size: 1.1rem;
   margin-top: 0.5rem;
 }
 
 .profile-header-stats a {
-  color: #fff;
+  color: var(--color-white);
   text-decoration: none;
   cursor: pointer;
   margin-right: 2.5rem;
@@ -120,7 +125,7 @@ body,
 }
 
 .profile-header-stats a:hover {
-  color: var(--color-primary, #5f77f8);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -136,8 +141,8 @@ body,
 }
 
 .profile-header-actions .btn {
-  background: var(--color-primary, #5f77f8);
-  color: #fff !important;
+  background: var(--color-primary);
+  color: var(--color-white) !important;
   border: none;
   font-size: 1.3rem;
   width: 48px;
@@ -150,7 +155,7 @@ body,
 }
 
 .profile-header-actions .btn:hover {
-  background: #4660c7;
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 767px) {
@@ -196,29 +201,34 @@ body,
 /* Modal styling fixes */
 .modal-content {
   background-color: #181a23 !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
   border: 1px solid #343a40;
 }
 
 .modal-header {
   background-color: #181a23 !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
   border-bottom: 1px solid #343a40;
 }
 
 .modal-body {
   background-color: #181a23 !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
 }
 
 .modal-title {
-  color: #fff !important;
+  color: var(--color-white) !important;
+}
+
+#followersModal a, #followingModal a {
+  color: var(--color-white);
+  text-decoration: none;
 }
 
 /* Post action buttons styling */
 .post-action-bar .btn {
   background-color: transparent;
-  color: #fff;
+  color: var(--color-white);
 }
 
 .post-action-bar .btn:hover {
@@ -227,23 +237,23 @@ body,
 }
 
 .post-action-bar .btn-danger {
-  color: #dc3545;
-  border-color: #dc3545;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .post-action-bar .btn-danger:hover {
-  background-color: #dc3545;
-  color: #fff;
+  background-color: var(--color-danger);
+  color: var(--color-white);
 }
 
 .post-action-bar .btn-outline-danger {
-  border: 1.5px solid #dc3545 !important;
-  color: #dc3545 !important;
+  border: 1.5px solid var(--color-danger) !important;
+  color: var(--color-danger) !important;
   background: transparent !important;
 }
 
 .post-action-bar .btn-outline-danger i {
-  color: #dc3545 !important;
+  color: var(--color-danger) !important;
 }
 
 /* Make modal close (cross) button white in dark mode */
@@ -275,14 +285,14 @@ body,
 
 .post-action-bar .btn-primary, .post-action-bar .btn-primary:active {
   background-color: #363947 !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
 .post-action-bar .btn-danger, .post-action-bar .btn-danger:active {
-  background-color: #dc3545 !important;
-  color: #fff !important;
+  background-color: var(--color-danger) !important;
+  color: var(--color-white) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -292,7 +302,7 @@ body,
 }
 
 .post-action-bar .btn-danger:hover, .post-action-bar .btn-danger:focus {
-  background-color: #b02a37 !important;
+  background-color: var(--color-danger-hover) !important;
 }
 
 .comments-list-modal,
