@@ -216,7 +216,7 @@
               {{ post.title or 'Post' }}
             </h5>
             {% if is_own_profile %}
-            <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title or '' }}" style="font-size:1.25rem; font-weight:600; margin-bottom: 0.5rem;">
+            <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title or '' }}" style="font-size:1.25rem; font-weight:600;">
             {% endif %}
             <button
               type="button"

@@ -63,9 +63,15 @@
           </div>
           <!-- Post Content -->
           {% if post.title %}
-          <h6 class="card-title">{{ post.title }}</h6>
+          <h6 class="card-title" id="post-title-{{ post.postId }}" style="color:white !important;cursor:pointer;{% if user.userId != post.authorId %}pointer-events:none;opacity:0.7;{% endif %}" {% if user.userId == post.authorId %}onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>{{ post.title }}</h6>
+          {% if user.userId == post.authorId %}
+          <input type="text" class="form-control d-none" id="edit-title-{{ post.postId }}" value="{{ post.title or '' }}" style="font-size:1.1rem; font-weight:600; margin-bottom: 0.5rem;">
           {% endif %}
-          <p class="card-text">{{ post.content }}</p>
+          {% endif %}
+          <p class="card-text" id="post-caption-{{ post.postId }}" style="cursor:pointer;{% if user.userId != post.authorId %}pointer-events:none;opacity:0.7;{% endif %}" {% if user.userId == post.authorId %}onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>{{ post.content }}</p>
+          {% if user.userId == post.authorId %}
+          <textarea class="form-control d-none" style="margin-bottom: 8px;" id="edit-caption-{{ post.postId }}" rows="2">{{ post.content }}</textarea>
+          {% endif %}
           <!-- Post Actions -->
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -103,6 +109,13 @@
               '' }}</small
             >
           </div>
+          <!-- Save/Cancel buttons only for own posts, below action bar -->
+          {% if user.userId == post.authorId %}
+          <div class="mt-4 d-flex gap-2 justify-content-between">
+            <button class="btn base-btn base-btn-primary d-none" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
+            <button class="btn base-btn base-btn-secondary d-none" id="cancel-post-{{ post.postId }}" onclick="cancelPostEdit({{ post.postId }})">Cancel</button>
+          </div>
+          {% endif %}
           <!-- Comments Section - Only show if there are comments -->
           {% if comment_counts.get(post.postId, 0) > 0 %}
           <div class="mt-3 border-top pt-2 comments-section-border">
@@ -386,6 +399,99 @@
           alert('An error occurred while adding the comment');
         });
       });
+    });
+  });
+
+  function enablePostEdit(postId, isCaption) {
+    if (!window._postEditOriginal) window._postEditOriginal = {};
+    if (!window._postEditOriginal[postId]) {
+      window._postEditOriginal[postId] = {
+        title: document.getElementById(`edit-title-${postId}`)?.value || '',
+        content: document.getElementById(`edit-caption-${postId}`)?.value || ''
+      };
+    }
+    if (!isCaption) {
+      document.getElementById(`post-title-${postId}`).classList.add('d-none');
+      document.getElementById(`edit-title-${postId}`).classList.remove('d-none');
+      document.getElementById(`edit-title-${postId}`).focus();
+    } else {
+      document.getElementById(`post-caption-${postId}`).classList.add('d-none');
+      document.getElementById(`edit-caption-${postId}`).classList.remove('d-none');
+      document.getElementById(`edit-caption-${postId}`).focus();
+    }
+    document.getElementById(`save-post-${postId}`).classList.remove('d-none');
+    document.getElementById(`cancel-post-${postId}`).classList.remove('d-none');
+  }
+
+  function savePostEdit(postId) {
+    const titleInput = document.getElementById(`edit-title-${postId}`);
+    const captionInput = document.getElementById(`edit-caption-${postId}`);
+    const title = titleInput ? titleInput.value.trim() : '';
+    const content = captionInput ? captionInput.value.trim() : '';
+    fetch(`/api/edit-post/${postId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        if (document.getElementById(`post-title-${postId}`))
+          document.getElementById(`post-title-${postId}`).textContent = data.title;
+        if (document.getElementById(`post-caption-${postId}`))
+          document.getElementById(`post-caption-${postId}`).textContent = data.content;
+        if (document.getElementById(`post-title-${postId}`))
+          document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+        if (document.getElementById(`edit-title-${postId}`))
+          document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+        if (document.getElementById(`post-caption-${postId}`))
+          document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+        if (document.getElementById(`edit-caption-${postId}`))
+          document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+        if (document.getElementById(`save-post-${postId}`))
+          document.getElementById(`save-post-${postId}`).classList.add('d-none');
+        if (document.getElementById(`cancel-post-${postId}`))
+          document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
+        if (window._postEditOriginal) delete window._postEditOriginal[postId];
+        showNotification('Post updated!', 'success');
+      } else {
+        showNotification(data.error || 'Failed to update post', 'danger');
+      }
+    });
+  }
+
+  function cancelPostEdit(postId) {
+    if (!window._postEditOriginal || !window._postEditOriginal[postId]) return;
+    if (document.getElementById(`edit-title-${postId}`))
+      document.getElementById(`edit-title-${postId}`).value = window._postEditOriginal[postId].title;
+    if (document.getElementById(`edit-caption-${postId}`))
+      document.getElementById(`edit-caption-${postId}`).value = window._postEditOriginal[postId].content;
+    if (document.getElementById(`post-title-${postId}`))
+      document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+    if (document.getElementById(`edit-title-${postId}`))
+      document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+    if (document.getElementById(`post-caption-${postId}`))
+      document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+    if (document.getElementById(`edit-caption-${postId}`))
+      document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+    if (document.getElementById(`save-post-${postId}`))
+      document.getElementById(`save-post-${postId}`).classList.add('d-none');
+    if (document.getElementById(`cancel-post-${postId}`))
+      document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
+  }
+
+  // Optional: handle Esc key to cancel edit
+  ['edit-title-', 'edit-caption-'].forEach(prefix => {
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
+        inputs.forEach(input => {
+          if (!input.classList.contains('d-none')) {
+            const postId = input.id.split('-').pop();
+            cancelPostEdit(postId);
+          }
+        });
+      }
     });
   });
 </script>
