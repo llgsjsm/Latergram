@@ -102,6 +102,26 @@ html {
   color: #fff !important;
 }
 
+.card-btn-primary {
+  background: var(--color-primary);
+  color: #fff !important;
+}
+
+.card-btn-primary:hover, .card-btn-primary:focus {
+  background: #4660c7 !important;
+  color: #fff !important;
+}
+
+.card-btn-secondary {
+  background: #363947 !important;
+  color: #fff !important;
+}
+
+.card-btn-secondary:hover, .card-btn-secondary:focus {
+  background: var(--color-navbg) !important;
+  color: #fff !important;
+}
+
 .base-btn i {margin-right: 8px;}
 
 .profile-header-actions .btn:hover {

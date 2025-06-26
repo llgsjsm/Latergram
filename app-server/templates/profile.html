@@ -3,6 +3,12 @@
   rel="stylesheet"
   href="{{ url_for('static', filename='assets/css/profile.css') }}"
 />
+<style>
+  .readonly-edit {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+</style>
 {% endblock %} {% block content %}
 
 <div class="container-fluid profile-bg">
@@ -212,7 +218,9 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="post-title-{{ post.postId }}" style="cursor:pointer;{% if not is_own_profile %}pointer-events:none;opacity:0.7;{% endif %}" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>
+            <h5 class="modal-title{% if not is_own_profile %} readonly-edit{% endif %}" id="post-title-{{ post.postId }}"
+                style="cursor:pointer;"
+                {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, false)"{% endif %}>
               {{ post.title or 'Post' }}
             </h5>
             {% if is_own_profile %}
@@ -232,11 +240,13 @@
               alt="Post image"
             />
             {% endif %}
-            <p id="post-caption-{{ post.postId }}" style="cursor:pointer;{% if not is_own_profile %}pointer-events:none;opacity:0.7;{% endif %}" {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>
+            <p id="post-caption-{{ post.postId }}" class="{% if is_own_profile %}modal-body{% else %}modal-body readonly-edit{% endif %}"
+               style="cursor:pointer;"
+               {% if is_own_profile %}onclick="enablePostEdit({{ post.postId }}, true)"{% endif %}>
               <strong>{{ profile_user.username }}</strong> {{ post.content }}
             </p>
             {% if is_own_profile %}
-            <textarea class="form-control d-none" id="edit-caption-{{ post.postId }}" rows="2">{{ post.content }}</textarea>
+            <textarea class="form-control d-none" style="margin-bottom: 8px;" id="edit-caption-{{ post.postId }}" rows="2">{{ post.content }}</textarea>
             {% endif %}
             <div class="text-muted small">
               {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
@@ -244,103 +254,98 @@
             </div>
 
             <!-- Like and Comment buttons -->
-            <div class="mt-3 post-action-bar">
-              {% if liked_posts.get(post.postId, False) %}
-              <button
-                class="btn btn-danger btn-sm like-btn"
-                data-post-id="{{ post.postId }}"
-                data-action="unlike"
-              >
-                <i class="bi bi-heart-fill"></i>
-                <span class="like-count">{{ post.like or 0 }}</span>
-              </button>
-              {% else %}
-              <button
-                class="btn btn-outline-danger btn-sm like-btn"
-                data-post-id="{{ post.postId }}"
-                data-action="like"
-              >
-                <i class="bi bi-heart"></i>
-                <span class="like-count">{{ post.like or 0 }}</span>
-              </button>
-              {% endif %}
-              <button
-                class="btn btn-primary btn-sm ms-2"
-                onclick="toggleCommentsSection('{{ post.postId }}')"
-              >
-                <i class="fas fa-comment"></i>
-                {% if comment_counts.get(post.postId, 0) > 0 %} {{
-                comment_counts.get(post.postId, 0) }} Comments {% else %}
-                Comment {% endif %}
-              </button>
-
-              <!-- Delete button (only for own posts) -->
-              {% if is_own_profile %}
-              <button
-                class="btn btn-danger btn-sm ms-2"
-                onclick="deletePost('{{ post.postId }}')"
-                title="Delete Post"
-              >
-                <i class="fas fa-trash"></i> Delete
-              </button>
-              {% endif %}
-
-              <!-- Comments Section -->
-              <div
-                id="comments-section-modal-{{ post.postId }}"
-                class="mt-3"
-                style="display: none; color: #fff !important;"
-              >
-                <!-- Comment Form -->
-                <div class="mb-3">
-                  <form
-                    action="{{ url_for('add_comment', post_id=post.postId) }}"
-                    method="POST"
-                    class="comment-form"
-                    data-post-id="{{ post.postId }}"
-                  >
-                    <div class="input-group">
-                      <input
-                        type="text"
-                        class="form-control"
-                        name="comment"
-                        placeholder="Add a comment..."
-                        required
-                      />
-                      <button class="btn btn-primary" type="submit">
-                        Post
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                <!-- Comments List -->
-                <div
-                  id="comments-list-modal-{{ post.postId }}"
-                  class="border-top pt-3"
+            <div class="mt-3 post-action-bar d-flex justify-content-between align-items-center">
+              <div>
+                {% if liked_posts.get(post.postId, False) %}
+                <button
+                  class="btn btn-danger btn-sm like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
                 >
-                  {% if comment_counts.get(post.postId, 0) > 0 %}
-                  <div class="text-center">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                      <span class="visually-hidden">Loading comments...</span>
-                    </div>
+                  <i class="bi bi-heart-fill"></i>
+                  <span class="like-count">{{ post.like or 0 }}</span>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-outline-danger btn-sm like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
+                  <i class="bi bi-heart"></i>
+                  <span class="like-count">{{ post.like or 0 }}</span>
+                </button>
+                {% endif %}
+                <button
+                  class="btn btn-primary btn-sm ms-2"
+                  onclick="toggleCommentsSection('{{ post.postId }}')"
+                >
+                  <i class="fas fa-comment"></i>
+                  {% if comment_counts.get(post.postId, 0) > 0 %} {{
+                  comment_counts.get(post.postId, 0) }} Comments {% else %}
+                  Comment {% endif %}
+                </button>
+                {% if is_own_profile %}
+                <button
+                  class="btn btn-danger btn-sm ms-2"
+                  onclick="deletePost('{{ post.postId }}')"
+                  title="Delete Post"
+                >
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+                {% endif %}
+              </div>
+              {% if is_own_profile %}
+              <button class="btn profile-save-btn-primary btn-sm d-none" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
+              {% endif %}
+            </div>
+
+            <!-- Comments Section -->
+            <div
+              id="comments-section-modal-{{ post.postId }}"
+              class="mt-3"
+              style="display: none; color: #fff !important;"
+            >
+              <!-- Comment Form -->
+              <div class="mb-3">
+                <form
+                  action="{{ url_for('add_comment', post_id=post.postId) }}"
+                  method="POST"
+                  class="comment-form"
+                  data-post-id="{{ post.postId }}"
+                >
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="comment"
+                      placeholder="Add a comment..."
+                      required
+                    />
+                    <button class="btn btn-primary" type="submit">
+                      Post
+                    </button>
                   </div>
-                  {% else %}
-                  <p class="text-muted text-center">
-                    No comments yet. Be the first to comment!
-                  </p>
-                  {% endif %}
+                </form>
+              </div>
+
+              <!-- Comments List -->
+              <div
+                id="comments-list-modal-{{ post.postId }}"
+                class="border-top pt-3"
+              >
+                {% if comment_counts.get(post.postId, 0) > 0 %}
+                <div class="text-center">
+                  <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading comments...</span>
+                  </div>
                 </div>
+                {% else %}
+                <p class="text-muted text-center">
+                  No comments yet. Be the first to comment!
+                </p>
+                {% endif %}
               </div>
             </div>
-
-            <!-- Save/Cancel buttons only for own posts, below action bar -->
-            {% if is_own_profile %}
-            <div class="mt-4 d-flex gap-2 justify-content-between">
-              <button class="btn base-btn base-btn-primary d-none" id="save-post-{{ post.postId }}" onclick="savePostEdit({{ post.postId }})">Save</button>
-              <button class="btn base-btn base-btn-secondary d-none" id="cancel-post-{{ post.postId }}" onclick="cancelPostEdit({{ post.postId }})">Cancel</button>
-            </div>
-            {% endif %}
           </div>
         </div>
       </div>
@@ -1125,6 +1130,8 @@
       });
   });
 
+  let _postEditSaving = {};
+
   function enablePostEdit(postId, isCaption) {
     if (!window._postEditOriginal) window._postEditOriginal = {};
     if (!window._postEditOriginal[postId]) {
@@ -1135,18 +1142,61 @@
     }
     if (!isCaption) {
       document.getElementById(`post-title-${postId}`).classList.add('d-none');
-      document.getElementById(`edit-title-${postId}`).classList.remove('d-none');
-      document.getElementById(`edit-title-${postId}`).focus();
+      const titleInput = document.getElementById(`edit-title-${postId}`);
+      titleInput.classList.remove('d-none');
+      titleInput.focus();
+      // Hide on blur if not saving
+      titleInput.onblur = function() {
+        setTimeout(function() {
+          if (!_postEditSaving[postId]) hideEditFields(postId);
+        }, 100);
+      };
     } else {
       document.getElementById(`post-caption-${postId}`).classList.add('d-none');
-      document.getElementById(`edit-caption-${postId}`).classList.remove('d-none');
-      document.getElementById(`edit-caption-${postId}`).focus();
+      const captionInput = document.getElementById(`edit-caption-${postId}`);
+      captionInput.classList.remove('d-none');
+      captionInput.focus();
+      // Hide on blur if not saving
+      captionInput.onblur = function() {
+        setTimeout(function() {
+          if (!_postEditSaving[postId]) hideEditFields(postId);
+        }, 100);
+      };
     }
     document.getElementById(`save-post-${postId}`).classList.remove('d-none');
-    document.getElementById(`cancel-post-${postId}`).classList.remove('d-none');
   }
 
+  function hideEditFields(postId) {
+    // Restore original values
+    if (window._postEditOriginal && window._postEditOriginal[postId]) {
+      document.getElementById(`edit-title-${postId}`).value = window._postEditOriginal[postId].title;
+      document.getElementById(`edit-caption-${postId}`).value = window._postEditOriginal[postId].content;
+    }
+    document.getElementById(`post-title-${postId}`).classList.remove('d-none');
+    document.getElementById(`edit-title-${postId}`).classList.add('d-none');
+    document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
+    document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
+    document.getElementById(`save-post-${postId}`).classList.add('d-none');
+    _postEditSaving[postId] = false;
+  }
+
+  // Optional: handle Esc key to cancel edit
+  ['edit-title-', 'edit-caption-'].forEach(prefix => {
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
+        inputs.forEach(input => {
+          if (!input.classList.contains('d-none')) {
+            const postId = input.id.split('-').pop();
+            hideEditFields(postId);
+          }
+        });
+      }
+    });
+  });
+
   function savePostEdit(postId) {
+    _postEditSaving[postId] = true;
     const titleInput = document.getElementById(`edit-title-${postId}`);
     const captionInput = document.getElementById(`edit-caption-${postId}`);
     const title = titleInput ? titleInput.value.trim() : '';
@@ -1166,40 +1216,14 @@
         document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
         document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
         document.getElementById(`save-post-${postId}`).classList.add('d-none');
-        document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
         if (window._postEditOriginal) delete window._postEditOriginal[postId];
         showNotification('Post updated!', 'success');
       } else {
         showNotification(data.error || 'Failed to update post', 'danger');
       }
-    });
+      _postEditSaving[postId] = false;
+    })
+    .catch(() => { _postEditSaving[postId] = false; });
   }
-
-  function cancelPostEdit(postId) {
-    if (!window._postEditOriginal || !window._postEditOriginal[postId]) return;
-    document.getElementById(`edit-title-${postId}`).value = window._postEditOriginal[postId].title;
-    document.getElementById(`edit-caption-${postId}`).value = window._postEditOriginal[postId].content;
-    document.getElementById(`post-title-${postId}`).classList.remove('d-none');
-    document.getElementById(`edit-title-${postId}`).classList.add('d-none');
-    document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
-    document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
-    document.getElementById(`save-post-${postId}`).classList.add('d-none');
-    document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
-  }
-
-  // Optional: handle Esc key to cancel edit
-  ['edit-title-', 'edit-caption-'].forEach(prefix => {
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
-        inputs.forEach(input => {
-          if (!input.classList.contains('d-none')) {
-            const postId = input.id.split('-').pop();
-            cancelPostEdit(postId);
-          }
-        });
-      }
-    });
-  });
 </script>
 {% endblock %}

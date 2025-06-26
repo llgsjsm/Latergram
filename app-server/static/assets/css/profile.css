@@ -2,6 +2,15 @@
   padding: 0;
 }
 
+.profile-save-btn-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.profile-save-btn-primary:hover, .profile-save-btn-primary:focus {
+  background-color: #4660c7 !important;
+  color: #fff !important;
+}
+
 .profile-container {
   background-color: #ffffff !important;
   color: #333333 !important;

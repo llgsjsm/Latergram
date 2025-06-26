@@ -7,25 +7,6 @@
   border-color: #363947 !important;
 }
 
-/* .comments-section-border button {
-  color: var(--color-white);
-  text-decoration: none !important;
-}
-
-.comments-section-border button:hover, 
-.comments-section-border button:focus {
-  color: #bfc7d5;
-} */
-
-.view-btn {
-  background-color: var(--color-primary) !important;
-  text-decoration: none !important;
-}
-
-.view-btn:hover {
-  background-color: #4660c7 !important;
-}
-
 #right-panel {
   position: fixed;
   top: 0;
