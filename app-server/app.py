@@ -8,6 +8,9 @@ from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from sqlalchemy import text
+import firebase_admin
+from firebase_admin import credentials, storage
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -15,15 +18,28 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
+# Enable debug mode for development (auto-reload on code changes)
+app.debug = True
+
 # MySQL Database Configuration
 DB_USER = os.environ.get('DB_USER', '') 
 DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
 DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
+BUCKET = os.environ.get('BUCKET', '')
+FILE_LOCATION = os.environ.get('FILE_LOCATION','')
+IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Database connection pool optimizations
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
+    'max_overflow': 20
+}
 
 db.init_app(app)
 bcrypt.init_app(app)
@@ -37,9 +53,20 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
 # SPLUNK HEC Configuration
-SPLUNK_HEC_URL = "https://10.20.0.100:8088/services/collector"
-# Please remind me to hide this
-SPLUNK_HEC_TOKEN = "e4e0bbe8-2549-4a8e-bafa-28d0eb22244b"
+SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
+SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
+
+if not IS_TESTING:
+    if FILE_LOCATION and BUCKET:
+        cred = credentials.Certificate(FILE_LOCATION)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': BUCKET
+        })
+        bucket = storage.bucket()
+    else:
+        print("Firebase FILE_LOCATION or BUCKET not set — skipping Firebase init")
+else:
+    print("Skipping Firebase init — test mode enabled")
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')
@@ -75,6 +102,20 @@ def log_to_splunk(event_data):
     except Exception as e:
         print(f"Failed to send log to Splunk: {e}")
 
+def ensure_firebase_initialized():
+    global bucket
+    if not firebase_admin._apps:
+        file_location = os.environ.get('FILE_LOCATION', '')
+        bucket_name = os.environ.get('BUCKET', '')
+        if file_location and bucket_name:
+            cred = credentials.Certificate(file_location)
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': bucket_name
+            })
+        else:
+            raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
+    bucket = storage.bucket()
+
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
@@ -87,29 +128,47 @@ def home():
         print(f"Error getting posts: {e}")
         posts = []
     
+    # Get all required data in parallel to reduce sequential database calls
+    user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
+    suggested_users = []
+    pending_requests = []
+    liked_posts = {}
+    
     try:
         # Get user stats with caching
         user_stats = profile_manager.get_user_stats_cached(session['user_id'])
     except Exception as e:
         print(f"Error getting user stats: {e}")
-        user_stats = {'posts_count': 0, 'followers_count': 0, 'following_count': 0}
     
     try:
-        # Get suggested users (users not followed)
-        suggested_users = profile_manager.get_suggested_users(session['user_id'])
+        # Get suggested users (users not followed) with caching
+        suggested_users = profile_manager.get_suggested_users_cached(session['user_id'])
     except Exception as e:
         print(f"Error getting suggested users: {e}")
-        suggested_users = []
     
-    # Check which posts the current user has liked (efficient single query)
     try:
-        liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
-        liked_posts = {post.postId: post.postId in liked_post_ids for post in posts}
+        # Get pending follow requests
+        follow_requests = profile_manager.get_pending_follow_requests(session['user_id'])
+        pending_requests = follow_requests.get('requests', []) if follow_requests.get('success') else []
     except Exception as e:
-        print(f"Error getting liked posts: {e}")
-        liked_posts = {post.postId: False for post in posts}
+        print(f"Error getting follow requests: {e}")
+    
+    # Check which posts the current user has liked (optimized batch processing)
+    try:
+        if posts:
+            post_ids = [post.postId for post in posts]
+            liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
+            # Also get comment counts for all posts
+            comment_counts = feed_manager.get_comment_counts_batch(post_ids)
+        else:
+            liked_posts = {}
+            comment_counts = {}
+    except Exception as e:
+        print(f"Error getting liked posts or comment counts: {e}")
+        liked_posts = {post.postId: False for post in posts} if posts else {}
+        comment_counts = {post.postId: 0 for post in posts} if posts else {}
 
-    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts)
+    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts)
 
 @app.route('/')
 def hello_world():
@@ -154,37 +213,44 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
-
-
 @app.route('/create-post', methods=['GET', 'POST'])
 def create_post():
+    ensure_firebase_initialized()
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        visibility = request.form.get('visibility', 'followers')  # You can handle visibility if you want
+        visibility = request.form.get('visibility', 'followers')
 
-        # Create a placeholder likes record to satisfy the foreign key constraint
+        image_url = "https://fastly.picsum.photos/id/404/200/300.jpg?hmac=..."  # default
+
+        # Handle file upload
+        image_file = request.files.get('image')
+        if image_file and image_file.filename != '':
+            filename = secure_filename(image_file.filename)
+            blob = storage.bucket().blob(f'posts/{uuid.uuid4()}_{filename}')
+            blob.upload_from_file(image_file, content_type=image_file.content_type)
+            blob.make_public()
+            image_url = blob.public_url
+
+        # Create likes record
         result = db.session.execute(
             text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
             {"user_id": session['user_id']}
         )
         db.session.flush()
-        
-        # Get the ID of the newly created likes record
         likes_id = result.lastrowid
 
-        # Create the post record
         new_post = Post(
-            authorId=session['user_id'],  # use session user id
+            authorId=session['user_id'],
             title=title,
             content=content,
             timeOfPost=datetime.utcnow(),
-            like=0,  # Start with 0 likes
-            likesId=likes_id,  # Use the likes record ID
-            image="https://fastly.picsum.photos/id/404/200/300.jpg?hmac=1i6ra6DJN9kJ9AQVfSf3VD1w08FkegBgXuz9lNDk1OM"  # No image for now
+            like=0,
+            likesId=likes_id,
+            image=image_url
         )
 
         db.session.add(new_post)
@@ -233,6 +299,9 @@ def unlike_post(post_id):
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
 def add_comment(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
     post = Post.query.get_or_404(post_id)
     content = request.form.get('comment')
 
@@ -252,7 +321,114 @@ def add_comment(post_id):
         )
         db.session.add(new_comment)
         db.session.commit()
+        
+        # Check if this is an AJAX request by looking for XMLHttpRequest header
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  'application/x-www-form-urlencoded' in request.headers.get('Content-Type', '') and \
+                  'HX-Request' not in request.headers  # Ensure it's our AJAX and not HTMX
+        
+        if is_ajax:
+            return jsonify({
+                'success': True, 
+                'message': 'Comment added successfully',
+                'comment_count': Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
+            })
+    
     return redirect(url_for('home'))
+
+@app.route('/edit_comment/<int:comment_id>', methods=['POST'])
+def edit_comment(comment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        comment = Comment.query.get_or_404(comment_id)
+        
+        # Check if user owns the comment
+        if comment.authorId != session['user_id']:
+            return jsonify({'success': False, 'error': 'You can only edit your own comments'}), 403
+        
+        data = request.get_json()
+        new_content = data.get('content', '').strip()
+        
+        if not new_content:
+            return jsonify({'success': False, 'error': 'Comment cannot be empty'}), 400
+        
+        if len(new_content) > 500:
+            return jsonify({'success': False, 'error': 'Comment too long (max 500 characters)'}), 400
+        
+        # Update comment
+        comment.commentContent = new_content
+        comment.timestamp = datetime.utcnow()  # Update timestamp to show it was edited
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Comment updated successfully'})
+        
+    except Exception as e:
+        print(f"Error editing comment: {e}")
+        return jsonify({'success': False, 'error': 'Failed to edit comment'}), 500
+
+@app.route('/delete_comment/<int:comment_id>', methods=['POST'])
+def delete_comment(comment_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    try:
+        comment = Comment.query.get_or_404(comment_id)
+        post = Post.query.get_or_404(comment.postId)
+        
+        # Check if user owns the comment OR owns the post
+        is_comment_owner = comment.authorId == session['user_id']
+        is_post_owner = post.authorId == session['user_id']
+        
+        if not (is_comment_owner or is_post_owner):
+            return jsonify({'success': False, 'error': 'You can only delete your own comments or comments on your posts'}), 403
+        
+        post_id = comment.postId
+        
+        # Delete the comment
+        db.session.delete(comment)
+        db.session.commit()
+        
+        # Get updated comment count
+        comment_count = Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Comment deleted successfully',
+            'is_post_owner_deletion': is_post_owner and not is_comment_owner,
+            'comment_count': comment_count
+        })
+        
+    except Exception as e:
+        print(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'error': 'Failed to delete comment'}), 500
+
+@app.route('/delete-post/<int:post_id>', methods=['POST'])
+def delete_post_route(post_id):
+    print(f"Delete post route called for post_id: {post_id}")
+    print(f"Session user_id: {session.get('user_id')}")
+    
+    if 'user_id' not in session:
+        print("User not logged in")
+        return jsonify({'success': False, 'error': 'Please log in'}), 401
+    
+    try:
+        # Use the existing delete_post method from PostManager
+        result = post_manager.delete_post(post_id, session['user_id'])
+        print(f"Delete result: {result}")
+        
+        if result.get('success'):
+            flash('Post deleted successfully', 'success')
+            return jsonify({'success': True, 'message': result.get('message', 'Post deleted successfully')})
+        else:
+            error_message = result.get('error', 'Failed to delete post')
+            print(f"Delete failed: {error_message}")
+            flash(error_message, 'danger')
+            return jsonify({'success': False, 'error': error_message}), 403
+    except Exception as e:
+        print(f"Exception in delete route: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
 
 # Profile Routes
 @app.route('/profile')
@@ -290,33 +466,47 @@ def profile(user_id=None):
             if 'message' in visibility_check:
                 visibility_message = visibility_check['message']
         
-        # Check if current user is following this user
+        # Check if current user is following this user and get follow status
         is_following = False
+        follow_status = {'status': 'none', 'is_following': False, 'request_pending': False}
         if user_id != session['user_id']:
-            is_following = profile_manager.is_following(session['user_id'], user_id)
+            follow_status_result = profile_manager.get_follow_status(session['user_id'], user_id)
+            if follow_status_result.get('success'):
+                follow_status = follow_status_result
+                is_following = follow_status.get('is_following', False)
         
         # Check if this is the current user's profile
         is_own_profile = (user_id == session['user_id'])
         
-        # Check which posts the current user has liked (efficient single query)
+        # Check which posts the current user has liked (optimized batch processing)
         liked_posts = {}
+        comment_counts = {}
         if user_posts:
             try:
-                liked_post_ids = post_manager.get_user_liked_posts(session['user_id'])
-                liked_posts = {post.postId: post.postId in liked_post_ids for post in user_posts}
+                post_ids = [post.postId for post in user_posts]
+                liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
+                comment_counts = feed_manager.get_comment_counts_batch(post_ids)
             except Exception as e:
-                print(f"Error getting liked posts: {e}")
+                print(f"Error getting liked posts or comment counts: {e}")
                 liked_posts = {post.postId: False for post in user_posts}
+                comment_counts = {post.postId: 0 for post in user_posts}
         
-        print(f"Profile data: user={user.username}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
+        print(f"Profile data: user={user.username}, visibility={user.visibility}, stats={user_stats}, posts_count={len(user_posts) if user_posts else 0}")
+        print(f"Visibility check: can_view={visibility_check['can_view']}, can_see_posts={visibility_check['can_see_posts']}, message={visibility_message}")
+        
+        # Get current logged-in user for navbar
+        current_user = User.query.filter_by(userId=session['user_id']).first()
         
         return render_template('profile.html', 
-                             user=user, 
+                             profile_user=user,  # Change user to profile_user
+                             current_user=current_user,  # Add current_user for navbar
                              user_stats=user_stats, 
                              user_posts=user_posts,
                              is_following=is_following,
+                             follow_status=follow_status,
                              is_own_profile=is_own_profile,
                              liked_posts=liked_posts,
+                             comment_counts=comment_counts,
                              visibility_message=visibility_message,
                              can_see_posts=visibility_check['can_see_posts'])
     
@@ -330,7 +520,7 @@ def follow_user(user_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
-    result = profile_manager.follow_user(session['user_id'], user_id)
+    result = profile_manager.send_follow_request(session['user_id'], user_id)
     return jsonify(result)
 
 @app.route('/api/unfollow/<int:user_id>', methods=['POST'])
@@ -339,6 +529,44 @@ def unfollow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.unfollow_user(session['user_id'], user_id)
+    return jsonify(result)
+
+@app.route('/api/follow-request/cancel/<int:target_user_id>', methods=['POST'])
+def cancel_follow_request(target_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.cancel_follow_request(session['user_id'], target_user_id)
+    return jsonify(result)
+
+@app.route('/api/follow-request/respond/<int:requester_id>', methods=['POST'])
+def respond_to_follow_request(requester_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    action = data.get('action')  # 'accept' or 'decline'
+    
+    if not action or action not in ['accept', 'decline']:
+        return jsonify({'success': False, 'error': 'Invalid action'}), 400
+    
+    result = profile_manager.respond_to_follow_request(session['user_id'], requester_id, action)
+    return jsonify(result)
+
+@app.route('/api/follow-requests')
+def get_follow_requests():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.get_pending_follow_requests(session['user_id'])
+    return jsonify(result)
+
+@app.route('/api/follow-status/<int:target_user_id>')
+def get_follow_status(target_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    result = profile_manager.get_follow_status(session['user_id'], target_user_id)
     return jsonify(result)
 
 @app.route('/api/like/<int:post_id>', methods=['POST'])
@@ -359,6 +587,7 @@ def unlike_post_api(post_id):
 
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
+    ensure_firebase_initialized()
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -371,12 +600,23 @@ def edit_profile():
         display_name = request.form.get('display_name')
         bio = request.form.get('bio')
         visibility = request.form.get('visibility')
-        
+
+        # Handle profile picture upload
+        profile_pic_file = request.files.get('profile_picture')
+        profile_pic_url = user.profilePicture  # Default to current
+        if profile_pic_file and profile_pic_file.filename != '':
+            filename = secure_filename(profile_pic_file.filename)
+            blob = storage.bucket().blob(f'profile_pics/{uuid.uuid4()}_{filename}')
+            blob.upload_from_file(profile_pic_file, content_type=profile_pic_file.content_type)
+            blob.make_public()
+            profile_pic_url = blob.public_url
+
         result = profile_manager.update_profile(
             session['user_id'], 
             display_name=display_name, 
             bio=bio, 
-            visibility=visibility
+            visibility=visibility,
+            profile_picture_url=profile_pic_url
         )
         
         if result['success']:
@@ -555,15 +795,149 @@ def delete_account():
     else:
         return jsonify({'success': False, 'error': result['error']}), 400
 
+@app.route('/api/remove-follower/<int:follower_user_id>', methods=['POST'])
+def remove_follower_api(follower_user_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    result = profile_manager.remove_follower(session['user_id'], follower_user_id)
+    return jsonify(result)
+
+@app.route('/remove-profile-picture', methods=['POST'])
+def remove_profile_picture():
+    ensure_firebase_initialized()
+    if 'user_id' not in session:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message='Not logged in'), 401
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user or not user.profilePicture:
+        msg = 'No profile picture to remove.'
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message=msg)
+        flash(msg, 'warning')
+        return redirect(url_for('edit_profile'))
+
+    # Delete from Firebase Storage if exists and is a Firebase URL
+    if user.profilePicture and 'appspot.com' in user.profilePicture:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(user.profilePicture)
+            blob_name = parsed.path.lstrip('/')
+            blob = storage.bucket().blob(blob_name)
+            blob.delete()
+        except Exception as e:
+            print(f"Error deleting profile picture from storage: {e}")
+
+    # Remove from user profile and commit
+    user.profilePicture = ''  # Set to empty string, not None
+    try:
+        db.session.commit()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=True)
+        flash('Profile picture removed.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error committing profile picture removal: {e}")
+        if 'NOT NULL' in str(e):
+            print("\n\nYour profilePicture column is NOT NULL. Run this SQL in MySQL Workbench to fix it:\nALTER TABLE user MODIFY profilePicture varchar(255) DEFAULT NULL;\n")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message='Database error')
+        flash('Error removing profile picture.', 'danger')
+    return redirect(url_for('edit_profile'))
+
+@app.route('/load_comments/<int:post_id>')
+def load_comments(post_id):
+    """AJAX endpoint to load comments for a specific post"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get post information to check ownership
+        post = Post.query.get_or_404(post_id)
+        
+        # Get comments for the post with author information
+        comments_query = text("""
+            SELECT c.commentId, c.commentContent, c.timestamp, c.parentCommentId,
+                   u.username, u.profilePicture
+            FROM comment c
+            JOIN user u ON c.authorId = u.userId
+            WHERE c.postId = :post_id
+            AND c.parentCommentId IS NULL
+            AND NOT c.commentContent LIKE '__LIKE__%'
+            ORDER BY c.timestamp DESC
+            LIMIT 10
+        """)
+        
+        result = db.session.execute(comments_query, {"post_id": post_id}).fetchall()
+        
+        comments = []
+        for row in result:
+            comments.append({
+                'commentId': row.commentId,
+                'content': row.commentContent,
+                'timestamp': row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else '',
+                'author': {
+                    'username': row.username,
+                    'profilePicture': row.profilePicture or ''
+                }
+            })
+        
+        return jsonify({
+            'success': True, 
+            'comments': comments,
+            'post_owner_id': post.authorId,
+            'current_user_id': session['user_id']
+        })
+    except Exception as e:
+        print(f"Error loading comments: {e}")
+        return jsonify({'error': 'Failed to load comments'}), 500
+
+@app.route('/admin/fix-visibility', methods=['POST'])
+def fix_visibility_case():
+    """Admin endpoint to fix visibility case for existing users"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    # Add admin check here if needed
+    result = profile_manager.fix_visibility_case()
+    return jsonify(result)
+
+@app.context_processor
+def inject_user():
+    user = None
+    if 'user_id' in session:
+        user = User.query.filter_by(userId=session['user_id']).first()
+    return dict(user=user)
+
+@app.route('/api/edit-post/<int:post_id>', methods=['POST'])
+def api_edit_post(post_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    post = Post.query.get_or_404(post_id)
+    if post.authorId != session['user_id']:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    if not title or not content:
+        return jsonify({'success': False, 'error': 'Title and caption required'}), 400
+
+    post.title = title
+    post.content = content
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content})
+
 if __name__ == '__main__':
     with app.app_context():
         try:
             db.create_all()
-            print("MySQL database tables created successfully!")
         except Exception as e:
             print(f"Error creating database tables: {e}")
     
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8080, debug=True, use_reloader=True)
 
 
 

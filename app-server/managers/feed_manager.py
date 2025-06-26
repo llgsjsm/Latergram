@@ -1,6 +1,7 @@
 from models import Post, User, db
 from models.enums import VisibilityType
 from sqlalchemy import text
+from typing import Dict
 
 class FeedManager:
     def __init__(self):
@@ -50,38 +51,76 @@ class FeedManager:
         # Calculate offset for manual pagination
         offset = (page - 1) * per_page
         
-        # Query posts with user info and filter based on visibility
-        posts_query = text("""
-            SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
-                   u.username, u.profilePicture, u.visibility
-            FROM post p
-            JOIN user u ON p.authorId = u.userId
-            WHERE 
-                u.visibility = 'Public'
-                OR p.authorId = :current_user_id
-                OR (u.visibility = 'FollowersOnly' AND EXISTS (
-                    SELECT 1 FROM followers f 
-                    WHERE f.followerUserId = :current_user_id 
-                    AND f.followedUserId = p.authorId
-                ))
-            ORDER BY p.timeOfPost DESC
-            LIMIT :limit OFFSET :offset
-        """)
+        try:
+            # Query posts with user info and filter based on visibility - optimized with indexes
+            posts_query = text("""
+                SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
+                       u.username, u.profilePicture, u.visibility
+                FROM post p
+                JOIN user u ON p.authorId = u.userId
+                WHERE 
+                    u.visibility = 'Public'
+                    OR p.authorId = :current_user_id
+                    OR (u.visibility = 'FollowersOnly' AND EXISTS (
+                        SELECT 1 FROM followers f
+                        WHERE f.followerUserId = :current_user_id 
+                        AND f.followedUserId = p.authorId
+                    ))
+                ORDER BY p.timeOfPost DESC
+                LIMIT :limit OFFSET :offset
+            """)
+            
+            result = db.session.execute(posts_query, {
+                "current_user_id": user_id,
+                "limit": per_page,
+                "offset": offset
+            }).fetchall()
+            
+        except Exception as e:
+            print(f"Error with optimized query, falling back to simple query: {e}")
+            # Fallback to simpler query without complex visibility logic
+            try:
+                fallback_query = text("""
+                    SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
+                           u.username, u.profilePicture, u.visibility
+                    FROM post p
+                    JOIN user u ON p.authorId = u.userId
+                    WHERE u.visibility = 'Public' OR p.authorId = :current_user_id
+                    ORDER BY p.timeOfPost DESC
+                    LIMIT :limit OFFSET :offset
+                """)
+                
+                result = db.session.execute(fallback_query, {
+                    "current_user_id": user_id,
+                    "limit": per_page,
+                    "offset": offset
+                }).fetchall()
+            except Exception as fallback_error:
+                print(f"Fallback query also failed: {fallback_error}")
+                return []
         
-        result = db.session.execute(posts_query, {
-            "current_user_id": user_id,
-            "limit": per_page,
-            "offset": offset
-        }).fetchall()
+        # Convert results to Post objects efficiently using bulk query
+        if not result:
+            return []
         
-        # Convert results to Post objects
-        posts = []
-        for row in result:
-            post = Post.query.filter_by(postId=row[0]).first()
-            if post:
-                posts.append(post)
+        post_ids = [row[0] for row in result]
+        posts = Post.query.filter(Post.postId.in_(post_ids)).order_by(Post.timeOfPost.desc()).all()
         
-        return posts
+        # Prefetch user profiles for better performance
+        try:
+            from managers import get_profile_manager
+            profile_manager = get_profile_manager()
+            author_ids = list(set([post.authorId for post in posts]))
+            profile_manager.prefetch_user_profiles(author_ids)
+        except Exception as e:
+            print(f"Error prefetching profiles: {e}")
+            # Continue without prefetching if it fails
+        
+        # Maintain the original order from the query
+        post_dict = {post.postId: post for post in posts}
+        ordered_posts = [post_dict[post_id] for post_id in post_ids if post_id in post_dict]
+        
+        return ordered_posts
 
     def refresh_feed(self, user_id=None, page=1):
         """Refresh feed with pagination"""
@@ -96,34 +135,93 @@ class FeedManager:
         per_page = self.default_page_size
         offset = (page - 1) * per_page
         
-        # Query posts only from users that the current user follows, respecting visibility
-        posts_query = text("""
-            SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
-                   u.username, u.profilePicture, u.visibility
-            FROM post p
-            JOIN user u ON p.authorId = u.userId
-            JOIN followers f ON f.followedUserId = p.authorId
-            WHERE f.followerUserId = :current_user_id
-                AND (
-                    u.visibility = 'Public'
-                    OR u.visibility = 'FollowersOnly'
-                    OR p.authorId = :current_user_id
-                )
-            ORDER BY p.timeOfPost DESC
-            LIMIT :limit OFFSET :offset
-        """)
+        try:
+            # Query posts only from users that the current user follows, respecting visibility - optimized
+            posts_query = text("""
+                SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
+                       u.username, u.profilePicture, u.visibility
+                FROM post p
+                JOIN user u ON p.authorId = u.userId
+                JOIN followers f ON f.followedUserId = p.authorId
+                WHERE f.followerUserId = :current_user_id
+                    AND (
+                        u.visibility = 'Public'
+                        OR u.visibility = 'FollowersOnly'
+                        OR p.authorId = :current_user_id
+                    )
+                ORDER BY p.timeOfPost DESC
+                LIMIT :limit OFFSET :offset
+            """)
+            
+            result = db.session.execute(posts_query, {
+                "current_user_id": user_id,
+                "limit": per_page,
+                "offset": offset
+            }).fetchall()
+            
+        except Exception as e:
+            print(f"Error with following query, falling back to simple query: {e}")
+            # Fallback to simpler query
+            try:
+                fallback_query = text("""
+                    SELECT p.postId, p.authorId, p.title, p.timeOfPost, p.like, p.likesId, p.image, p.content,
+                           u.username, u.profilePicture, u.visibility
+                    FROM post p
+                    JOIN user u ON p.authorId = u.userId
+                    JOIN followers f ON f.followedUserId = p.authorId
+                    WHERE f.followerUserId = :current_user_id
+                    ORDER BY p.timeOfPost DESC
+                    LIMIT :limit OFFSET :offset
+                """)
+                
+                result = db.session.execute(fallback_query, {
+                    "current_user_id": user_id,
+                    "limit": per_page,
+                    "offset": offset
+                }).fetchall()
+            except Exception as fallback_error:
+                print(f"Fallback following query also failed: {fallback_error}")
+                return []
         
-        result = db.session.execute(posts_query, {
-            "current_user_id": user_id,
-            "limit": per_page,
-            "offset": offset
-        }).fetchall()
+        # Convert results to Post objects efficiently using bulk query
+        if not result:
+            return []
         
-        # Convert results to Post objects
-        posts = []
-        for row in result:
-            post = Post.query.filter_by(postId=row[0]).first()
-            if post:
-                posts.append(post)
+        post_ids = [row[0] for row in result]
+        posts = Post.query.filter(Post.postId.in_(post_ids)).order_by(Post.timeOfPost.desc()).all()
         
-        return posts 
+        # Prefetch user profiles for better performance
+        try:
+            from managers import get_profile_manager
+            profile_manager = get_profile_manager()
+            author_ids = list(set([post.authorId for post in posts]))
+            profile_manager.prefetch_user_profiles(author_ids)
+        except Exception as e:
+            print(f"Error prefetching profiles: {e}")
+            # Continue without prefetching if it fails
+        
+        # Maintain the original order from the query  
+        post_dict = {post.postId: post for post in posts}
+        ordered_posts = [post_dict[post_id] for post_id in post_ids if post_id in post_dict]
+        
+        return ordered_posts
+    
+    def get_comment_counts_batch(self, post_ids: list) -> Dict[int, int]:
+        """Get comment counts for multiple posts in a single query"""
+        if not post_ids:
+            return {}
+        
+        try:
+            # Convert list to comma-separated string for SQL IN clause
+            post_ids_str = ','.join(map(str, post_ids))
+            
+            comment_counts = db.session.execute(
+                text(f"SELECT postId, COUNT(*) as count FROM comment WHERE postId IN ({post_ids_str}) GROUP BY postId")
+            ).fetchall()
+            
+            counts = {row.postId: row.count for row in comment_counts}
+            # Ensure all posts have a count (0 if no comments)
+            return {post_id: counts.get(post_id, 0) for post_id in post_ids}
+        except Exception as e:
+            print(f"Error getting comment counts: {e}")
+            return {post_id: 0 for post_id in post_ids}

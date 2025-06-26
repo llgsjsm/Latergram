@@ -5,28 +5,8 @@ from datetime import datetime
 
 class PostManager:
     def __init__(self):
-        # Initialize the post_likes table once when the manager is created
-        self._ensure_post_likes_table()
+        pass
         
-    def _ensure_post_likes_table(self):
-        """Ensure post_likes table exists - called once during initialization"""
-        try:
-            db.session.execute(text("""
-                CREATE TABLE IF NOT EXISTS post_likes (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    post_id INT NOT NULL,
-                    user_id INT NOT NULL,
-                    like_id INT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_user_post_like (user_id, post_id),
-                    INDEX idx_post_id (post_id),
-                    INDEX idx_user_id (user_id)
-                )
-            """))
-            db.session.commit()
-        except Exception as e:
-            print(f"Table creation info: {e}")
-    
     def create_post(self, title, content, user_id):
         new_post = Post(title=title, content=content, authorId=user_id)
         db.session.add(new_post)
@@ -34,12 +14,33 @@ class PostManager:
         return new_post
 
     def delete_post(self, post_id, user_id):
-        post = Post.query.get(post_id)
-        if post and post.authorId == user_id:
+        try:
+            post = Post.query.get(post_id)
+            if not post:
+                return {'success': False, 'error': 'Post not found'}
+            
+            if post.authorId != user_id:
+                return {'success': False, 'error': 'You can only delete your own posts'}
+            
+            # Delete related comments first (if any)
+            Comment.query.filter_by(postId=post_id).delete()
+            
+            # Delete related likes from junction table
+            db.session.execute(
+                text("DELETE FROM post_likes WHERE post_id = :post_id"),
+                {"post_id": post_id}
+            )
+            
+            # Delete the post
             db.session.delete(post)
             db.session.commit()
-            return True
-        return False
+            
+            return {'success': True, 'message': 'Post deleted successfully'}
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting post: {e}")
+            return {'success': False, 'error': f'Failed to delete post: {str(e)}'}
 
     def like_post(self, user_id: int, post_id: int) -> Dict[str, Any]:
         """Like a post using a junction table approach - optimized version"""

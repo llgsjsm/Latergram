@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
+from models.enums import VisibilityType
 from sqlalchemy import text
 
 class ProfileManager:
@@ -7,12 +8,20 @@ class ProfileManager:
         self.current_user = current_user
         # Simple in-memory cache for frequently accessed data
         self._user_stats_cache = {}
+        self._suggested_users_cache = {}
+        self._user_profile_cache = {}
         self._cache_timeout = 300  # 5 minutes cache timeout
 
     def _clear_user_cache(self, user_id: int):
         """Clear cache for a specific user"""
         if user_id in self._user_stats_cache:
             del self._user_stats_cache[user_id]
+        if user_id in self._suggested_users_cache:
+            del self._suggested_users_cache[user_id]
+        if user_id in self._user_profile_cache:
+            del self._user_profile_cache[user_id]
+        if user_id in self._user_profile_cache:
+            del self._user_profile_cache[user_id]
 
     def get_user_stats_cached(self, user_id: int) -> Dict[str, int]:
         """Get user stats with caching for better performance"""
@@ -71,49 +80,212 @@ class ProfileManager:
         """Change visibility of a user"""
         return self.update_profile(user_id, visibility=visibility_type)
 
-    def follow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
-        """Follow another user - optimized with cache clearing"""
-        if follower_user_id == followed_user_id:
-            return {'success': False, 'error': 'Cannot follow yourself'}
+    def send_follow_request(self, requester_user_id: int, target_user_id: int) -> Dict[str, Any]:
+        """Send a follow request to another user"""
+        if requester_user_id == target_user_id:
+            return {'success': False, 'error': 'Cannot send request to yourself'}
         
-        # Single query to check if both users exist and if already following
+        # Check if both users exist and get target user's visibility
         result = db.session.execute(text("""
             SELECT 
-                (SELECT COUNT(*) FROM user WHERE userId = :follower_id) as follower_exists,
-                (SELECT COUNT(*) FROM user WHERE userId = :followed_id) as followed_exists,
-                (SELECT COUNT(*) FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id) as already_following
-        """), {"follower_id": follower_user_id, "followed_id": followed_user_id}).fetchone()
+                (SELECT COUNT(*) FROM user WHERE userId = :requester_id) as requester_exists,
+                (SELECT COUNT(*) FROM user WHERE userId = :target_id) as target_exists,
+                (SELECT visibility FROM user WHERE userId = :target_id) as target_visibility,
+                (SELECT COUNT(*) FROM followers WHERE followerUserId = :requester_id AND followedUserId = :target_id) as existing_relationship
+        """), {"requester_id": requester_user_id, "target_id": target_user_id}).fetchone()
         
-        if not result.follower_exists or not result.followed_exists:
+        if not result.requester_exists or not result.target_exists:
             return {'success': False, 'error': 'One or both users not found'}
         
-        if result.already_following > 0:
-            return {'success': False, 'error': 'Already following this user'}
+        if result.existing_relationship > 0:
+            return {'success': False, 'error': 'Relationship already exists'}
         
         try:
-            # Insert follow relationship
-            query = text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower_id, :followed_id, NOW())")
-            db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
+            # If target user is public, auto-accept the follow
+            # Handle both 'Public' and 'public' for backward compatibility
+            if result.target_visibility and result.target_visibility.lower() == 'public':
+                query = text("""
+                    INSERT INTO followers (followerUserId, followedUserId, createdAt, status) 
+                    VALUES (:requester_id, :target_id, NOW(), 'accepted')
+                """)
+                db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                message = 'Now following user'
+            else:
+                # For private or followers-only accounts, send pending request
+                query = text("""
+                    INSERT INTO followers (followerUserId, followedUserId, createdAt, status) 
+                    VALUES (:requester_id, :target_id, NOW(), 'pending')
+                """)
+                db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                message = 'Follow request sent'
+            
             db.session.commit()
             
             # Clear cache for both users
-            self._clear_user_cache(follower_user_id)
-            self._clear_user_cache(followed_user_id)
+            self._clear_user_cache(requester_user_id)
+            self._clear_user_cache(target_user_id)
             
             return {
                 'success': True,
-                'message': 'Successfully followed user'
+                'message': message,
+                'status': 'accepted' if result.target_visibility and result.target_visibility.lower() == 'public' else 'pending'
             }
         except Exception as e:
             db.session.rollback()
-            return {'success': False, 'error': f'Failed to follow user: {str(e)}'}
-    
-    def unfollow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
-        """Unfollow a user - optimized with cache clearing"""
-        if not self.is_following(follower_user_id, followed_user_id):
-            return {'success': False, 'error': 'Not following this user'}
+            return {'success': False, 'error': f'Failed to send follow request: {str(e)}'}
+
+    def respond_to_follow_request(self, target_user_id: int, requester_user_id: int, action: str) -> Dict[str, Any]:
+        """Accept or decline a follow request"""
+        if action not in ['accept', 'decline']:
+            return {'success': False, 'error': 'Invalid action. Use "accept" or "decline"'}
         
         try:
+            # Check if there's a pending request
+            result = db.session.execute(text("""
+                SELECT id FROM followers 
+                WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
+            """), {"requester_id": requester_user_id, "target_id": target_user_id}).fetchone()
+            
+            if not result:
+                return {'success': False, 'error': 'No pending follow request found'}
+            
+            if action == 'accept':
+                # Update status to accepted
+                query = text("""
+                    UPDATE followers SET status = 'accepted' 
+                    WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
+                """)
+                db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                message = 'Follow request accepted'
+            else:
+                # Remove the pending request
+                query = text("""
+                    DELETE FROM followers 
+                    WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
+                """)
+                db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                message = 'Follow request declined'
+            
+            db.session.commit()
+            
+            # Clear cache for both users
+            self._clear_user_cache(requester_user_id)
+            self._clear_user_cache(target_user_id)
+            
+            return {
+                'success': True,
+                'message': message,
+                'action': action
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to respond to follow request: {str(e)}'}
+
+    def get_pending_follow_requests(self, user_id: int) -> Dict[str, Any]:
+        """Get all pending follow requests for a user"""
+        try:
+            # Get pending requests with requester details
+            results = db.session.execute(text("""
+                SELECT f.followerUserId, f.createdAt, u.username, u.profilePicture, u.bio
+                FROM followers f
+                JOIN user u ON f.followerUserId = u.userId
+                WHERE f.followedUserId = :user_id AND f.status = 'pending'
+                ORDER BY f.createdAt DESC
+            """), {"user_id": user_id}).fetchall()
+            
+            requests = []
+            for result in results:
+                requests.append({
+                    'requester_id': result.followerUserId,
+                    'username': result.username,
+                    'profile_picture': result.profilePicture or '',
+                    'bio': result.bio or '',
+                    'requested_at': result.createdAt
+                })
+            
+            return {
+                'success': True,
+                'requests': requests,
+                'count': len(requests)
+            }
+        except Exception as e:
+            return {'success': False, 'error': f'Failed to get follow requests: {str(e)}'}
+
+    def get_follow_status(self, requester_user_id: int, target_user_id: int) -> Dict[str, Any]:
+        """Get the follow status between two users"""
+        try:
+            result = db.session.execute(text("""
+                SELECT status FROM followers 
+                WHERE followerUserId = :requester_id AND followedUserId = :target_id
+            """), {"requester_id": requester_user_id, "target_id": target_user_id}).fetchone()
+            
+            if result:
+                return {
+                    'success': True,
+                    'status': result.status,
+                    'is_following': result.status == 'accepted',
+                    'request_pending': result.status == 'pending'
+                }
+            else:
+                return {
+                    'success': True,
+                    'status': 'none',
+                    'is_following': False,
+                    'request_pending': False
+                }
+        except Exception as e:
+            return {'success': False, 'error': f'Failed to get follow status: {str(e)}'}
+
+    def follow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
+        """Follow another user - updated to handle friend requests"""
+        # Use the new send_follow_request method instead
+        return self.send_follow_request(follower_user_id, followed_user_id)
+    
+    def cancel_follow_request(self, requester_user_id: int, target_user_id: int) -> Dict[str, Any]:
+        """Cancel a pending follow request"""
+        try:
+            # Check if there's a pending request
+            result = db.session.execute(text("""
+                SELECT id FROM followers 
+                WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
+            """), {"requester_id": requester_user_id, "target_id": target_user_id}).fetchone()
+            
+            if not result:
+                return {'success': False, 'error': 'No pending follow request found'}
+            
+            # Remove the pending request
+            query = text("""
+                DELETE FROM followers 
+                WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
+            """)
+            db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+            db.session.commit()
+            
+            # Clear cache for both users
+            self._clear_user_cache(requester_user_id)
+            self._clear_user_cache(target_user_id)
+            
+            return {
+                'success': True,
+                'message': 'Follow request cancelled'
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to cancel follow request: {str(e)}'}
+
+    def unfollow_user(self, follower_user_id: int, followed_user_id: int) -> Dict[str, Any]:
+        """Unfollow a user - updated to handle different statuses"""
+        try:
+            # Check current relationship status
+            result = db.session.execute(text("""
+                SELECT status FROM followers 
+                WHERE followerUserId = :follower_id AND followedUserId = :followed_id
+            """), {"follower_id": follower_user_id, "followed_id": followed_user_id}).fetchone()
+            
+            if not result:
+                return {'success': False, 'error': 'Not following this user'}
+            
+            # Remove the relationship regardless of status
             query = text("DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id")
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
             db.session.commit()
@@ -122,32 +294,38 @@ class ProfileManager:
             self._clear_user_cache(follower_user_id)
             self._clear_user_cache(followed_user_id)
             
+            message = 'Successfully unfollowed user' if result.status == 'accepted' else 'Follow request cancelled'
+            
             return {
                 'success': True,
-                'message': 'Successfully unfollowed user'
+                'message': message
             }
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to unfollow user: {str(e)}'}
     
     def is_following(self, follower_user_id: int, followed_user_id: int) -> bool:
-        """Check if one user follows another - optimized query"""
+        """Check if one user follows another - updated to only check accepted follows"""
         try:
-            query = text("SELECT 1 FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id LIMIT 1")
+            query = text("""
+                SELECT 1 FROM followers 
+                WHERE followerUserId = :follower_id AND followedUserId = :followed_id AND status = 'accepted' 
+                LIMIT 1
+            """)
             result = db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id}).first()
             return result is not None
         except Exception:
             return False
     
     def get_followers(self, user_id: int, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
-        """Get list of followers for a user"""
+        """Get list of followers for a user - only accepted follows"""
         offset = (page - 1) * per_page
         
         try:
-            # Get follower user IDs
+            # Get follower user IDs for accepted follows only
             query = text("""
                 SELECT followerUserId, createdAt FROM followers 
-                WHERE followedUserId = :user_id 
+                WHERE followedUserId = :user_id AND status = 'accepted'
                 ORDER BY createdAt DESC 
                 LIMIT :limit OFFSET :offset
             """)
@@ -180,14 +358,14 @@ class ProfileManager:
             return {'success': False, 'error': f'Failed to get followers: {str(e)}'}
     
     def get_following(self, user_id: int, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
-        """Get list of users that this user follows"""
+        """Get list of users that this user follows - only accepted follows"""
         offset = (page - 1) * per_page
         
         try:
-            # Get followed user IDs
+            # Get followed user IDs for accepted follows only
             query = text("""
                 SELECT followedUserId, createdAt FROM followers 
-                WHERE followerUserId = :user_id 
+                WHERE followerUserId = :user_id AND status = 'accepted'
                 ORDER BY createdAt DESC 
                 LIMIT :limit OFFSET :offset
             """)
@@ -220,18 +398,18 @@ class ProfileManager:
             return {'success': False, 'error': f'Failed to get following: {str(e)}'}
     
     def get_follower_count(self, user_id: int) -> int:
-        """Get total number of followers for a user"""
+        """Get total number of followers for a user - only accepted follows"""
         try:
-            query = text("SELECT COUNT(*) as count FROM followers WHERE followedUserId = :user_id")
+            query = text("SELECT COUNT(*) as count FROM followers WHERE followedUserId = :user_id AND status = 'accepted'")
             result = db.session.execute(query, {"user_id": user_id}).fetchone()
             return result[0] if result else 0
         except Exception:
             return 0
     
     def get_following_count(self, user_id: int) -> int:
-        """Get total number of users that this user follows"""
+        """Get total number of users that this user follows - only accepted follows"""
         try:
-            query = text("SELECT COUNT(*) as count FROM followers WHERE followerUserId = :user_id")
+            query = text("SELECT COUNT(*) as count FROM followers WHERE followerUserId = :user_id AND status = 'accepted'")
             result = db.session.execute(query, {"user_id": user_id}).fetchone()
             return result[0] if result else 0
         except Exception:
@@ -261,6 +439,35 @@ class ProfileManager:
             'following_count': following_count
         }
     
+    def get_user_profile_cached(self, user_id: int) -> Dict:
+        """Get user profile with caching for better performance"""
+        import time
+        
+        # Check cache first
+        if user_id in self._user_profile_cache:
+            cached_data, timestamp = self._user_profile_cache[user_id]
+            if time.time() - timestamp < self._cache_timeout:
+                return cached_data
+        
+        # If not in cache or expired, fetch from database
+        try:
+            user = User.query.filter_by(userId=user_id).first()
+            if user:
+                profile_data = {
+                    'userId': user.userId,
+                    'username': user.username,
+                    'profilePicture': user.profilePicture,
+                    'bio': user.bio,
+                    'visibility': user.visibility
+                }
+                # Cache the result
+                self._user_profile_cache[user_id] = (profile_data, time.time())
+                return profile_data
+        except Exception as e:
+            print(f"Error getting user profile: {e}")
+        
+        return None
+
     def search_users(self, query: str, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """Search for users by username"""
         offset = (page - 1) * per_page
@@ -290,14 +497,14 @@ class ProfileManager:
         }
 
     def get_user_stats(self, user_id: int) -> Dict[str, int]:
-        """Get user statistics with optimized single query"""
+        """Get user statistics with optimized single query - only count accepted follows"""
         try:
-            # Single query to get all stats at once
+            # Single query to get all stats at once, counting only accepted follows
             result = db.session.execute(text("""
                 SELECT 
                     (SELECT COUNT(*) FROM post WHERE authorId = :user_id) as posts_count,
-                    (SELECT COUNT(*) FROM followers WHERE followedUserId = :user_id) as followers_count,
-                    (SELECT COUNT(*) FROM followers WHERE followerUserId = :user_id) as following_count
+                    (SELECT COUNT(*) FROM followers WHERE followedUserId = :user_id AND status = 'accepted') as followers_count,
+                    (SELECT COUNT(*) FROM followers WHERE followerUserId = :user_id AND status = 'accepted') as following_count
             """), {"user_id": user_id}).fetchone()
             
             if result:
@@ -342,6 +549,24 @@ class ProfileManager:
             print(f"Error getting suggested users: {e}")
             return []
     
+    def get_suggested_users_cached(self, user_id: int, limit: int = 5) -> List[Dict]:
+        """Get suggested users with caching for better performance"""
+        import time
+        
+        # Check cache first
+        cache_key = f"{user_id}_{limit}"
+        if cache_key in self._suggested_users_cache:
+            cached_data, timestamp = self._suggested_users_cache[cache_key]
+            if time.time() - timestamp < self._cache_timeout:
+                return cached_data
+        
+        # If not in cache or expired, fetch from database
+        suggested_users = self.get_suggested_users(user_id, limit)
+        
+        # Cache the result
+        self._suggested_users_cache[cache_key] = (suggested_users, time.time())
+        return suggested_users
+
     def get_user_posts(self, user_id: int, viewer_user_id: int = None, page: int = 1, per_page: int = 20) -> List:
         """Get posts by a specific user with pagination and visibility filtering"""
         try:
@@ -573,4 +798,89 @@ class ProfileManager:
                 return {'can_view': True, 'can_see_posts': False, 'message': 'Follow this user to see their posts'}
         
         # Default to basic view only
-        return {'can_view': True, 'can_see_posts': False}
+        return {'can_view': True, 'can_see_posts': False, 'message': 'No posts available'}
+
+    def remove_follower(self, user_id: int, follower_user_id: int) -> dict:
+        """Remove a follower from the current user's followers list."""
+        try:
+            # Check if the follower relationship exists
+            result = db.session.execute(text("""
+                SELECT status FROM followers 
+                WHERE followerUserId = :follower_id AND followedUserId = :user_id
+            """), {"follower_id": follower_user_id, "user_id": user_id}).fetchone()
+
+            if not result:
+                return {'success': False, 'error': 'This user is not your follower.'}
+
+            # Remove the follower relationship
+            db.session.execute(text("""
+                DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :user_id
+            """), {"follower_id": follower_user_id, "user_id": user_id})
+            db.session.commit()
+
+            # Clear cache for both users
+            self._clear_user_cache(user_id)
+            self._clear_user_cache(follower_user_id)
+
+            return {'success': True, 'message': 'Follower removed successfully.'}
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to remove follower: {str(e)}'}
+    
+    def prefetch_user_profiles(self, user_ids: List[int]) -> Dict[int, Dict]:
+        """Prefetch multiple user profiles in a single query to warm the cache"""
+        if not user_ids:
+            return {}
+        
+        try:
+            # Remove duplicates and get uncached users
+            import time
+            uncached_ids = []
+            cached_profiles = {}
+            
+            for user_id in set(user_ids):
+                if user_id in self._user_profile_cache:
+                    cached_data, timestamp = self._user_profile_cache[user_id]
+                    if time.time() - timestamp < self._cache_timeout:
+                        cached_profiles[user_id] = cached_data
+                        continue
+                uncached_ids.append(user_id)
+            
+            # Fetch uncached profiles in batch
+            if uncached_ids:
+                users = User.query.filter(User.userId.in_(uncached_ids)).all()
+                for user in users:
+                    profile_data = {
+                        'userId': user.userId,
+                        'username': user.username,
+                        'profilePicture': user.profilePicture,
+                        'bio': user.bio,
+                        'visibility': user.visibility
+                    }
+                    # Cache the result
+                    self._user_profile_cache[user.userId] = (profile_data, time.time())
+                    cached_profiles[user.userId] = profile_data
+            
+            return cached_profiles
+        except Exception as e:
+            print(f"Error prefetching user profiles: {e}")
+            return {}
+    
+    def fix_visibility_case(self) -> Dict[str, Any]:
+        """Fix visibility case for existing users - utility method for migration"""
+        try:
+            # Update all users with lowercase 'public' to uppercase 'Public'
+            query = text("""
+                UPDATE user SET visibility = 'Public' WHERE LOWER(visibility) = 'public'
+            """)
+            result = db.session.execute(query)
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'message': f'Fixed visibility case for {result.rowcount} users',
+                'updated_count': result.rowcount
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to fix visibility case: {str(e)}'}

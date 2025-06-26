@@ -43,13 +43,13 @@
                 <a href="{{ url_for('login') }}" style="color: var(--color-primary);">Login</a>
             </p>
         </form>
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=True) %}
         {% if messages %}
-        <div class="alert alert-danger mt-3">
-            {% for message in messages %}
+        {% for category, message in messages %}
+        <div class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-3">
             {{ message }}<br>
-            {% endfor %}
         </div>
+        {% endfor %}
         {% endif %}
         {% endwith %}
     </div>
