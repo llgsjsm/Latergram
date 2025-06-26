@@ -11,7 +11,9 @@ class Report(db.Model):
     status = db.Column(db.String(20), default='pending')
     reason = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
+    targetType = db.Column(db.String(45), nullable=False)  # values from ReportTarget enum
+    targetId = db.Column(db.Integer, nullable=False)  # ID of the post/comment/user being reported
+
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reportedBy], backref='reports_made')
     reviewer = db.relationship('Moderator', foreign_keys=[reviewedBy], backref='reports_reviewed')
@@ -51,3 +53,9 @@ class Report(db.Model):
         
     def set_reviewed_by(self, moderator):
         self.reviewed_by = moderator 
+    
+    def get_target_type(self):
+        return self.targetType
+    
+    def get_target_id(self):
+        return self.targetId

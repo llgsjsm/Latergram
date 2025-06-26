@@ -1,8 +1,9 @@
 from typing import Optional, List, Dict, Any
-from models import db, User
+from models import db, User, Moderator
 from models.enums import VisibilityType
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
+from datetime import datetime
 import re
 
 bcrypt = Bcrypt()
@@ -14,26 +15,58 @@ class AuthenticationManager:
         user = User.query.filter(
             or_(User.username == username_or_email, User.email == username_or_email)
         ).first()
-        
-        if not user:
-            return {'success': False, 'error': 'User not found'}
-        
-        if not bcrypt.check_password_hash(user.password, password):
-            return {'success': False, 'error': 'Invalid password'}
-        
-        return {
-            'success': True,
-            'user': {
-                'user_id': user.userId,
-                'username': user.username,
-                'email': user.email,
-                'created_at': user.createdAt,
-                'profile_picture': user.profilePicture,
-                'bio': user.bio,
-                'visibility': user.visibility
-            },
-            'message': 'Authentication successful'
-        }
+
+        if user:
+            if not bcrypt.check_password_hash(user.password, password):
+                return {'success': False, 'error': 'Invalid password'}
+            
+            # enforce account disablement period
+            if user.disabledUntil and user.disabledUntil > datetime.utcnow():
+                return {
+                    'success': False,
+                    'error': f'Login failed. Your account is disabled until {user.disabledUntil.strftime("%Y-%m-%d %H:%M:%S")}.'
+                }
+            
+            return {
+                'success': True,
+                'login_type': 'user',
+                'user': {
+                    'user_id': user.userId,
+                    'username': user.username,
+                    'email': user.email,
+                    'created_at': user.createdAt,
+                    'profile_picture': user.profilePicture,
+                    'bio': user.bio,
+                    'visibility': user.visibility
+                    },
+                'message': 'Authentication successful'
+            }
+        # if user not found, check in moderators table
+        else:
+            moderator = Moderator.query.filter(
+                or_(Moderator.username == username_or_email, Moderator.email == username_or_email)
+            ).first()
+            if moderator:
+                if not bcrypt.check_password_hash(moderator.password, password):
+                    return {'success': False, 'error': 'Invalid password'}
+                return {
+                    'success': True,
+                    'login_type': 'moderator',
+                    'moderator': {
+                        'mod_id': moderator.modID,
+                        'mod_level': moderator.modLevel,
+                        'username': moderator.username,
+                        'email': moderator.email,
+                        'created_at': moderator.createdAt,
+                        },
+                    'message': 'Authentication successful'
+                }        
+            else:
+                # not in user or moderator table
+                return {
+                    'success': False,
+                    'error': 'User not found'
+                }
 
     def logout(self):
         # In a session-based approach, this would clear the session

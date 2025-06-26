@@ -15,7 +15,8 @@ class User(db.Model, BaseUserMixin):
     visibility = db.Column(db.String(20), default='Public')
     bio = db.Column(db.Text, nullable=True, default='')
     followers = db.Column(db.Integer, default=0)  # Added missing followers field
-
+    disabledUntil = db.Column(db.DateTime, nullable=True)  # add missing field for disabling user accounts
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

@@ -61,6 +61,14 @@
           Later<span class="beau">G</span>ram
         </a>
         <ul class="nav nav-pills flex-column" id="nav-list">
+          {% if session.get('mod_id') %}
+          <!-- Moderator sidebar items -->
+          <li class="nav-item">
+            <a class="nav-link{% if request.endpoint == 'moderation' %} active{% endif %}" href="{{ url_for('moderation') }}">
+              <i class="fas fa-gavel"></i> Moderation Dashboard
+            </a>
+          </li>
+          {% elif session.get('user_id') %}
           <li class="nav-item">
             <a
               class="nav-link{% if request.endpoint == 'home' %} active{% endif %}"
@@ -120,6 +128,7 @@
               >
             </a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('logout') }}"
               ><i class="fas fa-arrow-right-from-bracket"></i> Logout</a

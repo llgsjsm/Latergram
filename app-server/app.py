@@ -45,12 +45,13 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 # Use the optimized singleton managers
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager
+from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
 
 auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
 post_manager = get_post_manager()
+moderator_manager = get_moderator_manager()
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
@@ -119,8 +120,12 @@ def ensure_firebase_initialized():
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
-    if 'user_id' not in session:
+    if 'user_id' not in session and 'mod_id' not in session:
         return redirect(url_for('login'))
+    
+    # redirect moderators to their dashboard
+    if 'mod_id' in session:
+        return redirect(url_for('moderation'))
     
     try:
         posts = feed_manager.generate_feed(session['user_id'])
@@ -182,9 +187,14 @@ def login():
         password = request.form['password']
         result = auth_manager.login(email, password)
         if result['success']:
-            session['user_id'] = result['user']['user_id']
-            flash('Login successful!', 'success')
-            return redirect(url_for('home'))
+            if result['login_type'] == 'moderator':
+                session['mod_id'] = result['moderator']['mod_id']
+                flash('Login successful!', 'success')
+                return redirect(url_for('moderation'))
+            else:
+                session['user_id'] = result['user']['user_id']
+                flash('Login successful!', 'success')
+                return redirect(url_for('home'))
         else:
             flash(f'Login Unsuccessful. {result["error"]}', 'danger')
     return render_template('login.html')
@@ -209,16 +219,22 @@ def register():
 
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
+    if 'user_id' in session:
+        session.pop('user_id', None)
+    else:
+        session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
 @app.route('/create-post', methods=['GET', 'POST'])
 def create_post():
     ensure_firebase_initialized()
+    # moderators cannot create posts
+    if 'mod_id' in session:
+        return redirect(url_for('moderator'))
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
@@ -434,6 +450,8 @@ def delete_post_route(post_id):
 @app.route('/profile')
 @app.route('/profile/<int:user_id>')
 def profile(user_id=None):
+    if 'mod_id' in session:
+        return redirect(url_for('moderation'))
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -449,6 +467,7 @@ def profile(user_id=None):
             return redirect(url_for('home'))
         
         # Check if current user can view this profile
+
         visibility_check = profile_manager.can_view_profile(session['user_id'], user_id)
         if not visibility_check['can_view']:
             flash('Profile not found', 'danger')
@@ -902,6 +921,92 @@ def fix_visibility_case():
     # Add admin check here if needed
     result = profile_manager.fix_visibility_case()
     return jsonify(result)
+
+# Moderator routes
+@app.route('/moderation')
+def moderation():
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    # Pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    try:
+        # Pending reports for the first table
+        reports = moderator_manager.get_report_queue()
+        # All reports for history table, paginated
+        all_reports_query = moderator_manager.get_all_reports_query()
+        paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
+    except Exception as e:
+        print(f"Error getting reports: {e}")
+        reports = []
+        paginated_reports = None
+
+    return render_template(
+        'moderation.html',
+        reports=reports,
+        paginated_reports=paginated_reports
+    )
+
+@app.route('/moderation/report/<int:report_id>')
+def report_detail(report_id):
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    report = moderator_manager.get_report_by_id(report_id)
+    referenced = None
+    referenced_type = None
+
+    # Determine referenced object
+    if report.targetType == "Post":
+        referenced = Post.query.get(report.targetId)
+        referenced_type = "post"
+    elif report.targetType == "Comment":
+        referenced = Comment.query.get(report.targetId)
+        referenced_type = "comment"
+    elif report.targetType == "User":
+        referenced = User.query.get(report.targetId)
+        referenced_type = "user"
+
+    return render_template(
+        'report_detail.html',
+        report=report,
+        referenced=referenced,
+        referenced_type=referenced_type,
+        now=datetime.utcnow()
+    )
+
+@app.route('/moderation/action/<action>/<int:report_id>', methods=['POST'])
+def moderation_action(action, report_id):
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    result = None
+    if action == 'review':
+        result = moderator_manager.review_report(report_id, session['mod_id'])
+    elif action == 'resolve':
+        result = moderator_manager.resolve_report(report_id, session['mod_id'])
+    elif action == 'reject':
+        result = moderator_manager.reject_report(report_id, session['mod_id'])
+    elif action == 'disable_user':
+        days = int(request.form.get('disable_days', 1))
+        # Get the referenced user from the report
+        report = moderator_manager.get_report_by_id(report_id)
+        if report and report.targetType == "User":
+            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'])
+    else:
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('moderation'))
+
+    if result and result.get('success'):
+        flash(result.get('message', 'Action completed.'), 'success')
+    else:
+        flash(result.get('message', 'Action failed.'), 'danger')
+    return redirect(url_for('moderation'))
 
 @app.context_processor
 def inject_user():
