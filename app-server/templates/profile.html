@@ -56,11 +56,12 @@
     <div class="profile-header-actions">
       {% if is_own_profile %}
       <a href="{{ url_for('edit_profile') }}" class="btn" title="Edit Profile">
-        <i class="fas fa-pen"></i>
-      </a>
-      <button class="btn" title="Settings" data-bs-toggle="dropdown">
+        <!-- <i class="fas fa-pen"></i> -->
         <i class="fas fa-cog"></i>
-      </button>
+      </a>
+      <!-- <button class="btn" title="Settings" data-bs-toggle="dropdown">
+        <i class="fas fa-cog"></i>
+      </button> -->
       <ul class="dropdown-menu">
         <li>
           <a class="dropdown-item" href="{{ url_for('edit_profile') }}">Settings</a>
