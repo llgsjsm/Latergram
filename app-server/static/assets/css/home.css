@@ -108,3 +108,52 @@
 .card-body .btn-secondary:hover, .card-text .btn-secondary:focus {
   background: var(--color-navbg) !important;
 }
+
+/* --- Comment Layout & Edit Styles --- */
+.comment-item {
+  margin-bottom: 1rem;
+  background: none;
+}
+
+.comment-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comment-header-row .fw-bold {
+  font-size: 1rem;
+}
+
+.comment-header-row .btn {
+  margin-left: 0.25rem;
+}
+
+.comment-content-row {
+  margin: 4px 0 0 40px; /* indent to align with username, adjust as needed */
+  font-size: 1rem;
+  color: #fff;
+}
+
+.comment-edit-input {
+  width: 100%;
+  background: #181a25;
+  color: #fff;
+  border: 1px solid #363947;
+  border-radius: 4px;
+  padding: 7px 12px;
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+.comment-edit-input:focus, .comment-edit-input:active {
+  border: 1.5px solid var(--color-primary) !important;
+  outline: none;
+}
+
+.comment-edit-actions-row {
+  margin: 6px 0 0 40px; /* indent to align with content */
+  gap: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+}

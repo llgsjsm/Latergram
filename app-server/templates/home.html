@@ -135,7 +135,7 @@
                 comment_counts.get(post.postId, 0) }} Comments
               </button>
               {% if user and post.authorId == user.userId %}
-              <button class="btn card-btn-primary btn-sm d-none ms-2" id="save-post-{{ post.postId }}" onclick="savePostEdit('{{ post.postId }}')">Save</button>
+              <button id="save-post-{{ post.postId }}" class="btn card-btn-primary btn-sm d-none ms-2" onclick="savePostEdit('{{ post.postId }}')">Save</button>
               {% endif %}
             </div>
             <small class="text-muted"
@@ -171,7 +171,7 @@
               action="{{ url_for('add_comment', post_id=post.postId) }}"
               method="POST"
             >
-              <div class="input-group input-group-sm">
+              <div class="input-group" style="height: 40px;">
                 <input
                   type="text"
                   class="form-control"
@@ -179,7 +179,7 @@
                   placeholder="Add a comment..."
                   required
                 />
-                <button class="btn btn-primary" type="submit">Post</button>
+                <button class="btn card-btn-primary" type="submit">Post</button>
               </div>
             </form>
           </div>
@@ -229,7 +229,7 @@
             let commentsHtml = '';
             data.comments.forEach(comment => {
               const profileImg = comment.author.profilePicture ?
-                `<img src="${comment.author.profilePicture}" class="rounded-circle me-2" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">` :
+                `<img src="${comment.author.profilePicture}" class="rounded-circle" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">` :
                 `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 25px; height: 25px; background: #23263a; color: #bfc7d5; font-size: 0.8rem;"><i class="fas fa-user"></i></span>`;
 
               const isOwnComment = comment.author.username === currentUser.username;
@@ -237,31 +237,28 @@
               const canDelete = isOwnComment || isPostOwner;
               const canEdit = isOwnComment; // Only comment owner can edit
 
-              const editDeleteButtons = (canEdit || canDelete) ? `
-                <div class="ms-auto">
-                  ${canEdit ? `
-                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                  ` : ''}
-                  ${canDelete ? `
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})"
-                      title="${isOwnComment ? 'Delete your comment' : 'Delete comment (as post owner)'}">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  ` : ''}
-                </div>
-              ` : '';
-
               commentsHtml += `
-                <div class="mb-2 d-flex comment-item" id="comment-${comment.commentId}">
-                  ${profileImg}
-                  <div class="flex-grow-1">
-                    <div><strong>${comment.author.username}</strong></div>
-                    <div class="comment-content" id="content-${comment.commentId}">${comment.content}</div>
-                    <div class="text-muted small">${comment.timestamp}</div>
+                <div class="comment-item d-flex flex-column" id="comment-${comment.commentId}">
+                  <div class="d-flex align-items-center comment-header-row">
+                    ${profileImg}
+                    <div class="fw-bold ms-2">${comment.author.username}</div>
+                    <div class="ms-auto d-flex">
+                      ${canEdit ? `
+                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                      ` : ''}
+                      ${canDelete ? `
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})"
+                          title="${isOwnComment ? 'Delete your comment' : 'Delete comment (as post owner)'}">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      ` : ''}
+                    </div>
                   </div>
-                  ${editDeleteButtons}
+                  <div class="comment-content-row" id="content-${comment.commentId}">${comment.content}</div>
+                  <div class="comment-edit-actions-row mb-2" id="edit-actions-${comment.commentId}" style="display:none;"></div>
+                  <div class="text-muted small mt-2">${comment.timestamp}</div>
                 </div>
               `;
             });
@@ -529,6 +526,141 @@
     })
     .catch(() => { _postEditSaving[postId] = false; });
   }
+
+  // Function to save edited comment
+  function saveComment(commentId) {
+    const newContent = document
+      .getElementById(`edit-input-${commentId}`)
+      .value.trim();
+    if (!newContent) {
+      alert("Comment cannot be empty");
+      return;
+    }
+
+    fetch(`/edit_comment/${commentId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content: newContent }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Update the content
+          document.getElementById(`content-${commentId}`).innerHTML = newContent;
+          // Hide the save/cancel buttons
+          document.getElementById(`edit-actions-${commentId}`).style.display = "none";
+          showNotification("Comment updated successfully", "success");
+        } else {
+          alert("Error: " + data.error);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred while updating the comment");
+      });
+  }
+
+  // Function to cancel edit
+  function cancelEdit(commentId, originalContent) {
+    document.getElementById(`content-${commentId}`).innerHTML = originalContent;
+    document.getElementById(`edit-actions-${commentId}`).style.display = "none";
+  }
+
+  // Function to delete comment
+  function deleteComment(commentId, postId) {
+    if (confirm("Are you sure you want to delete this comment?")) {
+      fetch(`/delete_comment/${commentId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Remove comment from UI
+            document.getElementById(`comment-${commentId}`).remove();
+
+            // Update comment count with actual count from backend
+            if (data.comment_count !== undefined) {
+              updateCommentCount(postId, data.comment_count);
+            }
+
+            // Show success message
+            const message = data.is_post_owner_deletion
+              ? "Comment deleted successfully (as post owner)"
+              : "Comment deleted successfully";
+            showNotification(message, "success");
+
+            // Check if no comments left
+            const commentsDiv = document.getElementById(`comments-${postId}`);
+            const remainingComments =
+              commentsDiv.querySelectorAll(".comment-item");
+            if (remainingComments.length === 0) {
+              commentsDiv.innerHTML =
+                '<p class="text-muted">No comments yet</p>';
+            }
+          } else {
+            alert("Error: " + data.error);
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred while deleting the comment");
+        });
+    }
+  }
+
+  // Function to update comment count on buttons
+  function updateCommentCount(postId, newCount) {
+    // Find the comment button for this post
+    const commentButton = document.querySelector(
+      `button[onclick*="toggleCommentForm('${postId}')"]`
+    );
+    if (commentButton) {
+      if (newCount > 0) {
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> ${newCount} Comments`;
+      } else {
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> Comment`;
+      }
+    }
+
+    // Also update the "View All" link text if it exists
+    const viewAllButton = document.querySelector(
+      `button[onclick*="loadComments('${postId}')"]`
+    );
+    if (viewAllButton) {
+      const parentSmall = viewAllButton.closest("small");
+      if (parentSmall) {
+        if (newCount > 0) {
+          parentSmall.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none" style="vertical-align: baseline; font-size: inherit; color: white;" onclick="loadComments('${postId}')">View All</button>`;
+        } else {
+          parentSmall.innerHTML = "";
+        }
+      }
+    }
+  }
+
+  // Function to show notification
+  function showNotification(message, type = "success") {
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText =
+      "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
 </script>
 {% endblock %} {% block rightpanel %} {% if pending_requests %}
 <div class="card m-3 mt-4">
@@ -729,24 +861,21 @@
 
   // Function to edit comment
   function editComment(commentId, currentContent) {
-    const contentDiv = document.getElementById(`content-${commentId}`);
-    const commentItem = document.getElementById(`comment-${commentId}`);
-
-    // Create edit form
-    const editForm = document.createElement("div");
-    editForm.innerHTML = `
-      <div class="input-group mt-2">
-        <input type="text" class="form-control" value="${currentContent}" id="edit-input-${commentId}" maxlength="500">
-        <button class="btn btn-success btn-sm" onclick="saveComment(${commentId})">Save</button>
-        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
-      </div>
+    // Replace only the content row with input
+    const contentRow = document.getElementById(`content-${commentId}`);
+    contentRow.innerHTML = `
+      <input type="text" class="comment-edit-input mt-2" value="${currentContent}" id="edit-input-${commentId}" maxlength="500">
     `;
 
-    // Replace content with edit form
-    contentDiv.innerHTML = "";
-    contentDiv.appendChild(editForm);
+    // Show Save/Cancel in the actions row
+    const actionsRow = document.getElementById(`edit-actions-${commentId}`);
+    actionsRow.innerHTML = `
+      <button class="btn card-btn-primary" onclick="saveComment(${commentId})">Save</button>
+      <button class="btn card-btn-secondary" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
+    `;
+    actionsRow.style.display = "flex";
 
-    // Focus on input
+    // Focus input
     document.getElementById(`edit-input-${commentId}`).focus();
   }
 
@@ -771,8 +900,9 @@
       .then((data) => {
         if (data.success) {
           // Update the content
-          document.getElementById(`content-${commentId}`).innerHTML =
-            newContent;
+          document.getElementById(`content-${commentId}`).innerHTML = newContent;
+          // Hide the save/cancel buttons
+          document.getElementById(`edit-actions-${commentId}`).style.display = "none";
           showNotification("Comment updated successfully", "success");
         } else {
           alert("Error: " + data.error);
@@ -787,6 +917,7 @@
   // Function to cancel edit
   function cancelEdit(commentId, originalContent) {
     document.getElementById(`content-${commentId}`).innerHTML = originalContent;
+    document.getElementById(`edit-actions-${commentId}`).style.display = "none";
   }
 
   // Function to delete comment
