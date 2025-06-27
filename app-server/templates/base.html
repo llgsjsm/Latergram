@@ -55,7 +55,7 @@
       line-height: 1;
     }
     /* Ensure icon is centered in nav/profile */
-    .rounded-circle .fa-user {
+    #nav-default-user .fa-user {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -104,7 +104,7 @@
               <img src="{{ nav_user.profilePicture }}" class="rounded-circle"
                 style="width: 28px; height: 28px; object-fit: cover" />
               {% else %}
-              <span class="d-inline-flex align-items-center justify-content-center rounded-circle default-user-icon" style="width: 28px; height: 28px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40; margin-right: 0 !important;">
+              <span id="nav-default-user" class="d-inline-flex align-items-center justify-content-center rounded-circle default-user-icon" style="width: 28px; height: 28px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40; margin-right: 0 !important;">
                 <i class="fas fa-user"></i>
               </span>
               {% endif %}
