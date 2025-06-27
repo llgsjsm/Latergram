@@ -184,20 +184,28 @@ def hello_world():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        result = auth_manager.login(email, password)
-        if result['success']:
-            if result['login_type'] == 'moderator':
-                session['mod_id'] = result['moderator']['mod_id']
-                flash('Login successful!', 'success')
-                return redirect(url_for('moderation'))
+        # Only process login if the login button was clicked
+        if request.form.get('login-btn') is not None:
+            email = request.form.get('email', '')
+            password = request.form.get('password', '')
+            # Only proceed if both fields are filled
+            if email and password:
+                result = auth_manager.login(email, password)
+                if result['success']:
+                    if result['login_type'] == 'moderator':
+                        session['mod_id'] = result['moderator']['mod_id']
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('moderation'))
+                    else:
+                        session['user_id'] = result['user']['user_id']
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('home'))
+                else:
+                    flash(f'Login Unsuccessful. {result["error"]}', 'danger')
             else:
-                session['user_id'] = result['user']['user_id']
-                flash('Login successful!', 'success')
-                return redirect(url_for('home'))
-        else:
-            flash(f'Login Unsuccessful. {result["error"]}', 'danger')
+                flash('Please enter both email and password.', 'danger')
+        # If not login-btn, just render the page again (ignore send-reset-link)
+        return render_template('login.html')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])

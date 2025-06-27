@@ -13,12 +13,12 @@
 
     <div class="container form-container">
       <form method="POST" action="{{ url_for('login') }}">
-        <div class="mb-4">
+        <div class="mb-4 login-text-field">
           <label for="email" class="form-label">Email</label>
           <input type="email" class="form-control" id="email" name="email" placeholder="Your email" required>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-4 login-text-field">
           <label for="password" class="form-label">Password</label>
           <div id="password-input-group" class="input-group">
             <input type="password" class="form-control" id="password" name="password" placeholder="Your password" required>
@@ -26,13 +26,24 @@
               <i class="fa-regular fa-eye" id="toggle-icon"></i>
             </span>
           </div>
+          
+          <a href="#" id="forget-password" style="color: var(--color-secondary-text);">Forget Password?</a>
         </div>
 
-        <div class="d-grid mb-4">
-          <button type="submit" class="btn btn-login">Login</button>
+        <div class="mb-4 forget-password-text-field" style="display: none;">
+          <label for="forgot-email" class="form-label">Enter your email to reset password</label>
+          <input type="email" class="form-control" id="forgot-email" name="reset-email" placeholder="Your email">
+          <a href="#" id="cancel-forget-password" style="color: var(--color-secondary-text); display: block; margin-top: 10px;">Back to Login</a>
+        </div>
+      
+        <div class="d-grid mb-4 login-btn-wrapper">
+          <button type="submit" id="login-btn" name="login-btn" class="btn btn-login">Login</button>
+        </div>
+        <div class="d-grid mb-4 reset-btn-wrapper" style="display: none !important;">
+          <button type="button" class="btn btn-login" id="send-reset-link" style="display: none;">Send Reset Link</button>
         </div>
 
-        <p>Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--color-primary);">Sign Up</a></p>
+        <p id="signup-link">Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--color-primary);">Sign Up</a></p>
       </form>
 
       {% with messages = get_flashed_messages(with_categories=True) %}
@@ -50,5 +61,40 @@
       integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
       crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
+    <script>
+      // Safeguard: Always hide reset-btn-wrapper on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        var resetBtn = document.querySelector('.reset-btn-wrapper');
+        if (resetBtn) resetBtn.style.display = 'none';
+      });
+      document.getElementById('forget-password').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.login-text-field').forEach(function(el) {
+          el.style.display = 'none';
+        });
+        document.querySelector('.forget-password-text-field').style.display = 'block';
+        document.querySelector('.reset-btn-wrapper').style.display = 'block'; 
+        document.querySelector('#send-reset-link').style.display = 'block'; 
+        document.querySelector('.login-btn-wrapper').style.display = 'none';
+        document.querySelector('#login-btn').style.display = 'none';
+        document.querySelector('#signup-link').style.display = 'none';
+        // Make reset-email required only when visible
+        document.getElementById('forgot-email').setAttribute('required', 'required');
+      });
+      document.getElementById('cancel-forget-password').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.login-text-field').forEach(function(el) {
+          el.style.display = '';
+        });
+        document.querySelector('.forget-password-text-field').style.display = 'none';
+        document.querySelector('.reset-btn-wrapper').style.display = 'none'; 
+        document.querySelector('#send-reset-link').style.display = 'none'; 
+        document.querySelector('.login-btn-wrapper').style.display = 'block';
+        document.querySelector('#login-btn').style.display = 'block';
+        document.querySelector('#signup-link').style.display = 'block';
+        // Remove required from reset-email when hidden
+        document.getElementById('forgot-email').removeAttribute('required');
+      });
+    </script>
   </body>
 </html>
