@@ -187,19 +187,20 @@ def login():
     if request.method == 'POST':
         # Only process login if the login button was clicked
         if request.form.get('login-btn') is not None:
-            token = request.form['g-recaptcha-response']
-            verification = requests.post(
-                'https://www.google.com/recaptcha/api/siteverify',
-                data={
-                    'secret': CAPTCHA_KEY,
-                    'response': token,
-                    'remoteip': request.remote_addr
-                }
-            ).json()
+            # token = request.form['g-recaptcha-response']
+            # verification = requests.post(
+            #     'https://www.google.com/recaptcha/api/siteverify',
+            #     data={
+            #         'secret': CAPTCHA_KEY,
+            #         'response': token,
+            #         'remoteip': request.remote_addr
+            #     }
+            # ).json()
             email = request.form.get('email', '')
             password = request.form.get('password', '')
             # Only proceed if both fields are filled
-            if email and password and verification.get('success', False):
+            # if email and password and verification.get('success', False):
+            if email and password:
                 result = auth_manager.login(email, password)
                 if result['success']:
                     if result['login_type'] == 'moderator':
