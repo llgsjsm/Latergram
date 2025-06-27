@@ -76,3 +76,37 @@ a:hover {
     max-width: 400px;
     margin: 40px auto;
 }
+
+/* OTP input styling */
+#otp-code {
+    text-align: center;
+    letter-spacing: 8px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Transition effects for form sections */
+.login-text-field,
+.reset-text-field,
+.otp-text-field,
+.reset-password-field {
+    transition: all 0.3s ease;
+}
+
+/* Success and error message styling */
+.alert {
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: #dc3545;
+    color: #dc3545;
+}

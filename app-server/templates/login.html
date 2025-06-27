@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    {% with title='Login' %}
-    {% include 'includes/head.html' %}
-    {% endwith %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/auth.css') }}"> 
+    {% with title='Login' %} {% include 'includes/head.html' %} {% endwith %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='assets/css/auth.css') }}"
+    />
   </head>
   <body>
     <!-- Logo -->
-    <div class="logo">
-      Later<span class="beau">G</span>ram
-    </div>
+    <div class="logo">Later<span class="beau">G</span>ram</div>
 
     <!-- Login Form -->
     <div class="container form-container">
@@ -18,95 +17,562 @@
         <!-- Email Field -->
         <div class="mb-4 login-text-field">
           <label for="email" class="form-label">Email</label>
-          <input type="email" class="form-control" id="email" name="email" placeholder="Your email" required>
+          <input
+            type="email"
+            class="form-control"
+            id="email"
+            name="email"
+            placeholder="Your email"
+            required
+          />
         </div>
 
         <!-- Password Field -->
         <div class="mb-4 login-text-field">
           <label for="password" class="form-label">Password</label>
           <div id="password-input-group" class="input-group">
-            <input type="password" class="form-control" id="password" name="password" placeholder="Your password" required>
-            <span class="input-group-text" id="toggle-password" style="cursor: pointer;">
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              placeholder="Your password"
+              required
+            />
+            <span
+              class="input-group-text"
+              id="toggle-password"
+              style="cursor: pointer"
+            >
               <i class="fa-regular fa-eye" id="toggle-icon"></i>
             </span>
           </div>
-          
-          <a href="#" id="forget-password" style="color: var(--color-secondary-text);">Forget Password?</a>
+
+          <a
+            href="#"
+            id="forget-password"
+            style="color: var(--color-secondary-text)"
+            >Forget Password?</a
+          >
         </div>
 
         <!-- Forget Password Block -->
-        <div class="mb-4 reset-text-field" style="display: none;">
-          <label for="forgot-email" class="form-label">Enter your email to reset password</label>
-          <input type="email" class="form-control" id="forgot-email" name="reset-email" placeholder="Your email">
-          <a href="#" id="cancel-forget-password" style="color: var(--color-secondary-text); display: block; margin-top: 10px;">Back to Login</a>
+        <div class="mb-4 reset-text-field" style="display: none">
+          <label for="forgot-email" class="form-label"
+            >Enter your email to reset password</label
+          >
+          <input
+            type="email"
+            class="form-control"
+            id="forgot-email"
+            name="reset-email"
+            placeholder="Your email"
+          />
+          <a
+            href="#"
+            id="cancel-forget-password"
+            style="
+              color: var(--color-secondary-text);
+              display: block;
+              margin-top: 10px;
+            "
+            >Back to Login</a
+          >
+        </div>
+
+        <!-- OTP Verification Block -->
+        <div class="mb-4 otp-text-field" style="display: none">
+          <label for="otp-code" class="form-label"
+            >Enter the 6-digit code sent to your email</label
+          >
+          <input
+            type="text"
+            class="form-control"
+            id="otp-code"
+            name="otp-code"
+            placeholder="000000"
+            maxlength="6"
+            pattern="[0-9]{6}"
+          />
+          <input type="hidden" id="otp-email" name="otp-email" />
+          <input type="hidden" id="otp-type" name="otp-type" />
+          <div style="margin-top: 10px">
+            <a href="#" id="resend-otp" style="color: var(--color-primary)"
+              >Resend OTP</a
+            >
+            <span style="margin: 0 10px">|</span>
+            <a
+              href="#"
+              id="cancel-otp"
+              style="color: var(--color-secondary-text)"
+              >Back to Login</a
+            >
+          </div>
+        </div>
+
+        <!-- Password Reset Block -->
+        <div class="mb-4 reset-password-field" style="display: none">
+          <label for="new-password" class="form-label"
+            >Enter your new password</label
+          >
+          <input
+            type="password"
+            class="form-control"
+            id="new-password"
+            name="new-password"
+            placeholder="New password"
+            minlength="6"
+          />
+          <label
+            for="confirm-password"
+            class="form-label"
+            style="margin-top: 10px"
+            >Confirm your new password</label
+          >
+          <input
+            type="password"
+            class="form-control"
+            id="confirm-password"
+            name="confirm-password"
+            placeholder="Confirm password"
+            minlength="6"
+          />
+          <a
+            href="#"
+            id="cancel-reset-password"
+            style="
+              color: var(--color-secondary-text);
+              display: block;
+              margin-top: 10px;
+            "
+            >Back to Login</a
+          >
         </div>
 
         <!-- <div class="g-recaptcha" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX"></div> -->
-      
+
         <!-- Login and Reset Buttons -->
         <div class="d-grid mb-4 login-btn-wrapper">
-          <button type="submit" id="login-btn" name="login-btn" class="btn btn-login">Login</button>
-        </div>
-        <div class="d-grid mb-4 reset-btn-wrapper" style="display: none !important;">
-          <button type="button" class="btn btn-login" id="send-reset-link" style="display: none;">Send Reset Link</button>
+          <button
+            type="submit"
+            id="login-btn"
+            name="login-btn"
+            class="btn btn-login"
+          >
+            Login
+          </button>
         </div>
 
         <!-- Sign Up Link -->
-        <p id="signup-link">Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--color-primary);">Sign Up</a></p>
+        <p id="signup-link">
+          Don't have an account?
+          <a
+            href="{{ url_for('register') }}"
+            style="color: var(--color-primary)"
+            >Sign Up</a
+          >
+        </p>
+
+        <div class="d-grid mb-4 reset-btn-wrapper" style="display: none">
+          <button
+            type="button"
+            class="btn btn-login"
+            id="send-reset-link"
+            style="display: none"
+          >
+            Send Reset Code
+          </button>
+        </div>
+        <div class="d-grid mb-4 otp-btn-wrapper" style="display: none">
+          <button type="button" class="btn btn-login" id="verify-otp-btn">
+            Verify Code
+          </button>
+        </div>
+        <div
+          class="d-grid mb-4 reset-password-btn-wrapper"
+          style="display: none"
+        >
+          <button type="button" class="btn btn-login" id="reset-password-btn">
+            Reset Password
+          </button>
+        </div>
       </form>
 
       <!-- Flash Messages -->
-      {% with messages = get_flashed_messages(with_categories=True) %}
-      {% if messages %}
-      {% for category, message in messages %}
-      <div class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-3">
+      {% with messages = get_flashed_messages(with_categories=True) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-3"
+      >
         {{ message }}
       </div>
-      {% endfor %}
-      {% endif %}
-      {% endwith %}
+      {% endfor %} {% endif %} {% endwith %}
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
-      crossorigin="anonymous"></script>
+      crossorigin="anonymous"
+    ></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
       // Safeguard: Always hide reset-btn-wrapper on page load
-      document.addEventListener('DOMContentLoaded', function() {
-        var resetBtn = document.querySelector('.reset-btn-wrapper');
-        if (resetBtn) resetBtn.style.display = 'none';
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize the page to show only login section
+        showSection("login");
       });
-      document.getElementById('forget-password').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('.login-text-field').forEach(function(el) {
-          el.style.display = 'none';
+
+      // Function to show only specific sections
+      function showSection(sectionClass) {
+        // Hide all form sections
+        document
+          .querySelectorAll(
+            ".login-text-field, .reset-text-field, .otp-text-field, .reset-password-field"
+          )
+          .forEach(function (el) {
+            el.style.display = "none";
+          });
+
+        // Hide all button wrappers
+        document
+          .querySelectorAll(
+            ".login-btn-wrapper, .reset-btn-wrapper, .otp-btn-wrapper, .reset-password-btn-wrapper"
+          )
+          .forEach(function (el) {
+            el.style.display = "none";
+          });
+
+        // Hide all individual buttons
+        document
+          .querySelectorAll(
+            "#login-btn, #send-reset-link, #verify-otp-btn, #reset-password-btn"
+          )
+          .forEach(function (el) {
+            el.style.display = "none";
+          });
+
+        // Hide signup link
+        document.querySelector("#signup-link").style.display = "none";
+
+        // Show specific section and its corresponding button
+        if (sectionClass === "login") {
+          document.querySelectorAll(".login-text-field").forEach(function (el) {
+            el.style.display = "block";
+          });
+          document.querySelector(".login-btn-wrapper").style.display = "block";
+          document.querySelector("#login-btn").style.display = "block";
+          document.querySelector("#signup-link").style.display = "block";
+        } else if (sectionClass === "reset") {
+          document.querySelector(".reset-text-field").style.display = "block";
+          document.querySelector(".reset-btn-wrapper").style.display = "block";
+          document.querySelector("#send-reset-link").style.display = "block";
+        } else if (sectionClass === "otp") {
+          document.querySelector(".otp-text-field").style.display = "block";
+          document.querySelector(".otp-btn-wrapper").style.display = "block";
+          document.querySelector("#verify-otp-btn").style.display = "block";
+        } else if (sectionClass === "reset-password") {
+          document.querySelector(".reset-password-field").style.display =
+            "block";
+          document.querySelector(".reset-password-btn-wrapper").style.display =
+            "block";
+          document.querySelector("#reset-password-btn").style.display = "block";
+        }
+      }
+
+      // Forget password link
+      document
+        .getElementById("forget-password")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          showSection("reset");
+          document
+            .getElementById("forgot-email")
+            .setAttribute("required", "required");
         });
-        document.querySelector('.reset-text-field').style.display = 'block';
-        document.querySelector('.reset-btn-wrapper').style.display = 'block'; 
-        document.querySelector('#send-reset-link').style.display = 'block'; 
-        document.querySelector('.login-btn-wrapper').style.display = 'none';
-        document.querySelector('#login-btn').style.display = 'none';
-        document.querySelector('#signup-link').style.display = 'none';
-        // Make reset-email required only when visible
-        document.getElementById('forgot-email').setAttribute('required', 'required');
-      });
-      document.getElementById('cancel-forget-password').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('.login-text-field').forEach(function(el) {
-          el.style.display = '';
+
+      // Cancel forget password
+      document
+        .getElementById("cancel-forget-password")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          showSection("login");
+          document.getElementById("forgot-email").removeAttribute("required");
         });
-        document.querySelector('.reset-text-field').style.display = 'none';
-        document.querySelector('.reset-btn-wrapper').style.display = 'none'; 
-        document.querySelector('#send-reset-link').style.display = 'none'; 
-        document.querySelector('.login-btn-wrapper').style.display = 'block';
-        document.querySelector('#login-btn').style.display = 'block';
-        document.querySelector('#signup-link').style.display = 'block';
-        // Remove required from reset-email when hidden
-        document.getElementById('forgot-email').removeAttribute('required');
+
+      // Cancel OTP
+      document
+        .getElementById("cancel-otp")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          showSection("login");
+        });
+
+      // Cancel reset password
+      document
+        .getElementById("cancel-reset-password")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          showSection("login");
+        });
+
+      // Login form submission
+      document.querySelector("form").addEventListener("submit", function (e) {
+        const loginWrapper = document.querySelector(".login-btn-wrapper");
+        if (loginWrapper && loginWrapper.style.display !== "none") {
+          e.preventDefault();
+
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          fetch("/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+              password: password,
+              action: "login",
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success && data.requires_otp) {
+                // OTP flow enabled for this user
+                document.getElementById("otp-email").value = data.email;
+                document.getElementById("otp-type").value = "login";
+                showSection("otp");
+                showMessage("OTP sent to your email", "success");
+              } else if (data.success) {
+                // Normal login flow or redirect provided
+                if (data.redirect) {
+                  window.location.href = data.redirect;
+                } else if (data.login_type === "moderator") {
+                  window.location.href = "/moderation";
+                } else {
+                  window.location.href = "/home";
+                }
+              } else {
+                showMessage(data.error, "error");
+              }
+            })
+            .catch((error) => {
+              showMessage("An error occurred", "error");
+            });
+        }
       });
+
+      // Send reset link/code
+      document
+        .getElementById("send-reset-link")
+        .addEventListener("click", function () {
+          const email = document.getElementById("forgot-email").value;
+
+          if (!email) {
+            showMessage("Please enter your email", "error");
+            return;
+          }
+
+          fetch("/forgot-password", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                document.getElementById("otp-email").value = email;
+                document.getElementById("otp-type").value = "password_reset";
+                showSection("otp");
+                showMessage("Reset code sent to your email", "success");
+              } else {
+                showMessage(data.error, "error");
+              }
+            })
+            .catch((error) => {
+              showMessage("An error occurred", "error");
+            });
+        });
+
+      // Verify OTP
+      document
+        .getElementById("verify-otp-btn")
+        .addEventListener("click", function () {
+          const otpCode = document.getElementById("otp-code").value;
+          const email = document.getElementById("otp-email").value;
+          const otpType = document.getElementById("otp-type").value;
+
+          if (!otpCode || otpCode.length !== 6) {
+            showMessage("Please enter a valid 6-digit code", "error");
+            return;
+          }
+
+          if (otpType === "login") {
+            fetch("/verify-login-otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+                otp_code: otpCode,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  window.location.href = "/home";
+                } else {
+                  showMessage(data.error, "error");
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          } else {
+            // Password reset OTP verification
+            fetch("/verify-reset-otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+                otp_code: otpCode,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  showSection("reset-password");
+                  showMessage(
+                    "Code verified. Enter your new password",
+                    "success"
+                  );
+                } else {
+                  showMessage(data.error, "error");
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          }
+        });
+
+      // Reset password
+      document
+        .getElementById("reset-password-btn")
+        .addEventListener("click", function () {
+          const newPassword = document.getElementById("new-password").value;
+          const confirmPassword =
+            document.getElementById("confirm-password").value;
+          const email = document.getElementById("otp-email").value;
+          const otpCode = document.getElementById("otp-code").value;
+
+          if (!newPassword || newPassword.length < 6) {
+            showMessage("Password must be at least 6 characters long", "error");
+            return;
+          }
+
+          if (newPassword !== confirmPassword) {
+            showMessage("Passwords do not match", "error");
+            return;
+          }
+
+          fetch("/reset-password", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+              otp_code: otpCode,
+              new_password: newPassword,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showSection("login");
+                showMessage(
+                  "Password reset successfully. Please login with your new password",
+                  "success"
+                );
+              } else {
+                showMessage(data.error, "error");
+              }
+            })
+            .catch((error) => {
+              showMessage("An error occurred", "error");
+            });
+        });
+
+      // Resend OTP
+      document
+        .getElementById("resend-otp")
+        .addEventListener("click", function (e) {
+          e.preventDefault();
+          const email = document.getElementById("otp-email").value;
+          const otpType = document.getElementById("otp-type").value;
+
+          const endpoint =
+            otpType === "login" ? "/resend-login-otp" : "/forgot-password";
+
+          fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showMessage("New code sent to your email", "success");
+              } else {
+                showMessage(data.error, "error");
+              }
+            })
+            .catch((error) => {
+              showMessage("An error occurred", "error");
+            });
+        });
+
+      // Show message function
+      function showMessage(message, type) {
+        // Remove existing messages
+        document.querySelectorAll(".alert").forEach(function (el) {
+          el.remove();
+        });
+
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert ${
+          type === "success" ? "alert-success" : "alert-danger"
+        } mt-3`;
+        alertDiv.textContent = message;
+
+        document.querySelector(".form-container").appendChild(alertDiv);
+
+        // Remove after 5 seconds
+        setTimeout(function () {
+          alertDiv.remove();
+        }, 5000);
+      }
+
+      // Format OTP input
+      document
+        .getElementById("otp-code")
+        .addEventListener("input", function (e) {
+          e.target.value = e.target.value.replace(/[^0-9]/g, "");
+        });
     </script>
   </body>
 </html>

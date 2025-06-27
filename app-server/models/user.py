@@ -17,6 +17,14 @@ class User(db.Model, BaseUserMixin):
     followers = db.Column(db.Integer, default=0)  # Added missing followers field
     disabledUntil = db.Column(db.DateTime, nullable=True)  # add missing field for disabling user accounts
     
+    # OTP fields
+    otp_code = db.Column(db.String(6), nullable=True)
+    otp_expires_at = db.Column(db.DateTime, nullable=True)
+    otp_type = db.Column(db.String(20), nullable=True)  # 'login' or 'password_reset'
+    login_attempts = db.Column(db.Integer, default=0)
+    last_otp_request = db.Column(db.DateTime, nullable=True)
+    otp_enabled = db.Column(db.Boolean, default=True)  # User preference for OTP login (enabled by default)
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

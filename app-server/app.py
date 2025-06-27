@@ -7,7 +7,7 @@ from models import db, Post, Comment, User, Report
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from sqlalchemy import text
+from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
@@ -185,39 +185,124 @@ def hello_world():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Only process login if the login button was clicked
-        if request.form.get('login-btn') is not None:
-            # token = request.form['g-recaptcha-response']
-            # verification = requests.post(
-            #     'https://www.google.com/recaptcha/api/siteverify',
-            #     data={
-            #         'secret': CAPTCHA_KEY,
-            #         'response': token,
-            #         'remoteip': request.remote_addr
-            #     }
-            # ).json()
-            email = request.form.get('email', '')
-            password = request.form.get('password', '')
-            # Only proceed if both fields are filled
-            # if email and password and verification.get('success', False):
-            if email and password:
-                result = auth_manager.login(email, password)
-                if result['success']:
-                    if result['login_type'] == 'moderator':
-                        session['mod_id'] = result['moderator']['mod_id']
-                        flash('Login successful!', 'success')
-                        return redirect(url_for('moderation'))
+        # Check if it's a JSON request (AJAX)
+        if request.is_json:
+            data = request.get_json()
+            if data.get('action') == 'login':
+                email = data.get('email', '')
+                password = data.get('password', '')
+                
+                if email and password:
+                    # Check if user has OTP enabled in their settings
+                    user = User.query.filter(
+                        or_(User.username == email, User.email == email)
+                    ).first()
+                    
+                    # Use OTP login if user has it enabled, otherwise use normal login
+                    if user and getattr(user, 'otp_enabled', True):  # Default to True (enabled)
+                        result = auth_manager.login_with_otp(email, password)
+                        return jsonify(result)
                     else:
-                        session['user_id'] = result['user']['user_id']
-                        flash('Login successful!', 'success')
-                        return redirect(url_for('home'))
+                        # Use normal login
+                        result = auth_manager.login(email, password)
+                        
+                        # Handle normal login response for AJAX
+                        if result['success']:
+                            if result['login_type'] == 'moderator':
+                                session['mod_id'] = result['moderator']['mod_id']
+                                return jsonify({'success': True, 'redirect': '/moderation'})
+                            else:
+                                session['user_id'] = result['user']['user_id']
+                                return jsonify({'success': True, 'redirect': '/home'})
+                        
+                        return jsonify(result)
                 else:
-                    flash(f'Login Unsuccessful. {result["error"]}', 'danger')
-            else:
-                flash('Please enter both email and password.', 'danger')
-        # If not login-btn, just render the page again (ignore send-reset-link)
-        return render_template('login.html')
+                    return jsonify({'success': False, 'error': 'Please enter both email and password'})
+        else:
+            # Traditional form submission (fallback)
+            if request.form.get('login-btn') is not None:
+                email = request.form.get('email', '')
+                password = request.form.get('password', '')
+                if email and password:
+                    result = auth_manager.login(email, password)
+                    if result['success']:
+                        if result['login_type'] == 'moderator':
+                            session['mod_id'] = result['moderator']['mod_id']
+                            flash('Login successful!', 'success')
+                            return redirect(url_for('moderation'))
+                        else:
+                            session['user_id'] = result['user']['user_id']
+                            flash('Login successful!', 'success')
+                            return redirect(url_for('home'))
+                    else:
+                        flash(f'Login Unsuccessful. {result["error"]}', 'danger')
+                else:
+                    flash('Please enter both email and password.', 'danger')
+            return render_template('login.html')
     return render_template('login.html')
+
+@app.route('/verify-login-otp', methods=['POST'])
+def verify_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.complete_login_with_otp(email, otp_code)
+    
+    if result['success']:
+        session['user_id'] = result['user']['user_id']
+    
+    return jsonify(result)
+
+@app.route('/resend-login-otp', methods=['POST'])
+def resend_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.generate_and_send_otp(email, 'login')
+    return jsonify(result)
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.initiate_password_reset(email)
+    return jsonify(result)
+
+@app.route('/verify-reset-otp', methods=['POST'])
+def verify_reset_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+    return jsonify(result)
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    new_password = data.get('new_password', '')
+    
+    if not email or not otp_code or not new_password:
+        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
+    
+    result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    return jsonify(result)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -690,6 +775,32 @@ def unlike_post_api(post_id):
     
     result = post_manager.unlike_post(session['user_id'], post_id)
     return jsonify(result)
+
+@app.route('/update-otp-setting', methods=['POST'])
+def update_otp_setting():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+    
+    try:
+        data = request.get_json()
+        otp_enabled = data.get('otp_enabled', True)
+        
+        # Update the user's OTP preference
+        user.otp_enabled = bool(otp_enabled)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'OTP authentication {"enabled" if otp_enabled else "disabled"}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to update OTP setting'}), 500
 
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():

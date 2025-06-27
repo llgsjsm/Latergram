@@ -3,12 +3,24 @@ from models import db, User, Moderator
 from models.enums import VisibilityType
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
+import random
 
 bcrypt = Bcrypt()
 
 class AuthenticationManager:
+    def __init__(self):
+        # Email configuration for OTP
+        self.smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        self.email_user = os.environ.get('EMAIL_USER', '')
+        self.email_password = os.environ.get('EMAIL_PASSWORD', '')
+        
     def login(self, username_or_email: str, password: str) -> Dict[str, Any]:
         """Authenticate user login - supports both username and email"""
         # Optimize: Single query using OR condition instead of two separate queries
@@ -148,4 +160,205 @@ class AuthenticationManager:
             'valid': len(errors) == 0,
             'errors': errors,
             'success': len(errors) == 0
-        } 
+        }
+    
+    def send_otp_email(self, email: str, otp_code: str, otp_type: str = 'login') -> bool:
+        """Send OTP code via email"""
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = self.email_user
+            msg['To'] = email
+            
+            if otp_type == 'login':
+                msg['Subject'] = 'LaterGram - Login Verification Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram login verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this code, please ignore this email.
+                
+                Best regards,
+                LaterGram Team
+                """
+            else:  # password_reset
+                msg['Subject'] = 'LaterGram - Password Reset Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram password reset code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this password reset, please ignore this email.
+                
+                Best regards,
+                LaterGram Team
+                """
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server.starttls()
+            server.login(self.email_user, self.email_password)
+            server.send_message(msg)
+            server.quit()
+            
+            return True
+        except Exception as e:
+            print(f"Error sending email: {str(e)}")
+            return False
+    
+    def generate_and_send_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
+        """Generate and send OTP to user's email"""
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Rate limiting: Check if user requested OTP recently
+        if user.last_otp_request:
+            time_since_last_request = datetime.utcnow() - user.last_otp_request
+            if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
+                return {'success': False, 'error': 'Please wait before requesting another OTP'}
+        
+        # Generate OTP
+        otp_code = user.generate_otp()
+        
+        # Set OTP in database
+        user.set_otp(otp_code, otp_type, expiry_minutes=10)
+        
+        try:
+            db.session.commit()
+            
+            # Send OTP via email
+            if self.send_otp_email(email, otp_code, otp_type):
+                return {'success': True, 'message': f'OTP sent to {email}'}
+            else:
+                # Rollback if email sending fails
+                user.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Failed to send OTP email'}
+                
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Database error: {str(e)}'}
+    
+    def verify_otp(self, email: str, otp_code: str, otp_type: str = 'login') -> Dict[str, Any]:
+        """Verify OTP code"""
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Check if OTP is valid
+        if not user.is_otp_valid(otp_code, otp_type):
+            # Increment failed attempts
+            if not user.login_attempts:
+                user.login_attempts = 0
+            user.login_attempts += 1
+            
+            # Lock account after 5 failed attempts for 15 minutes
+            if user.login_attempts >= 5:
+                user.disabledUntil = datetime.utcnow() + timedelta(minutes=15)
+                user.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Too many failed attempts. Account locked for 15 minutes.'}
+            
+            db.session.commit()
+            return {'success': False, 'error': 'Invalid or expired OTP'}
+        
+        # OTP is valid, clear it and reset attempts
+        user.clear_otp()
+        user.login_attempts = 0
+        db.session.commit()
+        
+        return {'success': True, 'user_id': user.userId, 'message': 'OTP verified successfully'}
+    
+    def login_with_otp(self, username_or_email: str, password: str) -> Dict[str, Any]:
+        """Initiate login process that requires OTP verification"""
+        # First verify username/email and password
+        user = User.query.filter(
+            or_(User.username == username_or_email, User.email == username_or_email)
+        ).first()
+
+        if not user:
+            return {'success': False, 'error': 'User not found'}
+
+        if not bcrypt.check_password_hash(user.password, password):
+            return {'success': False, 'error': 'Invalid password'}
+        
+        # Check if account is disabled
+        if user.disabledUntil and user.disabledUntil > datetime.utcnow():
+            return {
+                'success': False,
+                'error': f'Account is disabled until {user.disabledUntil.strftime("%Y-%m-%d %H:%M:%S")}.'
+            }
+        
+        # Generate and send OTP
+        otp_result = self.generate_and_send_otp(user.email, 'login')
+        if not otp_result['success']:
+            return otp_result
+        
+        return {
+            'success': True,
+            'requires_otp': True,
+            'email': user.email,
+            'message': 'OTP sent to your email. Please verify to complete login.'
+        }
+    
+    def complete_login_with_otp(self, email: str, otp_code: str) -> Dict[str, Any]:
+        """Complete login after OTP verification"""
+        verify_result = self.verify_otp(email, otp_code, 'login')
+        if not verify_result['success']:
+            return verify_result
+        
+        user = User.query.filter_by(email=email).first()
+        
+        return {
+            'success': True,
+            'login_type': 'user',
+            'user': {
+                'user_id': user.userId,
+                'username': user.username,
+                'email': user.email,
+                'created_at': user.createdAt,
+                'profile_picture': user.profilePicture,
+                'bio': user.bio,
+                'visibility': user.visibility
+            },
+            'message': 'Login successful'
+        }
+    
+    def initiate_password_reset(self, email: str) -> Dict[str, Any]:
+        """Initiate password reset by sending OTP"""
+        return self.generate_and_send_otp(email, 'password_reset')
+    
+    def reset_password_with_otp(self, email: str, otp_code: str, new_password: str) -> Dict[str, Any]:
+        """Reset password after OTP verification"""
+        # Verify OTP
+        verify_result = self.verify_otp(email, otp_code, 'password_reset')
+        if not verify_result['success']:
+            return verify_result
+        
+        # Validate new password
+        if len(new_password) < 6:
+            return {'success': False, 'error': 'Password must be at least 6 characters long'}
+        
+        user = User.query.filter_by(email=email).first()
+        
+        try:
+            # Update password
+            hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            user.password = hashed_password
+            user.login_attempts = 0  # Reset login attempts
+            user.disabledUntil = None  # Remove any account locks
+            
+            db.session.commit()
+            
+            return {'success': True, 'message': 'Password reset successfully'}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to reset password: {str(e)}'}

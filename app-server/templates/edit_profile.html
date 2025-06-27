@@ -176,6 +176,29 @@
                     <h4 class="mb-0">Security Settings</h4>
                 </div>
                 <div class="card-body">
+                    <!-- OTP Setting -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Two-Factor Authentication (OTP)</h6>
+                                <small class="text-muted">Enable email-based OTP for secure login</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="otpToggle" 
+                                       {% if user.otp_enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="otpToggle"></label>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-info">
+                                <i class="fas fa-info-circle"></i>
+                                When enabled, you'll receive a 6-digit code via email during login.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
                     <!-- Change Password Button -->
                     <button class="btn btn-outline-warning btn-sm mb-3" data-bs-toggle="collapse" data-bs-target="#passwordChangeForm" aria-expanded="false">
                         <i class="fas fa-key"></i> Change Password
@@ -429,6 +452,77 @@ document.getElementById('delete_password').addEventListener('input', function() 
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    // OTP Toggle Handler
+    const otpToggle = document.getElementById('otpToggle');
+    if (otpToggle) {
+        otpToggle.addEventListener('change', function() {
+            const isEnabled = this.checked;
+            
+            // Show loading indicator
+            const originalLabel = this.nextElementSibling;
+            const tempText = document.createElement('small');
+            tempText.className = 'text-muted ms-2';
+            tempText.textContent = 'Updating...';
+            originalLabel.parentNode.appendChild(tempText);
+            
+            fetch('/update-otp-setting', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    otp_enabled: isEnabled
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading indicator
+                tempText.remove();
+                
+                if (data.success) {
+                    // Show success message
+                    showMessage(
+                        isEnabled ? 'OTP authentication enabled' : 'OTP authentication disabled',
+                        'success'
+                    );
+                } else {
+                    // Revert toggle on error
+                    this.checked = !isEnabled;
+                    showMessage(data.error || 'Failed to update OTP setting', 'error');
+                }
+            })
+            .catch(error => {
+                // Remove loading indicator and revert toggle
+                tempText.remove();
+                this.checked = !isEnabled;
+                showMessage('An error occurred while updating OTP setting', 'error');
+            });
+        });
+    }
+    
+    // Helper function to show messages
+    function showMessage(message, type) {
+        // Remove existing alerts
+        document.querySelectorAll('.alert-temp').forEach(el => el.remove());
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-temp mt-3`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.textContent = message;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+
     const removeBtn = document.getElementById('removeProfilePicBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', function() {
