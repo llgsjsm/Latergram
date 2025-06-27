@@ -7,17 +7,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/auth.css') }}"> 
   </head>
   <body>
+    <!-- Logo -->
     <div class="logo">
       Later<span class="beau">G</span>ram
     </div>
 
+    <!-- Login Form -->
     <div class="container form-container">
       <form method="POST" action="{{ url_for('login') }}">
+        <!-- Email Field -->
         <div class="mb-4 login-text-field">
           <label for="email" class="form-label">Email</label>
           <input type="email" class="form-control" id="email" name="email" placeholder="Your email" required>
         </div>
 
+        <!-- Password Field -->
         <div class="mb-4 login-text-field">
           <label for="password" class="form-label">Password</label>
           <div id="password-input-group" class="input-group">
@@ -30,12 +34,14 @@
           <a href="#" id="forget-password" style="color: var(--color-secondary-text);">Forget Password?</a>
         </div>
 
-        <div class="mb-4 forget-password-text-field" style="display: none;">
+        <!-- Forget Password Block -->
+        <div class="mb-4 reset-text-field" style="display: none;">
           <label for="forgot-email" class="form-label">Enter your email to reset password</label>
           <input type="email" class="form-control" id="forgot-email" name="reset-email" placeholder="Your email">
           <a href="#" id="cancel-forget-password" style="color: var(--color-secondary-text); display: block; margin-top: 10px;">Back to Login</a>
         </div>
       
+        <!-- Login and Reset Buttons -->
         <div class="d-grid mb-4 login-btn-wrapper">
           <button type="submit" id="login-btn" name="login-btn" class="btn btn-login">Login</button>
         </div>
@@ -43,9 +49,11 @@
           <button type="button" class="btn btn-login" id="send-reset-link" style="display: none;">Send Reset Link</button>
         </div>
 
+        <!-- Sign Up Link -->
         <p id="signup-link">Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--color-primary);">Sign Up</a></p>
       </form>
 
+      <!-- Flash Messages -->
       {% with messages = get_flashed_messages(with_categories=True) %}
       {% if messages %}
       {% for category, message in messages %}
@@ -57,6 +65,7 @@
       {% endwith %}
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
       crossorigin="anonymous"></script>
@@ -72,7 +81,7 @@
         document.querySelectorAll('.login-text-field').forEach(function(el) {
           el.style.display = 'none';
         });
-        document.querySelector('.forget-password-text-field').style.display = 'block';
+        document.querySelector('.reset-text-field').style.display = 'block';
         document.querySelector('.reset-btn-wrapper').style.display = 'block'; 
         document.querySelector('#send-reset-link').style.display = 'block'; 
         document.querySelector('.login-btn-wrapper').style.display = 'none';
@@ -86,7 +95,7 @@
         document.querySelectorAll('.login-text-field').forEach(function(el) {
           el.style.display = '';
         });
-        document.querySelector('.forget-password-text-field').style.display = 'none';
+        document.querySelector('.reset-text-field').style.display = 'none';
         document.querySelector('.reset-btn-wrapper').style.display = 'none'; 
         document.querySelector('#send-reset-link').style.display = 'none'; 
         document.querySelector('.login-btn-wrapper').style.display = 'block';
