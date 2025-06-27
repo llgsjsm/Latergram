@@ -158,7 +158,7 @@
                                     <input type="email" class="form-control" id="new_email" name="new_email" placeholder="Enter new email address" required>
                                     <div class="form-text">A verification code will be sent to this email address.</div>
                                   </div>
-                                  <button type="button" class="btn btn-primary" id="sendEmailOtpBtn">Send Verification Code</button>
+                                  <button type="button" class="base-btn base-btn-primary" id="sendEmailOtpBtn">Send Verification Code</button>
                                 </div>
                                 
                                 <!-- OTP Verification Section -->
@@ -697,7 +697,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (editEmailInput) {
                         editEmailInput.value = data.new_email;
                     }
-                    
+                    // Update the modal's current email display
+                    const currentEmailDisplay = document.getElementById('current_email_display');
+                    if (currentEmailDisplay) {
+                        currentEmailDisplay.value = data.new_email;
+                    }
                     // Reset modal state
                     resetEmailModal();
                     
