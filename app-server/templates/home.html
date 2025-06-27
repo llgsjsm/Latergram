@@ -66,12 +66,15 @@
           <!-- Post Content -->
           {% if post.title %} {% if user and post.authorId == user.userId %}
           <h6
-            class="card-title fw-bold" {# Added fw-bold here #}
+            class="card-title fw-bold"
             id="post-title-{{ post.postId }}"
             style="cursor: pointer"
             onclick="enablePostEdit('{{ post.postId }}', false)"
           >
             {{ post.title }}
+            {% if post.updatedAt %}
+              <span class="badge bg-secondary" style="font-size: 0.8rem; vertical-align: middle; margin-left: 8px;">Edited</span>
+            {% endif %}
           </h6>
           <input
             type="text"
@@ -246,7 +249,6 @@
         <button
           type="button"
           class="btn-close btn-close-white"
-          <!-- Added btn-close-white for dark background -->
           data-bs-dismiss="modal"
           aria-label="Close"
         ></button>
@@ -643,15 +645,15 @@
           document.getElementById(`post-title-${postId}`).textContent = data.title;
         if (document.getElementById(`post-caption-${postId}`))
           document.getElementById(`post-caption-${postId}`).textContent = data.content;
-        
         hideEditFields(postId); // Hide fields and clear original values
         showNotification('Post updated!', 'success');
+        location.reload(); // Refresh the page to show updated badge and post
       } else {
         showNotification(data.error || 'Failed to update post', 'danger');
         _postEditSaving[postId] = false; // Allow blur to hide if save failed
       }
     })
-    .catch((error) => { 
+    .catch((error) => {
       console.error('Error saving post:', error);
       showNotification('Network error occurred while updating post', 'danger');
       _postEditSaving[postId] = false; // Allow blur to hide if save failed

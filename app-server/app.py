@@ -1119,8 +1119,9 @@ def api_edit_post(post_id):
 
     post.title = title
     post.content = content
+    post.updatedAt = datetime.utcnow()
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content})
+    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
 if __name__ == '__main__':
     with app.app_context():
