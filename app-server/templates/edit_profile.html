@@ -40,6 +40,20 @@
     color: #fff; 
     margin-top: 0.5rem;
 }
+
+/* OTP Input Styling */
+#email_otp_code {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 0.5em;
+    font-family: 'Courier New', monospace;
+}
+
+#email_otp_code:focus {
+    box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25);
+    border-color: #6c63ff;
+}
 </style>
 {% endblock %} {% block content %}
 <div class="container">
@@ -133,9 +147,36 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                               </div>
                               <div class="modal-body">
-                                <label for="new_email" class="form-label">New Email</label>
-                                <input type="email" class="form-control mb-3" id="new_email" name="new_email" placeholder="Enter new email">
-                                <button type="button" class="base-btn base-btn-primary" id="sendOtpBtn">Send OTP</button>
+                                <!-- Email Input Section -->
+                                <div id="email-input-section">
+                                  <div class="mb-3">
+                                    <label for="current_email_display" class="form-label text-muted">Current Email</label>
+                                    <input type="email" class="form-control" id="current_email_display" value="{{ user.email }}" readonly>
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="new_email" class="form-label">New Email Address</label>
+                                    <input type="email" class="form-control" id="new_email" name="new_email" placeholder="Enter new email address" required>
+                                    <div class="form-text">A verification code will be sent to this email address.</div>
+                                  </div>
+                                  <button type="button" class="btn btn-primary" id="sendEmailOtpBtn">Send Verification Code</button>
+                                </div>
+                                
+                                <!-- OTP Verification Section -->
+                                <div id="email-otp-section" style="display: none;">
+                                  <div class="alert alert-info">
+                                    <i class="fas fa-envelope"></i>
+                                    We've sent a 6-digit verification code to <span id="otp-target-email"></span>
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="email_otp_code" class="form-label">Verification Code</label>
+                                    <input type="text" class="form-control" id="email_otp_code" maxlength="6" placeholder="Enter 6-digit code" required>
+                                  </div>
+                                  <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success" id="verifyEmailOtpBtn">Update Email</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="backToEmailInputBtn">Back</button>
+                                    <button type="button" class="btn btn-outline-primary" id="resendEmailOtpBtn">Resend Code</button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -559,20 +600,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Email update handler
-    const sendOtpBtn = document.getElementById('sendOtpBtn');
-    if (sendOtpBtn) {
-        sendOtpBtn.addEventListener('click', function() {
+    // Email update with OTP handlers
+    const sendEmailOtpBtn = document.getElementById('sendEmailOtpBtn');
+    const verifyEmailOtpBtn = document.getElementById('verifyEmailOtpBtn');
+    const backToEmailInputBtn = document.getElementById('backToEmailInputBtn');
+    const resendEmailOtpBtn = document.getElementById('resendEmailOtpBtn');
+    
+    if (sendEmailOtpBtn) {
+        sendEmailOtpBtn.addEventListener('click', function() {
             const newEmailInput = document.getElementById('new_email');
             const newEmail = newEmailInput.value.trim();
+            
             if (!newEmail) {
                 showMessage('Please enter a new email address.', 'error');
                 return;
             }
-            sendOtpBtn.disabled = true;
-            const originalText = sendOtpBtn.innerHTML;
-            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-            fetch('/api/update-email', {
+            
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(newEmail)) {
+                showMessage('Please enter a valid email address.', 'error');
+                return;
+            }
+            
+            sendEmailOtpBtn.disabled = true;
+            const originalText = sendEmailOtpBtn.innerHTML;
+            sendEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            
+            fetch('/api/send-email-update-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -583,28 +638,144 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showMessage('Email updated successfully!', 'success');
-                    // Update the readonly email field in the main form
-                    const editEmailInput = document.getElementById('edit_email');
-                    if (editEmailInput) {
-                        editEmailInput.value = newEmail;
-                    }
-                    // Clear the new_email input in the modal
-                    if (newEmailInput) {
-                        newEmailInput.value = '';
-                    }
+                    // Show OTP verification section
+                    document.getElementById('email-input-section').style.display = 'none';
+                    document.getElementById('email-otp-section').style.display = 'block';
+                    document.getElementById('otp-target-email').textContent = newEmail;
+                    showMessage('Verification code sent to your new email!', 'success');
                 } else {
-                    showMessage(data.error || 'Failed to update email.', 'error');
+                    showMessage(data.error || 'Failed to send verification code.', 'error');
                 }
             })
             .catch(error => {
-                showMessage('An error occurred while updating email.', 'error');
+                showMessage('An error occurred while sending verification code.', 'error');
             })
             .finally(() => {
-                sendOtpBtn.disabled = false;
-                sendOtpBtn.innerHTML = originalText;
+                sendEmailOtpBtn.disabled = false;
+                sendEmailOtpBtn.innerHTML = originalText;
             });
         });
+    }
+    
+    if (verifyEmailOtpBtn) {
+        verifyEmailOtpBtn.addEventListener('click', function() {
+            const newEmail = document.getElementById('new_email').value.trim();
+            const otpCode = document.getElementById('email_otp_code').value.trim();
+            
+            if (!otpCode) {
+                showMessage('Please enter the verification code.', 'error');
+                return;
+            }
+            
+            if (otpCode.length !== 6) {
+                showMessage('Verification code must be 6 digits.', 'error');
+                return;
+            }
+            
+            verifyEmailOtpBtn.disabled = true;
+            const originalText = verifyEmailOtpBtn.innerHTML;
+            verifyEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            
+            fetch('/api/verify-email-update-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ 
+                    new_email: newEmail,
+                    otp_code: otpCode 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Email updated successfully!', 'success');
+                    
+                    // Update the readonly email field in the main form
+                    const editEmailInput = document.getElementById('edit_email');
+                    if (editEmailInput) {
+                        editEmailInput.value = data.new_email;
+                    }
+                    
+                    // Reset modal state
+                    resetEmailModal();
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('updateEmailModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                } else {
+                    showMessage(data.error || 'Failed to verify code.', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred during verification.', 'error');
+            })
+            .finally(() => {
+                verifyEmailOtpBtn.disabled = false;
+                verifyEmailOtpBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    if (backToEmailInputBtn) {
+        backToEmailInputBtn.addEventListener('click', function() {
+            // Go back to email input section
+            document.getElementById('email-otp-section').style.display = 'none';
+            document.getElementById('email-input-section').style.display = 'block';
+            document.getElementById('email_otp_code').value = '';
+        });
+    }
+    
+    if (resendEmailOtpBtn) {
+        resendEmailOtpBtn.addEventListener('click', function() {
+            const newEmail = document.getElementById('new_email').value.trim();
+            
+            resendEmailOtpBtn.disabled = true;
+            const originalText = resendEmailOtpBtn.innerHTML;
+            resendEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            
+            fetch('/api/send-email-update-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ new_email: newEmail })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Verification code resent!', 'success');
+                    document.getElementById('email_otp_code').value = '';
+                } else {
+                    showMessage(data.error || 'Failed to resend code.', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred while resending code.', 'error');
+            })
+            .finally(() => {
+                resendEmailOtpBtn.disabled = false;
+                resendEmailOtpBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Function to reset modal state
+    function resetEmailModal() {
+        document.getElementById('email-input-section').style.display = 'block';
+        document.getElementById('email-otp-section').style.display = 'none';
+        document.getElementById('new_email').value = '';
+        document.getElementById('email_otp_code').value = '';
+    }
+    
+    // Reset modal when it's closed
+    const updateEmailModal = document.getElementById('updateEmailModal');
+    if (updateEmailModal) {
+        updateEmailModal.addEventListener('hidden.bs.modal', resetEmailModal);
     }
 });
 </script>

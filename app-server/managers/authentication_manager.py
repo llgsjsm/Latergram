@@ -183,6 +183,20 @@ class AuthenticationManager:
                 Best regards,
                 LaterGram Team
                 """
+            elif otp_type == 'email_update':
+                msg['Subject'] = 'LaterGram - Email Update Verification Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram email update verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this email update, please ignore this email.
+                
+                Best regards,
+                LaterGram Team
+                """
             else:  # password_reset
                 msg['Subject'] = 'LaterGram - Password Reset Code'
                 body = f"""
@@ -368,3 +382,70 @@ class AuthenticationManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to reset password: {str(e)}'}
+    
+    def generate_and_send_email_update_otp(self, current_user_id: int, new_email: str) -> Dict[str, Any]:
+        """Generate and send OTP to new email address for email update verification"""
+        # Find the current user (who is requesting the email change)
+        current_user = User.query.filter_by(userId=current_user_id).first()
+        if not current_user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Rate limiting: Check if user requested OTP recently
+        if current_user.last_otp_request:
+            time_since_last_request = datetime.utcnow() - current_user.last_otp_request
+            if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
+                return {'success': False, 'error': 'Please wait before requesting another OTP'}
+        
+        # Generate OTP
+        otp_code = current_user.generate_otp()
+        
+        # Set OTP in current user's record (but for email_update type)
+        # We store the new email temporarily in a way that can be validated later
+        current_user.set_otp(otp_code, 'email_update', expiry_minutes=10)
+        
+        try:
+            db.session.commit()
+            
+            # Send OTP via email to the NEW email address
+            if self.send_otp_email(new_email, otp_code, 'email_update'):
+                return {'success': True, 'message': f'OTP sent to {new_email}'}
+            else:
+                # Rollback if email sending fails
+                current_user.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Failed to send OTP email'}
+                
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Database error: {str(e)}'}
+    
+    def verify_email_update_otp(self, current_user_id: int, new_email: str, otp_code: str) -> Dict[str, Any]:
+        """Verify OTP for email update"""
+        # Find the current user
+        current_user = User.query.filter_by(userId=current_user_id).first()
+        if not current_user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Check if OTP is valid for email update
+        if not current_user.is_otp_valid(otp_code, 'email_update'):
+            # Increment failed attempts
+            if not current_user.login_attempts:
+                current_user.login_attempts = 0
+            current_user.login_attempts += 1
+            
+            # Lock account after 5 failed attempts for 15 minutes
+            if current_user.login_attempts >= 5:
+                current_user.disabledUntil = datetime.utcnow() + timedelta(minutes=15)
+                current_user.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Too many failed attempts. Account locked for 15 minutes.'}
+            
+            db.session.commit()
+            return {'success': False, 'error': 'Invalid or expired OTP'}
+        
+        # OTP is valid, clear it and reset attempts
+        current_user.clear_otp()
+        current_user.login_attempts = 0
+        db.session.commit()
+        
+        return {'success': True, 'user_id': current_user.userId, 'message': 'OTP verified successfully'}

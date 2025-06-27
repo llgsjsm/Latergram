@@ -1234,6 +1234,76 @@ def api_edit_post(post_id):
     db.session.commit()
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
+@app.route('/api/send-email-update-otp', methods=['POST'])
+def send_email_update_otp():
+    """Send OTP to new email address for email update verification"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    
+    if not new_email:
+        return jsonify({'success': False, 'error': 'New email is required'}), 400
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, new_email):
+        return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+
+    # Check if email is already in use
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    # Generate and send OTP to the new email
+    result = auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
+    return jsonify(result)
+
+@app.route('/api/verify-email-update-otp', methods=['POST'])
+def verify_email_update_otp():
+    """Verify OTP and update email address"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    otp_code = data.get('otp_code', '').strip()
+    
+    if not new_email or not otp_code:
+        return jsonify({'success': False, 'error': 'New email and OTP code are required'}), 400
+
+    # Verify OTP for email update
+    verify_result = auth_manager.verify_email_update_otp(session['user_id'], new_email, otp_code)
+    if not verify_result['success']:
+        return jsonify(verify_result), 400
+
+    # Check if email is still available
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    # Update user's email
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    old_email = user.email
+    user.email = new_email
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'message': 'Email updated successfully', 
+            'old_email': old_email,
+            'new_email': new_email
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
+
 @app.route('/api/update-email', methods=['POST'])
 def api_update_email():
     if 'user_id' not in session:
