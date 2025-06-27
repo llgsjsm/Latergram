@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment, User
+from models import db, Post, Comment, User, Report
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -11,6 +11,7 @@ from sqlalchemy import text
 import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
+from models.enums import ReportStatus, ReportTarget
 
 # Load environment variables
 load_dotenv()
@@ -276,6 +277,73 @@ def create_post():
         return redirect(url_for('home'))
 
     return render_template('create_post.html')
+
+@app.route('/api/report_post/<int:post_id>', methods=['POST'])
+def api_report_post(post_id):
+    if 'user_id' not in session:
+        flash('Please log in to report posts', 'warning')
+        return redirect(url_for('login'))
+    
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not logged in.'}), 401
+
+    post = db.session.get(Post, post_id)
+    if not post:
+        return jsonify({'success': False, 'error': 'Post not found.'}), 404
+
+    if post.authorId == user_id:
+        return jsonify({'success': False, 'error': 'Cannot report your own post.'}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Missing JSON data.'}), 400
+
+    reason = data.get('reason', '').strip()
+    target_type_raw = data.get('targetType', '').strip()
+
+    if not reason:
+        return jsonify({'success': False, 'error': 'Report reason cannot be empty.'}), 400
+
+    if not target_type_raw:
+        return jsonify({'success': False, 'error': 'Report target type is required.'}), 400
+
+    # Normalize input to match enum values (case insensitive)
+    # This matches target_type_raw ignoring case to enum values
+    target_type_map = {e.value.lower(): e for e in ReportTarget}
+    target_type_enum = target_type_map.get(target_type_raw.lower())
+    if not target_type_enum:
+        return jsonify({'success': False, 'error': f'Invalid report target type: {target_type_raw}'}), 400
+
+    # Prevent reporting yourself if target is User
+    if target_type_enum == ReportTarget.USER and post.authorId == user_id:
+        return jsonify({'success': False, 'error': 'Cannot report yourself.'}), 400
+
+    existing_report = Report.query.filter_by(
+        reportedBy=user_id,
+        targetType=target_type_enum.value,  # Store string e.g. "Post"
+        targetId=post_id
+    ).first()
+
+    if existing_report:
+        return jsonify({'success': False, 'error': 'You have already reported this target.'}), 409
+
+    new_report = Report(
+        reportedBy=user_id,
+        reason=reason,
+        timestamp=datetime.utcnow(),
+        targetType=target_type_enum.value,
+        targetId=post_id,
+        status=ReportStatus.PENDING.value
+    )
+
+    db.session.add(new_report)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
+
+
+
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
