@@ -9,7 +9,15 @@
         </div>
         <div class="card-body">
             <p><strong>Status:</strong>
-                {{ report.status }}
+                {% if report.status == 'Pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+                {% elif report.status == 'UnderReview' %}
+                <span class="badge bg-info text-dark">Under Review</span>
+                {% elif report.status == 'Resolved' %}
+                <span class="badge bg-success">Resolved</span>
+                {% elif report.status == 'Rejected' %}
+                <span class="badge bg-secondary">Rejected</span>
+                {% endif %}
             </p>
             <p><strong>Reported By:</strong>
                 {% if report.reporter %}
@@ -61,12 +69,8 @@
                     <button type="submit" class="btn btn-sm btn-warning" title="Reject">
                         <i class="fas fa-times"></i> Reject
                     </button>
-                </form>
-                {% elif report.status == 'Resolved' %}
-                <span class="badge bg-success">Resolved</span>
-                {% elif report.status == 'Rejected' %}
-                <span class="badge bg-secondary">Rejected</span>
-                {% endif %}     
+                </form>  
+                {% endif %}
             </div>
             {% endif %}
         </div>
