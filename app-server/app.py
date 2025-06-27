@@ -29,6 +29,7 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
+CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
@@ -186,10 +187,19 @@ def login():
     if request.method == 'POST':
         # Only process login if the login button was clicked
         if request.form.get('login-btn') is not None:
+            token = request.form['g-recaptcha-response']
+            verification = requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={
+                    'secret': CAPTCHA_KEY,
+                    'response': token,
+                    'remoteip': request.remote_addr
+                }
+            ).json()
             email = request.form.get('email', '')
             password = request.form.get('password', '')
             # Only proceed if both fields are filled
-            if email and password:
+            if email and password and verification.get('success', False):
                 result = auth_manager.login(email, password)
                 if result['success']:
                     if result['login_type'] == 'moderator':

@@ -40,6 +40,8 @@
           <input type="email" class="form-control" id="forgot-email" name="reset-email" placeholder="Your email">
           <a href="#" id="cancel-forget-password" style="color: var(--color-secondary-text); display: block; margin-top: 10px;">Back to Login</a>
         </div>
+
+        <div class="g-recaptcha" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX"></div>
       
         <!-- Login and Reset Buttons -->
         <div class="d-grid mb-4 login-btn-wrapper">
@@ -70,6 +72,7 @@
       integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
       crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
       // Safeguard: Always hide reset-btn-wrapper on page load
       document.addEventListener('DOMContentLoaded', function() {
