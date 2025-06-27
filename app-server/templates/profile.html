@@ -8,15 +8,15 @@
       <div class="d-flex align-items-center mb-2">
         {% if profile_user.profilePicture %}
         <img src="{{ profile_user.profilePicture }}" alt="Profile Picture" class="rounded-circle me-3" style="
-            width: 64px;
-            height: 64px;
+            min-width: 120px;
+            height: 120px;
             object-fit: cover;
             border: 2px solid #343a40;
           " />
         {% else %}
         <span class="d-flex align-items-center justify-content-center rounded-circle me-3" style="
-            width: 64px;
-            height: 64px;
+            min-width: 120px;
+            height: 120px;
             background: #23263a;
             color: #bfc7d5;
             font-size: 2rem;
@@ -27,6 +27,9 @@
         {% endif %}
         <div>
           <div class="profile-header-username">{{ profile_user.username }}</div>
+          {% if profile_user.bio %}
+          <div class="profile-header-bio">{{ profile_user.bio }}</div>
+          {% endif %}
           {% if profile_user.visibility %}
           <div class="profile-header-privacy-status text-muted small mb-2">
             {% if profile_user.visibility == 'Public' %}
@@ -37,8 +40,6 @@
             <span class="badge bg-warning text-dark">Followers Only</span>
             {% endif %}
           </div>
-          {% endif %} {% if profile_user.bio %}
-          <div class="profile-header-bio">{{ profile_user.bio }}</div>
           {% endif %}
         </div>
       </div>
