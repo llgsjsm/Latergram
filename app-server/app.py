@@ -31,6 +31,7 @@ DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
 CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
+BYPASS_CAPTCHA = os.getenv("BYPASS_CAPTCHA", "false").lower() == "true"
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
@@ -119,6 +120,22 @@ def ensure_firebase_initialized():
             raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     bucket = storage.bucket()
 
+def verify_recaptcha(token, remote_ip):
+    if BYPASS_CAPTCHA:
+        print("Skipping reCAPTCHA verification in test mode")
+        return True
+    if not token:
+        return False
+    response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={
+            'secret': CAPTCHA_KEY,
+            'response': token,
+            'remoteip': remote_ip
+        }
+    ).json()
+    return response.get('success', False)
+
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
@@ -188,6 +205,12 @@ def login():
         # Check if it's a JSON request (AJAX)
         if request.is_json:
             data = request.get_json()
+
+            # Captcha JSON
+            token = data.get('g-recaptcha-response', '')
+            if not verify_recaptcha(token, request.remote_addr):
+                return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
+            
             if data.get('action') == 'login':
                 email = data.get('email', '')
                 password = data.get('password', '')
@@ -232,6 +255,13 @@ def login():
             if request.form.get('login-btn') is not None:
                 email = request.form.get('email', '')
                 password = request.form.get('password', '')
+
+                # Captcha Form 
+                token = request.form.get('g-recaptcha-response', '')
+                if not verify_recaptcha(token, request.remote_addr):
+                    flash('Captcha verification failed.', 'danger')
+                    return render_template('login.html')
+                
                 if email and password:
                     result = auth_manager.login(email, password)
                     if result['success']:

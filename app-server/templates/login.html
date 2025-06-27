@@ -149,7 +149,9 @@
           >
         </div>
 
-        <!-- <div class="g-recaptcha d-flex justify-content-center" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX"></div> -->
+        <!-- Uncomment this if you want to enable CAPTCHA -->
+        <!--<div class="g-recaptcha d-flex justify-content-center" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX" data-callback="onCaptchaVerified"></div> 
+        -->
 
         <!-- Login and Reset Buttons -->
         <div class="d-grid my-4 login-btn-wrapper">
@@ -224,6 +226,11 @@
         showSection("login");
       });
 
+      // Captcha token variable
+      let captchaToken = null;
+      function onCaptchaVerified(token) {
+        captchaToken = token;
+      }
       // Function to show only specific sections
       function showSection(sectionClass) {
         // Hide all form sections
@@ -322,6 +329,12 @@
         const loginWrapper = document.querySelector(".login-btn-wrapper");
         if (loginWrapper && loginWrapper.style.display !== "none") {
           e.preventDefault();
+          
+          // Uncomment this if you want to enable CAPTCHA
+          // if (!captchaToken) {
+          //   showMessage("Please complete the CAPTCHA.", "error");
+          //   return;
+          // }
 
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
@@ -335,6 +348,7 @@
               email: email,
               password: password,
               action: "login",
+              "g-recaptcha-response": captchaToken,
             }),
           })
             .then((response) => response.json())
