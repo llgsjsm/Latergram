@@ -340,7 +340,7 @@
             .then((response) => response.json())
             .then((data) => {
               if (data.success && data.requires_otp) {
-                // OTP flow enabled for this user
+                // OTP flow enabled for this user or moderator
                 document.getElementById("otp-email").value = data.email;
                 document.getElementById("otp-type").value = "login";
                 showSection("otp");
@@ -375,7 +375,8 @@
             return;
           }
 
-          fetch("/forgot-password", {
+          // First check if it's a moderator email
+          fetch("/moderator-forgot-password", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -387,12 +388,36 @@
             .then((response) => response.json())
             .then((data) => {
               if (data.success) {
+                // It's a moderator
                 document.getElementById("otp-email").value = email;
-                document.getElementById("otp-type").value = "password_reset";
+                document.getElementById("otp-type").value = "moderator_password_reset";
                 showSection("otp");
                 showMessage("Reset code sent to your email", "success");
               } else {
-                showMessage(data.error, "error");
+                // Try user password reset
+                fetch("/forgot-password", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    email: email,
+                  }),
+                })
+                  .then((response) => response.json())
+                  .then((data) => {
+                    if (data.success) {
+                      document.getElementById("otp-email").value = email;
+                      document.getElementById("otp-type").value = "password_reset";
+                      showSection("otp");
+                      showMessage("Reset code sent to your email", "success");
+                    } else {
+                      showMessage(data.error, "error");
+                    }
+                  })
+                  .catch((error) => {
+                    showMessage("An error occurred", "error");
+                  });
               }
             })
             .catch((error) => {
@@ -414,6 +439,7 @@
           }
 
           if (otpType === "login") {
+            // Try user login OTP verification first
             fetch("/verify-login-otp", {
               method: "POST",
               headers: {
@@ -429,6 +455,54 @@
                 if (data.success) {
                   window.location.href = "/home";
                 } else {
+                  // If user verification fails, try moderator verification
+                  fetch("/verify-moderator-login-otp", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      email: email,
+                      otp_code: otpCode,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      if (data.success) {
+                        window.location.href = "/moderation";
+                      } else {
+                        showMessage("Invalid or expired OTP", "error");
+                      }
+                    })
+                    .catch((error) => {
+                      showMessage("An error occurred", "error");
+                    });
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          } else if (otpType === "moderator_password_reset") {
+            // Moderator password reset OTP verification
+            fetch("/verify-moderator-reset-otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+                otp_code: otpCode,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  showSection("reset-password");
+                  showMessage(
+                    "Code verified. Enter your new password",
+                    "success"
+                  );
+                } else {
                   showMessage(data.error, "error");
                 }
               })
@@ -436,7 +510,7 @@
                 showMessage("An error occurred", "error");
               });
           } else {
-            // Password reset OTP verification
+            // User password reset OTP verification
             fetch("/verify-reset-otp", {
               method: "POST",
               headers: {
@@ -474,6 +548,7 @@
             document.getElementById("confirm-password").value;
           const email = document.getElementById("otp-email").value;
           const otpCode = document.getElementById("otp-code").value;
+          const otpType = document.getElementById("otp-type").value;
 
           if (!newPassword || newPassword.length < 6) {
             showMessage("Password must be at least 6 characters long", "error");
@@ -485,7 +560,11 @@
             return;
           }
 
-          fetch("/reset-password", {
+          const endpoint = otpType === "moderator_password_reset" 
+            ? "/reset-moderator-password" 
+            : "/reset-password";
+
+          fetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -521,29 +600,92 @@
           const email = document.getElementById("otp-email").value;
           const otpType = document.getElementById("otp-type").value;
 
-          const endpoint =
-            otpType === "login" ? "/resend-login-otp" : "/forgot-password";
-
-          fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: email,
-            }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                showMessage("New code sent to your email", "success");
-              } else {
-                showMessage(data.error, "error");
-              }
+          if (otpType === "login") {
+            // For login OTP, try user first, then moderator
+            fetch("/resend-login-otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+              }),
             })
-            .catch((error) => {
-              showMessage("An error occurred", "error");
-            });
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  showMessage("New code sent to your email", "success");
+                } else {
+                  // Try moderator resend
+                  fetch("/resend-moderator-login-otp", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      email: email,
+                    }),
+                  })
+                    .then((response) => response.json())
+                    .then((data) => {
+                      if (data.success) {
+                        showMessage("New code sent to your email", "success");
+                      } else {
+                        showMessage("Unable to resend OTP", "error");
+                      }
+                    })
+                    .catch((error) => {
+                      showMessage("An error occurred", "error");
+                    });
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          } else if (otpType === "moderator_password_reset") {
+            fetch("/moderator-forgot-password", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  showMessage("New code sent to your email", "success");
+                } else {
+                  showMessage(data.error, "error");
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          } else {
+            // User password reset
+            fetch("/forgot-password", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  showMessage("New code sent to your email", "success");
+                } else {
+                  showMessage(data.error, "error");
+                }
+              })
+              .catch((error) => {
+                showMessage("An error occurred", "error");
+              });
+          }
         });
 
       // Show message function

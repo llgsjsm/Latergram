@@ -193,29 +193,38 @@ def login():
                 password = data.get('password', '')
                 
                 if email and password:
-                    # Check if user has OTP enabled in their settings
+                    # Check if user exists in User table first
                     user = User.query.filter(
                         or_(User.username == email, User.email == email)
                     ).first()
                     
-                    # Use OTP login if user has it enabled, otherwise use normal login
-                    if user and getattr(user, 'otp_enabled', True):  # Default to True (enabled)
-                        result = auth_manager.login_with_otp(email, password)
-                        return jsonify(result)
-                    else:
-                        # Use normal login
-                        result = auth_manager.login(email, password)
-                        
-                        # Handle normal login response for AJAX
-                        if result['success']:
-                            if result['login_type'] == 'moderator':
-                                session['mod_id'] = result['moderator']['mod_id']
-                                return jsonify({'success': True, 'redirect': '/moderation'})
-                            else:
+                    if user:
+                        # Use OTP login if user has it enabled, otherwise use normal login
+                        if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
+                            result = auth_manager.login_with_otp(email, password)
+                            return jsonify(result)
+                        else:
+                            # Use normal login for user
+                            result = auth_manager.login(email, password)
+                            
+                            if result['success']:
                                 session['user_id'] = result['user']['user_id']
                                 return jsonify({'success': True, 'redirect': '/home'})
+                            
+                            return jsonify(result)
+                    else:
+                        # Check if it's a moderator
+                        from models import Moderator
+                        moderator = Moderator.query.filter(
+                            or_(Moderator.username == email, Moderator.email == email)
+                        ).first()
                         
-                        return jsonify(result)
+                        if moderator:
+                            # Use OTP login for moderators (always enabled for moderators)
+                            result = auth_manager.moderator_login_with_otp(email, password)
+                            return jsonify(result)
+                        else:
+                            return jsonify({'success': False, 'error': 'User not found'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
         else:
@@ -1337,6 +1346,70 @@ def api_update_email():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
+
+@app.route('/verify-moderator-login-otp', methods=['POST'])
+def verify_moderator_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
+    
+    if result['success']:
+        session['mod_id'] = result['moderator']['mod_id']
+        result['redirect'] = '/moderation'
+    
+    return jsonify(result)
+
+@app.route('/resend-moderator-login-otp', methods=['POST'])
+def resend_moderator_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.generate_and_send_moderator_otp(email, 'login')
+    return jsonify(result)
+
+@app.route('/moderator-forgot-password', methods=['POST'])
+def moderator_forgot_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.initiate_moderator_password_reset(email)
+    return jsonify(result)
+
+@app.route('/verify-moderator-reset-otp', methods=['POST'])
+def verify_moderator_reset_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
+    return jsonify(result)
+
+@app.route('/reset-moderator-password', methods=['POST'])
+def reset_moderator_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    new_password = data.get('new_password', '')
+    
+    if not email or not otp_code or not new_password:
+        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
+    
+    result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    return jsonify(result)
 
 if __name__ == '__main__':
     with app.app_context():
