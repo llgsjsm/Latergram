@@ -299,6 +299,39 @@ h4.card-header,
 }
 
 /* Center Bootstrap modals vertically and horizontally */
+/* Modal styling fixes */
+.modal-content {
+  background-color: #181a23 !important;
+  color: var(--color-white) !important;
+  border: 1px solid #343a40;
+}
+
+.modal-header {
+  background-color: #181a23 !important;
+  color: var(--color-white) !important;
+  border-bottom: 1px solid #343a40;
+}
+
+.modal-body {
+  background-color: #181a23 !important;
+  color: var(--color-white) !important;
+}
+
+.modal-title {
+  color: var(--color-white) !important;
+}
+
+#followersModal a, #followingModal a {
+  color: var(--color-white);
+  text-decoration: none;
+}
+
+/* Make modal close (cross) button white in dark mode */
+.modal .btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+  opacity: 1;
+}
+
 .modal-dialog {
   display: flex;
   align-items: center;

@@ -1,62 +1,95 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block head %}
+<style>
+    .form-control:not(textarea), .form-select {
+    height: 48px;
+}
 
-{% block content %}
+#user-picture{
+    gap:16px;display: flex;justify-content: flex-start;align-items: center;flex-direction: row;
+}
+
+.profile-pic-img {
+    transition: box-shadow 0.2s, border 0.2s;
+    border-radius: 50%;
+}
+.change-pic-icon {
+    position: absolute; 
+    left: 50%; 
+    top: 50%; 
+    transform: translate(-50%, -50%); 
+    display: none; 
+    pointer-events: none; 
+    color: #fff; 
+    font-size: 1.5rem; 
+    background: rgba(108,99,255,0.85); 
+    border-radius: 50%; 
+    padding: 10px;
+}
+#profile-pic-preview:hover .profile-pic-img {
+    box-shadow: 0 0 0 4px #fff;
+}
+#profile-pic-preview:hover .change-pic-icon {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin-top: -4px;
+}
+#profile-pic-filename {
+    display: block; 
+    font-size: 0.97rem; 
+    color: #fff; 
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %} {% block content %}
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <!-- Account Info (Read-only) -->
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">Account Information</h4>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <label class="form-label text-muted">Email</label>
-                                <p class="mb-0">{{ user.email }}</p>
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label text-muted">Member Since</label>
-                                <p class="mb-0">{{ user.createdAt.strftime('%B %d, %Y') if user.createdAt else 'Unknown' }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Profile -->
+        <div class="col-lg-12">
+            <!-- Account -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h4 class="mb-0">Edit Profile</h4>
+                    <h4 class="mb-0">Account</h4>
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
-                        <!-- Profile Picture Preview -->
-                        <div class="text-center mb-4">
-                            <span id="profile-pic-preview">
-                                {% if user.profilePicture %}
-                                    <img src="{{ user.profilePicture }}" 
-                                         alt="Profile Picture" 
-                                         class="rounded-circle mb-3"
-                                         style="width: 120px; height: 120px; object-fit: cover;">
-                                {% else %}
-                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;">
-                                        <i class="fas fa-user"></i>
+                        <div class="row mb-4" style="gap: 0;display: flex;align-items: flex-start;">
+                            <div class="col-md-6">
+                                <div id="user-picture">
+                                    <span id="profile-pic-preview" style="cursor: pointer; position: relative; display: inline-block;" onclick="document.getElementById('profile-picture-input').click();">
+                                        {% if user.profilePicture %}
+                                            <img src="{{ user.profilePicture }}" 
+                                                 alt="Profile Picture" 
+                                                 class="rounded-circle mb-3 profile-pic-img"
+                                                 style="width: 120px; height: 120px; object-fit: cover;">
+                                        {% else %}
+                                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 profile-pic-img" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        {% endif %}
+                                        <span class="change-pic-icon">
+                                            <i class="fas fa-camera"></i>
+                                        </span>
                                     </span>
-                                {% endif %}
-                            </span>
-                            <div>
-                                <input type="file" name="profile_picture" accept="image/*" class="form-control mt-2" style="max-width: 250px; margin: 0 auto;">
-                                <small class="text-muted">Upload a new profile picture</small>
+                                    <div style="display: flex;flex-direction: column;">
+                                        <span id="profile-pic-filename"></span>
+                                        <input type="file" id="profile-picture-input" name="profile_picture" accept="image/*" class="form-control mt-2" style="max-width: 250px; margin: 0 auto; display: none;" onchange="document.getElementById('profile-pic-filename').textContent = this.files.length ? this.files[0].name : '';">
+                                        <small class="text-muted">Upload a new profile picture</small>
+                                        {% if user.profilePicture %}
+                                        <button type="button" class="btn btn-outline-danger btn-sm mt-2" id="removeProfilePicBtn" style="width: fit-content;">Remove Profile Picture</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
-                            {% if user.profilePicture %}
-                            <button type="button" class="btn btn-outline-danger btn-sm mt-2" id="removeProfilePicBtn">Remove Profile Picture</button>
-                            {% endif %}
+                            <div class="col-md-6 d-flex align-items-center">
+                                <div id="user-member-since" class="w-100">
+                                    <label class="form-label text-muted">Member Since</label>
+                                    <p class="mb-0">{{ user.createdAt.strftime('%B %d, %Y') if user.createdAt else 'Unknown' }}</p>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         <!-- Display Name -->
-                        <div class="mb-3">
+                        <div id="user-name" class="mb-3">
                             <label for="display_name" class="form-label">Display Name</label>
                             <input type="text" 
                                    class="form-control" 
@@ -85,7 +118,27 @@
                         <!-- Email -->
                         <div class="mb-3">
                             <label for="display_email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="edit_email" name="edit_email" value="{{ user.email }}" maxlength="100">
+                            <div class="input-group">
+                                <input type="email" class="form-control" id="edit_email" name="edit_email" value="{{ user.email }}" maxlength="100" readonly>
+                                <button type="button" class="btn card-btn-primary" id="updateEmailBtn" data-bs-toggle="modal" data-bs-target="#updateEmailModal">Update Email</button>
+                            </div>
+                        </div>
+
+                        <!-- Update Email Modal -->
+                        <div class="modal fade" id="updateEmailModal" tabindex="-1">
+                          <div class="modal-dialog">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title">Update Email</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                              </div>
+                              <div class="modal-body">
+                                <label for="new_email" class="form-label">New Email</label>
+                                <input type="email" class="form-control mb-3" id="new_email" name="new_email" placeholder="Enter new email">
+                                <button type="button" class="base-btn base-btn-primary" id="sendOtpBtn">Send OTP</button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                         
                         <!-- Visibility -->
@@ -106,10 +159,10 @@
                         
                         <!-- Buttons -->
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+                            <a href="{{ url_for('profile') }}" class="base-btn base-btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Back to Profile
                             </a>
-                            <button type="submit" class="btn btn-primary base-btn">
+                            <button type="submit" class="base-btn base-btn-primary">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>

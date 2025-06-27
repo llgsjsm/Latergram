@@ -197,33 +197,6 @@ body,
   border-radius: 8px;
 }
 
-/* Modal styling fixes */
-.modal-content {
-  background-color: #181a23 !important;
-  color: var(--color-white) !important;
-  border: 1px solid #343a40;
-}
-
-.modal-header {
-  background-color: #181a23 !important;
-  color: var(--color-white) !important;
-  border-bottom: 1px solid #343a40;
-}
-
-.modal-body {
-  background-color: #181a23 !important;
-  color: var(--color-white) !important;
-}
-
-.modal-title {
-  color: var(--color-white) !important;
-}
-
-#followersModal a, #followingModal a {
-  color: var(--color-white);
-  text-decoration: none;
-}
-
 /* Post action buttons styling */
 .post-action-bar .btn {
   background-color: transparent;
@@ -253,12 +226,6 @@ body,
 
 .post-action-bar .btn-outline-danger i {
   color: var(--color-danger) !important;
-}
-
-/* Make modal close (cross) button white in dark mode */
-.btn-close {
-  filter: invert(1) grayscale(1) brightness(2);
-  opacity: 1;
 }
 
 /* Make modal and divider borders darker for dark mode */
