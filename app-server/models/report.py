@@ -8,7 +8,7 @@ class Report(db.Model):
     reportId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     reportedBy = db.Column(db.Integer, db.ForeignKey('user.userId'), nullable=False)
     reviewedBy = db.Column(db.Integer, db.ForeignKey('moderator.modID'))
-    status = db.Column(db.String(20), default='pending')
+    status = db.Column(db.String(20), default='Pending', nullable=False)  # values from ReportStatus enum
     reason = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     targetType = db.Column(db.String(45), nullable=False)  # values from ReportTarget enum
