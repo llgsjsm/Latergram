@@ -558,6 +558,54 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Email update handler
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    if (sendOtpBtn) {
+        sendOtpBtn.addEventListener('click', function() {
+            const newEmailInput = document.getElementById('new_email');
+            const newEmail = newEmailInput.value.trim();
+            if (!newEmail) {
+                showMessage('Please enter a new email address.', 'error');
+                return;
+            }
+            sendOtpBtn.disabled = true;
+            const originalText = sendOtpBtn.innerHTML;
+            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            fetch('/api/update-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ new_email: newEmail })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Email updated successfully!', 'success');
+                    // Update the readonly email field in the main form
+                    const editEmailInput = document.getElementById('edit_email');
+                    if (editEmailInput) {
+                        editEmailInput.value = newEmail;
+                    }
+                    // Clear the new_email input in the modal
+                    if (newEmailInput) {
+                        newEmailInput.value = '';
+                    }
+                } else {
+                    showMessage(data.error || 'Failed to update email.', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred while updating email.', 'error');
+            })
+            .finally(() => {
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = originalText;
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -1234,6 +1234,40 @@ def api_edit_post(post_id):
     db.session.commit()
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
+@app.route('/api/update-email', methods=['POST'])
+def api_update_email():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    if not new_email:
+        return jsonify({'success': False, 'error': 'Email is required'}), 400
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, new_email):
+        return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+
+    # Check uniqueness
+    from models import User
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    user.email = new_email
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Email updated successfully', 'email': new_email})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
+
 if __name__ == '__main__':
     with app.app_context():
         try:
