@@ -98,7 +98,15 @@
     {% elif referenced_type == "comment" and referenced %}
     <div class="card mb-3">
         <div class="card-body">
-            <p><strong>Author:</strong> {{ referenced.authorId }}</p>
+            <p><strong>Author:</strong>
+                {% if referenced.author %}
+                <a class="text-decoration-none fw-bold" href="{{ url_for('profile', user_id=referenced.author.userId) }}">
+                    {{ referenced.author.username }}
+                </a>
+                {% else %}
+                    {{ referenced.authorId }}
+                {% endif %}
+            </p>
             <p>{{ referenced.commentContent }}</p>
         </div>
     </div>

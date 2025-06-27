@@ -46,7 +46,17 @@
                 </td>
                 <td>{{ report.targetType }}</td>
                 <td>{{ report.reason }}</td>
-                <td>{{ report.status }}</td>
+                <td>
+                    {% if report.status == 'Pending' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif report.status == 'UnderReview' %}
+                    <span class="badge bg-info text-dark">Under Review</span>
+                    {% elif report.status == 'Resolved' %}
+                    <span class="badge bg-success">Resolved</span>
+                    {% elif report.status == 'Rejected' %}
+                    <span class="badge bg-secondary">Rejected</span>
+                    {% endif %}
+                </td>
                 <td>{{ report.timestamp }}</td>
                 <td>
                     <div class="btn-group" role="group">
@@ -86,7 +96,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="8">No pending reports.</td>
+                <td colspan="8">You're all caught up! No reports are pending review.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -136,7 +146,17 @@
                     </td>
                     <td>{{ report.targetType }}</td>
                     <td>{{ report.reason }}</td>
-                    <td>{{ report.status }}</td>
+                    <td>
+                        {% if report.status == 'Pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif report.status == 'UnderReview' %}
+                        <span class="badge bg-info text-dark">Under Review</span>
+                        {% elif report.status == 'Resolved' %}
+                        <span class="badge bg-success">Resolved</span>
+                        {% elif report.status == 'Rejected' %}
+                        <span class="badge bg-secondary">Rejected</span>
+                        {% endif %}
+                    </td>
                     <td>{{ report.timestamp }}</td>
                 </tr>
                 {% else %}
