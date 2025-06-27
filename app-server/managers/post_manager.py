@@ -230,11 +230,7 @@ class PostManager:
             text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower, :followed, NOW())"),
             {"follower": follower_user_id, "followed": followed_user_id}
         )
-        # Optionally increment followers count on User
-        user = User.query.get(followed_user_id)
-        if user:
-            user.followers = (user.followers or 0) + 1
-            db.session.commit()
+        db.session.commit()
         return {'success': True}
 
     def get_user_liked_posts(self, user_id: int) -> set:

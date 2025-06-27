@@ -269,8 +269,10 @@ class AuthenticationManager:
             db.session.commit()
             return {'success': False, 'error': 'Invalid or expired OTP'}
         
-        # OTP is valid, clear it and reset attempts
-        user.clear_otp()
+        # OTP is valid - for login OTP, clear it immediately
+        # For password reset OTP, keep it until password is actually reset
+        if otp_type == 'login':
+            user.clear_otp()
         user.login_attempts = 0
         db.session.commit()
         
@@ -337,16 +339,17 @@ class AuthenticationManager:
     
     def reset_password_with_otp(self, email: str, otp_code: str, new_password: str) -> Dict[str, Any]:
         """Reset password after OTP verification"""
-        # Verify OTP
-        verify_result = self.verify_otp(email, otp_code, 'password_reset')
-        if not verify_result['success']:
-            return verify_result
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Verify OTP is still valid for password reset
+        if not user.is_otp_valid(otp_code, 'password_reset'):
+            return {'success': False, 'error': 'Invalid or expired OTP'}
         
         # Validate new password
         if len(new_password) < 6:
             return {'success': False, 'error': 'Password must be at least 6 characters long'}
-        
-        user = User.query.filter_by(email=email).first()
         
         try:
             # Update password
@@ -354,6 +357,9 @@ class AuthenticationManager:
             user.password = hashed_password
             user.login_attempts = 0  # Reset login attempts
             user.disabledUntil = None  # Remove any account locks
+            
+            # Clear OTP after successful password reset
+            user.clear_otp()
             
             db.session.commit()
             

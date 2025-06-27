@@ -14,7 +14,6 @@ class User(db.Model, BaseUserMixin):
     profilePicture = db.Column(db.String(255), nullable=True, default='')
     visibility = db.Column(db.String(20), default='Public')
     bio = db.Column(db.Text, nullable=True, default='')
-    followers = db.Column(db.Integer, default=0)  # Added missing followers field
     disabledUntil = db.Column(db.DateTime, nullable=True)  # add missing field for disabling user accounts
     
     # OTP fields
