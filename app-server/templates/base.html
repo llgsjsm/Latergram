@@ -1,230 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Latergram</title>
 
-    <!-- Local CSS -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
-    />
-    <link
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Latergram</title>
+
+  <!-- Local CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" />
+  <!-- <link
       rel="stylesheet"
       href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}"
     />
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='assets/css/main.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    {% block head %}{% endblock %} {% if request.endpoint == 'home' %}
-    <style>
-      #main-content {
-        margin-right: 320px;
-      }
-    </style>
-    {% else %}
-    <style>
-      #main-content {
-        margin-right: 0;
-      }
-    </style>
-    {% endif %}
-    <style>
-      .nav-link.active,
-      .nav-link.active:focus,
-      .nav-link.active:hover {
-        color: var(--color-primary) !important;
-        background: none !important;
-        font-weight: 600;
-      }
-    </style>
-  </head>
+    /> -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/main.css') }}" />
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Beau+Rivage&display=swap" rel="stylesheet">
+  {% block head %}{% endblock %} {% if request.endpoint == 'home' %}
+  <style>
+    #main-content {
+      margin-right: 320px;
+    }
+  </style>
+  {% else %}
+  <style>
+    #main-content {
+      margin-right: 0;
+    }
+  </style>
+  {% endif %}
+  <style>
+    .nav-link.active,
+    .nav-link.active:focus,
+    .nav-link.active:hover {
+      color: var(--color-primary) !important;
+      background: none !important;
+      font-weight: 600;
+    }
+  </style>
+</head>
 
-  <body>
-    <div class="d-flex">
-      <nav id="main-nav" class="flex-column bg-light py-5 px-3">
-        <a class="navbar-brand mb-4" href="">
-          Later<span class="beau">G</span>ram
-        </a>
-        <ul class="nav nav-pills flex-column" id="nav-list">
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'home' %} active{% endif %}"
-              href="{{ url_for('home') }}"
-            >
-              <i class="fas fa-house"></i> Home
-            </a>
-          </li>
-          <li class="nav-item" id="search-nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'search' %} active{% endif %}"
-              href="#"
-              onclick="showSearchBar(event)"
-              ><i class="fas fa-magnifying-glass"></i> Search</a
-            >
-          </li>
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'create_post' %} active{% endif %}"
-              href="{{ url_for('create_post') }}"
-              ><i class="fas fa-plus"></i> Create Post</a
-            >
-          </li>
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}"
-              href="{{ url_for('profile') }}"
-            >
-              <span
-                id="main-nav-profile-pic"
-                style="vertical-align: middle; margin-right: 8px"
-              >
-                {% set nav_user = current_user if current_user else user %}
-                {% if nav_user and nav_user.profilePicture %}
-                <img
-                  src="{{ nav_user.profilePicture }}"
-                  class="rounded-circle"
-                  style="width: 28px; height: 28px; object-fit: cover"
-                />
-                {% else %}
-                <span
-                  class="d-inline-flex align-items-center justify-content-center rounded-circle"
-                  style="
+<body>
+  <div class="d-flex">
+    <nav id="main-nav" class="flex-column bg-light py-5 px-3">
+      <a class="navbar-brand mb-4" href="">
+        Later<span class="beau">G</span>ram
+      </a>
+      <ul class="nav nav-pills flex-column" id="nav-list">
+        {% if session.get('mod_id') %}
+        <!-- Moderator sidebar items -->
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'moderation' %} active{% endif %}"
+            href="{{ url_for('moderation') }}">
+            <i class="fas fa-gavel"></i> Moderation Dashboard
+          </a>
+        </li>
+        {% elif session.get('user_id') %}
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">
+            <i class="fas fa-house"></i> Home
+          </a>
+        </li>
+        <li class="nav-item" id="search-nav-item">
+          <a class="nav-link{% if request.endpoint == 'search' %} active{% endif %}" href="#"
+            onclick="showSearchBar(event)"><i class="fas fa-magnifying-glass"></i> Search</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'create_post' %} active{% endif %}"
+            href="{{ url_for('create_post') }}"><i class="fas fa-plus"></i> Create Post</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}" href="{{ url_for('profile') }}">
+            <span id="main-nav-profile-pic" style="vertical-align: middle; margin-right: 8px">
+              {% set nav_user = current_user if current_user else user %}
+              {% if nav_user and nav_user.profilePicture %}
+              <img src="{{ nav_user.profilePicture }}" class="rounded-circle"
+                style="width: 28px; height: 28px; object-fit: cover" />
+              {% else %}
+              <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="
                     width: 28px;
                     height: 28px;
                     background: #23263a;
                     color: #bfc7d5;
                     font-size: 1rem;
                     border: 2px solid #343a40;
-                  "
-                  ><i class="fas fa-user"></i
-                ></span>
-                {% endif %}
-              </span>
-              <span style="margin-left: 4px"
-                >{{ nav_user.username if nav_user else 'Profile' }}</span
-              >
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}"
-              ><i class="fas fa-arrow-right-from-bracket"></i> Logout</a
-            >
-          </li>
-        </ul>
-        <form
-          id="user-search-form"
-          method="get"
-          action="{{ url_for('search') }}"
-          style="display: none; margin-top: 2rem"
-        >
-          <div class="input-group">
-            <input
-              type="text"
-              class="form-control"
-              name="q"
-              id="sidebar-search-input"
-              placeholder="Search users by username..."
-              autocomplete="off"
-              autofocus
-            />
-            <button
-              class="btn btn-secondary"
-              type="button"
-              onclick="hideSearchBar()"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-        <div id="search-suggestions" style="display: none"></div>
-      </nav>
-      <div id="main-content" class="flex-grow-1">
-        {% block content %}{% endblock %}
-      </div>
-      {% if request.endpoint == 'home' %}
-      <div id="right-panel" class="d-none d-lg-block">
-        {% block rightpanel %}{% endblock %}
-      </div>
-      {% endif %}
+                  "><i class="fas fa-user"></i></span>
+              {% endif %}
+            </span>
+            <span style="margin-left: 4px">{{ nav_user.username if nav_user else 'Profile' }}</span>
+          </a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-arrow-right-from-bracket"></i> Logout</a>
+        </li>
+      </ul>
+      <form id="user-search-form" method="get" action="{{ url_for('search') }}" style="display: none; margin-top: 2rem">
+        <div class="input-group">
+          <input type="text" class="form-control" name="q" id="sidebar-search-input"
+            placeholder="Search users by username..." autocomplete="off" autofocus />
+          <button class="btn btn-secondary" type="button" onclick="hideSearchBar()">
+            Cancel
+          </button>
+        </div>
+      </form>
+      <div id="search-suggestions" style="display: none"></div>
+    </nav>
+    <div id="main-content" class="flex-grow-1">
+      {% block content %}{% endblock %}
     </div>
+    {% if request.endpoint == 'home' %}
+    <div id="right-panel" class="d-none d-lg-block">
+      {% block rightpanel %}{% endblock %}
+    </div>
+    {% endif %}
+  </div>
 
-    <!-- Local JS -->
-    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-      function showSearchBar(e) {
-        e.preventDefault();
-        document.getElementById("nav-list").style.display = "none";
-        document.getElementById("user-search-form").style.display = "block";
-        document.getElementById("sidebar-search-input").focus();
-      }
-      function hideSearchBar() {
-        document.getElementById("user-search-form").style.display = "none";
-        document.getElementById("nav-list").style.display = "flex";
-        document.getElementById("search-suggestions").style.display = "none";
-      }
+  <!-- Local JS -->
+  <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    function showSearchBar(e) {
+      e.preventDefault();
+      document.getElementById("nav-list").style.display = "none";
+      document.getElementById("user-search-form").style.display = "block";
+      document.getElementById("sidebar-search-input").focus();
+    }
+    function hideSearchBar() {
+      document.getElementById("user-search-form").style.display = "none";
+      document.getElementById("nav-list").style.display = "flex";
+      document.getElementById("search-suggestions").style.display = "none";
+    }
 
-      // Live user suggestions
-      const searchInput = document.getElementById("sidebar-search-input");
-      const suggestionsDiv = document.getElementById("search-suggestions");
-      if (searchInput) {
-        searchInput.addEventListener("input", function () {
-          const q = this.value.trim();
-          if (q.length === 0) {
-            suggestionsDiv.style.display = "none";
-            suggestionsDiv.innerHTML = "";
-            return;
-          }
-          fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success && data.users.length > 0) {
-                suggestionsDiv.innerHTML = data.users
-                  .map(
-                    (user) => `
+    // Live user suggestions
+    const searchInput = document.getElementById("sidebar-search-input");
+    const suggestionsDiv = document.getElementById("search-suggestions");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        const q = this.value.trim();
+        if (q.length === 0) {
+          suggestionsDiv.style.display = "none";
+          suggestionsDiv.innerHTML = "";
+          return;
+        }
+        fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.users.length > 0) {
+              suggestionsDiv.innerHTML = data.users
+                .map(
+                  (user) => `
                 <a href="/profile/${user.user_id}" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
                   ${user.profile_picture ?
-                    `<img src="${user.profile_picture}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">` :
-                    `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`
-                  }
+                      `<img src="${user.profile_picture}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">` :
+                      `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`
+                    }
                   <span>${user.username}</span>
                 </a>
               `
-                  )
-                  .join("");
-                suggestionsDiv.style.display = "block";
-              } else {
-                suggestionsDiv.innerHTML =
-                  '<div class="text-muted px-3 py-2">No users found.</div>';
-                suggestionsDiv.style.display = "block";
-              }
-            });
-        });
-        // Hide suggestions when input loses focus (with slight delay for click)
-        searchInput.addEventListener("blur", function () {
-          setTimeout(() => {
-            suggestionsDiv.style.display = "none";
-          }, 200);
-        });
-        searchInput.addEventListener("focus", function () {
-          if (suggestionsDiv.innerHTML.trim() !== "")
-            suggestionsDiv.style.display = "block";
-        });
-      }
-    </script>
-  </body>
+                )
+                .join("");
+              suggestionsDiv.style.display = "block";
+            } else {
+              suggestionsDiv.innerHTML =
+                '<div class="text-muted px-3 py-2">No users found.</div>';
+              suggestionsDiv.style.display = "block";
+            }
+          });
+      });
+      // Hide suggestions when input loses focus (with slight delay for click)
+      searchInput.addEventListener("blur", function () {
+        setTimeout(() => {
+          suggestionsDiv.style.display = "none";
+        }, 200);
+      });
+      searchInput.addEventListener("focus", function () {
+        if (suggestionsDiv.innerHTML.trim() !== "")
+          suggestionsDiv.style.display = "block";
+      });
+    }
+  </script>
+</body>
+
 </html>

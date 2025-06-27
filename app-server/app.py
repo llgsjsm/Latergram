@@ -3,14 +3,15 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment, User
+from models import db, Post, Comment, User, Report
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from sqlalchemy import text
+from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
+from models.enums import ReportStatus, ReportTarget
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +29,7 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
+CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
@@ -45,12 +47,13 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 # Use the optimized singleton managers
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager
+from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
 
 auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
 post_manager = get_post_manager()
+moderator_manager = get_moderator_manager()
 
 # SPLUNK HEC Configuration
 SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
@@ -119,8 +122,12 @@ def ensure_firebase_initialized():
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
-    if 'user_id' not in session:
+    if 'user_id' not in session and 'mod_id' not in session:
         return redirect(url_for('login'))
+    
+    # redirect moderators to their dashboard
+    if 'mod_id' in session:
+        return redirect(url_for('moderation'))
     
     try:
         posts = feed_manager.generate_feed(session['user_id'])
@@ -178,16 +185,124 @@ def hello_world():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        result = auth_manager.login(email, password)
-        if result['success']:
-            session['user_id'] = result['user']['user_id']
-            flash('Login successful!', 'success')
-            return redirect(url_for('home'))
+        # Check if it's a JSON request (AJAX)
+        if request.is_json:
+            data = request.get_json()
+            if data.get('action') == 'login':
+                email = data.get('email', '')
+                password = data.get('password', '')
+                
+                if email and password:
+                    # Check if user has OTP enabled in their settings
+                    user = User.query.filter(
+                        or_(User.username == email, User.email == email)
+                    ).first()
+                    
+                    # Use OTP login if user has it enabled, otherwise use normal login
+                    if user and getattr(user, 'otp_enabled', True):  # Default to True (enabled)
+                        result = auth_manager.login_with_otp(email, password)
+                        return jsonify(result)
+                    else:
+                        # Use normal login
+                        result = auth_manager.login(email, password)
+                        
+                        # Handle normal login response for AJAX
+                        if result['success']:
+                            if result['login_type'] == 'moderator':
+                                session['mod_id'] = result['moderator']['mod_id']
+                                return jsonify({'success': True, 'redirect': '/moderation'})
+                            else:
+                                session['user_id'] = result['user']['user_id']
+                                return jsonify({'success': True, 'redirect': '/home'})
+                        
+                        return jsonify(result)
+                else:
+                    return jsonify({'success': False, 'error': 'Please enter both email and password'})
         else:
-            flash(f'Login Unsuccessful. {result["error"]}', 'danger')
+            # Traditional form submission (fallback)
+            if request.form.get('login-btn') is not None:
+                email = request.form.get('email', '')
+                password = request.form.get('password', '')
+                if email and password:
+                    result = auth_manager.login(email, password)
+                    if result['success']:
+                        if result['login_type'] == 'moderator':
+                            session['mod_id'] = result['moderator']['mod_id']
+                            flash('Login successful!', 'success')
+                            return redirect(url_for('moderation'))
+                        else:
+                            session['user_id'] = result['user']['user_id']
+                            flash('Login successful!', 'success')
+                            return redirect(url_for('home'))
+                    else:
+                        flash(f'Login Unsuccessful. {result["error"]}', 'danger')
+                else:
+                    flash('Please enter both email and password.', 'danger')
+            return render_template('login.html')
     return render_template('login.html')
+
+@app.route('/verify-login-otp', methods=['POST'])
+def verify_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.complete_login_with_otp(email, otp_code)
+    
+    if result['success']:
+        session['user_id'] = result['user']['user_id']
+    
+    return jsonify(result)
+
+@app.route('/resend-login-otp', methods=['POST'])
+def resend_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.generate_and_send_otp(email, 'login')
+    return jsonify(result)
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.initiate_password_reset(email)
+    return jsonify(result)
+
+@app.route('/verify-reset-otp', methods=['POST'])
+def verify_reset_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+    return jsonify(result)
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    new_password = data.get('new_password', '')
+    
+    if not email or not otp_code or not new_password:
+        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
+    
+    result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    return jsonify(result)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -209,16 +324,22 @@ def register():
 
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
+    if 'user_id' in session:
+        session.pop('user_id', None)
+    else:
+        session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
 @app.route('/create-post', methods=['GET', 'POST'])
 def create_post():
     ensure_firebase_initialized()
+    # moderators cannot create posts
+    if 'mod_id' in session:
+        return redirect(url_for('moderator'))
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
@@ -260,6 +381,73 @@ def create_post():
         return redirect(url_for('home'))
 
     return render_template('create_post.html')
+
+@app.route('/api/report_post/<int:post_id>', methods=['POST'])
+def api_report_post(post_id):
+    if 'user_id' not in session:
+        flash('Please log in to report posts', 'warning')
+        return redirect(url_for('login'))
+    
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not logged in.'}), 401
+
+    post = db.session.get(Post, post_id)
+    if not post:
+        return jsonify({'success': False, 'error': 'Post not found.'}), 404
+
+    if post.authorId == user_id:
+        return jsonify({'success': False, 'error': 'Cannot report your own post.'}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Missing JSON data.'}), 400
+
+    reason = data.get('reason', '').strip()
+    target_type_raw = data.get('targetType', '').strip()
+
+    if not reason:
+        return jsonify({'success': False, 'error': 'Report reason cannot be empty.'}), 400
+
+    if not target_type_raw:
+        return jsonify({'success': False, 'error': 'Report target type is required.'}), 400
+
+    # Normalize input to match enum values (case insensitive)
+    # This matches target_type_raw ignoring case to enum values
+    target_type_map = {e.value.lower(): e for e in ReportTarget}
+    target_type_enum = target_type_map.get(target_type_raw.lower())
+    if not target_type_enum:
+        return jsonify({'success': False, 'error': f'Invalid report target type: {target_type_raw}'}), 400
+
+    # Prevent reporting yourself if target is User
+    if target_type_enum == ReportTarget.USER and post.authorId == user_id:
+        return jsonify({'success': False, 'error': 'Cannot report yourself.'}), 400
+
+    existing_report = Report.query.filter_by(
+        reportedBy=user_id,
+        targetType=target_type_enum.value,  # Store string e.g. "Post"
+        targetId=post_id
+    ).first()
+
+    if existing_report:
+        return jsonify({'success': False, 'error': 'You have already reported this target.'}), 409
+
+    new_report = Report(
+        reportedBy=user_id,
+        reason=reason,
+        timestamp=datetime.utcnow(),
+        targetType=target_type_enum.value,
+        targetId=post_id,
+        status=ReportStatus.PENDING.value
+    )
+
+    db.session.add(new_report)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
+
+
+
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
@@ -434,6 +622,8 @@ def delete_post_route(post_id):
 @app.route('/profile')
 @app.route('/profile/<int:user_id>')
 def profile(user_id=None):
+    if 'mod_id' in session:
+        return redirect(url_for('moderation'))
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -449,6 +639,7 @@ def profile(user_id=None):
             return redirect(url_for('home'))
         
         # Check if current user can view this profile
+
         visibility_check = profile_manager.can_view_profile(session['user_id'], user_id)
         if not visibility_check['can_view']:
             flash('Profile not found', 'danger')
@@ -584,6 +775,32 @@ def unlike_post_api(post_id):
     
     result = post_manager.unlike_post(session['user_id'], post_id)
     return jsonify(result)
+
+@app.route('/update-otp-setting', methods=['POST'])
+def update_otp_setting():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+    
+    try:
+        data = request.get_json()
+        otp_enabled = data.get('otp_enabled', True)
+        
+        # Update the user's OTP preference
+        user.otp_enabled = bool(otp_enabled)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'OTP authentication {"enabled" if otp_enabled else "disabled"}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Failed to update OTP setting'}), 500
 
 @app.route('/edit-profile', methods=['GET', 'POST'])
 def edit_profile():
@@ -903,6 +1120,92 @@ def fix_visibility_case():
     result = profile_manager.fix_visibility_case()
     return jsonify(result)
 
+# Moderator routes
+@app.route('/moderation')
+def moderation():
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    # Pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    try:
+        # Pending reports for the first table
+        reports = moderator_manager.get_report_queue()
+        # All reports for history table, paginated
+        all_reports_query = moderator_manager.get_all_reports_query()
+        paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
+    except Exception as e:
+        print(f"Error getting reports: {e}")
+        reports = []
+        paginated_reports = None
+
+    return render_template(
+        'moderation.html',
+        reports=reports,
+        paginated_reports=paginated_reports
+    )
+
+@app.route('/moderation/report/<int:report_id>')
+def report_detail(report_id):
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    report = moderator_manager.get_report_by_id(report_id)
+    referenced = None
+    referenced_type = None
+
+    # Determine referenced object
+    if report.targetType == "Post":
+        referenced = Post.query.get(report.targetId)
+        referenced_type = "post"
+    elif report.targetType == "Comment":
+        referenced = Comment.query.get(report.targetId)
+        referenced_type = "comment"
+    elif report.targetType == "User":
+        referenced = User.query.get(report.targetId)
+        referenced_type = "user"
+
+    return render_template(
+        'report_detail.html',
+        report=report,
+        referenced=referenced,
+        referenced_type=referenced_type,
+        now=datetime.utcnow()
+    )
+
+@app.route('/moderation/action/<action>/<int:report_id>', methods=['POST'])
+def moderation_action(action, report_id):
+    # moderator check
+    if 'mod_id' not in session:
+        return redirect(url_for('login'))
+
+    result = None
+    if action == 'review':
+        result = moderator_manager.review_report(report_id, session['mod_id'])
+    elif action == 'resolve':
+        result = moderator_manager.resolve_report(report_id, session['mod_id'])
+    elif action == 'reject':
+        result = moderator_manager.reject_report(report_id, session['mod_id'])
+    elif action == 'disable_user':
+        days = int(request.form.get('disable_days', 1))
+        # Get the referenced user from the report
+        report = moderator_manager.get_report_by_id(report_id)
+        if report and report.targetType == "User":
+            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'])
+    else:
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('moderation'))
+
+    if result and result.get('success'):
+        flash(result.get('message', 'Action completed.'), 'success')
+    else:
+        flash(result.get('message', 'Action failed.'), 'danger')
+    return redirect(url_for('moderation'))
+
 @app.context_processor
 def inject_user():
     user = None
@@ -927,8 +1230,113 @@ def api_edit_post(post_id):
 
     post.title = title
     post.content = content
+    post.updatedAt = datetime.utcnow()
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content})
+    return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
+
+@app.route('/api/send-email-update-otp', methods=['POST'])
+def send_email_update_otp():
+    """Send OTP to new email address for email update verification"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    
+    if not new_email:
+        return jsonify({'success': False, 'error': 'New email is required'}), 400
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, new_email):
+        return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+
+    # Check if email is already in use
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    # Generate and send OTP to the new email
+    result = auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
+    return jsonify(result)
+
+@app.route('/api/verify-email-update-otp', methods=['POST'])
+def verify_email_update_otp():
+    """Verify OTP and update email address"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    otp_code = data.get('otp_code', '').strip()
+    
+    if not new_email or not otp_code:
+        return jsonify({'success': False, 'error': 'New email and OTP code are required'}), 400
+
+    # Verify OTP for email update
+    verify_result = auth_manager.verify_email_update_otp(session['user_id'], new_email, otp_code)
+    if not verify_result['success']:
+        return jsonify(verify_result), 400
+
+    # Check if email is still available
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    # Update user's email
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    old_email = user.email
+    user.email = new_email
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'message': 'Email updated successfully', 
+            'old_email': old_email,
+            'new_email': new_email
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
+
+@app.route('/api/update-email', methods=['POST'])
+def api_update_email():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json()
+    new_email = data.get('new_email', '').strip()
+    if not new_email:
+        return jsonify({'success': False, 'error': 'Email is required'}), 400
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, new_email):
+        return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+
+    # Check uniqueness
+    from models import User
+    existing = User.query.filter(User.email == new_email).first()
+    if existing:
+        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    user.email = new_email
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Email updated successfully', 'email': new_email})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
 if __name__ == '__main__':
     with app.app_context():

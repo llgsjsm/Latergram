@@ -12,6 +12,8 @@ class Post(db.Model):
     likesId = db.Column(db.Integer, nullable=True)  # Allow NULL values
     image = db.Column(db.String(255))
     content = db.Column(db.Text, nullable=False)
+    updatedAt = db.Column(db.DateTime, nullable=True)
+    image_blob = db.Column(db.LargeBinary, nullable=True)
     
     # Relationships
     author = db.relationship('User', backref=db.backref('posts', lazy=True))

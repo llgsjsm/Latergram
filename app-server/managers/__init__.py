@@ -9,6 +9,7 @@ _auth_manager = None
 _feed_manager = None
 _post_manager = None
 _profile_manager = None
+_moderator_manager = None
 
 def get_auth_manager():
     global _auth_manager
@@ -33,6 +34,12 @@ def get_profile_manager():
     if _profile_manager is None:
         _profile_manager = ProfileManager()
     return _profile_manager
+
+def get_moderator_manager():
+    global _moderator_manager
+    if _moderator_manager is None:
+        _moderator_manager = ModeratorManager()
+    return _moderator_manager
 
 __all__ = [
     "AuthenticationManager",

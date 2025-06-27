@@ -6,7 +6,7 @@
     <div class="col-md-6 offset-md-3">
       <h2 class="text-center mb-4">Create Post</h2>
 
-      <form method="POST" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
+      <form id="createPostForm" method="POST" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
         <!-- Title -->
         <div class="mb-3">
           <label for="title" class="form-label">Title</label>
@@ -43,4 +43,38 @@
     </div>
   </div>
 </div>
+<script>
+  function showNotification(message, type = "success") {
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText =
+      "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
+  
+  document.addEventListener('DOMContentLoaded', function () {
+    const postForm = document.getElementById('createPostForm');
+    const imageInput = document.getElementById('image');
+
+    postForm.addEventListener('submit', function (e) {
+      if (!imageInput.files || imageInput.files.length === 0) {
+        e.preventDefault(); // Stop form from submitting
+        showNotification("Please upload an image before creating a post.", "warning");
+      }
+    });
+  });
+
+  
+</script>
 {% endblock %}
+

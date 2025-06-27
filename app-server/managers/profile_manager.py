@@ -530,7 +530,7 @@ class ProfileManager:
                     SELECT followedUserId FROM followers WHERE followerUserId = :user_id
                 )
                 AND u.visibility = 'public'
-                ORDER BY u.followers DESC, u.createdAt DESC
+                ORDER BY u.createdAt DESC
                 LIMIT :limit
             """), {"user_id": user_id, "limit": limit}).fetchall()
             

@@ -14,7 +14,7 @@ class Moderator(db.Model, BaseUserMixin):
     modLevel = db.Column(db.Integer, nullable=False)
     username = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
-    password = db.Column(db.String(45), nullable=False)
+    password = db.Column(db.String(100), nullable=False)
     createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     def __init__(self, **kwargs):
