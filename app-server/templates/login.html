@@ -219,42 +219,11 @@
     ></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="{{ url_for('static', filename='assets/js/captcha.js') }}"></script>
     <script>
       // reCAPTCHA INTEGRATION STARTS HERE - Separate JS later.
       let captchaWidgetId = null;
       let captchaToken = null;
-
-      function renderCaptcha() {
-        if (typeof grecaptcha !== 'undefined') {
-          captchaWidgetId = grecaptcha.render('g-recaptcha', {
-            sitekey: '6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX',
-            callback: onCaptchaVerified,
-          });
-        }
-      }
-      function onCaptchaVerified(token) {
-        captchaToken = token;
-        console.log("Captcha verified:", token);
-      }
-
-      function resetCaptcha() {
-        if (captchaWidgetId !== null) {
-          grecaptcha.reset(captchaWidgetId);
-        }
-      }
-      function resetCaptchaOnError() {
-        if (typeof grecaptcha !== "undefined" && captchaWidgetId !== null) {
-          grecaptcha.reset(captchaWidgetId);
-          captchaToken = null;
-        }
-      }
-      function hideApprovedCaptcha() {
-        const captchaContainer = document.getElementById("captcha-container");
-        if (captchaContainer) {
-          captchaContainer.classList.add("d-none");
-        }
-      }
-
       window.onload = renderCaptcha;
       // ENDS HERE
 
