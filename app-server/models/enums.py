@@ -27,3 +27,17 @@ class UserDisableDays(Enum):
     THIRTY = 30
     SIXTY = 60
     NINETY = 90
+
+class LogActionTypes(Enum):
+    CREATE_POST = "create_post"
+    DELETE_POST = "delete_post"
+    UPDATE_POST = "update_post"
+    CREATE_COMMENT = "create_comment"
+    DELETE_COMMENT = "delete_comment"
+    UPDATE_COMMENT = "update_comment"
+    FOLLOW_USER = "follow_user"
+    UNFOLLOW_USER = "unfollow_user"
+    REMOVE_FOLLOWER = "remove_follower"
+    LIKE_POST = "like_post"
+    UNLIKE_POST = "unlike_post"
+    CANCEL_PENDING_FOLLOW_REQUEST = "cancel_pending_follow_request"

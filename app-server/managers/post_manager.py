@@ -2,6 +2,7 @@ from models import db, Post, Comment, User
 from typing import Dict, Any
 from sqlalchemy import text
 from datetime import datetime
+from models.enums import ReportTarget
 
 class PostManager:
     def __init__(self):
@@ -33,8 +34,10 @@ class PostManager:
             
             # Delete the post
             db.session.delete(post)
+
+            # Create a new log entry
+
             db.session.commit()
-            
             return {'success': True, 'message': 'Post deleted successfully'}
             
         except Exception as e:
@@ -75,7 +78,9 @@ class PostManager:
             
             # Update post like count
             post.like = (post.like or 0) + 1
-            
+
+            # Create a new log entry
+
             db.session.commit()
             
             return {'success': True, 'message': 'Post liked successfully', 'new_count': post.like}
@@ -112,7 +117,9 @@ class PostManager:
             
             # Don't touch post.likesId to avoid the NOT NULL constraint issue
             # The junction table is our source of truth for like tracking
-            
+
+            # Create a new log entry
+
             db.session.commit()
             
             # Clean up orphaned like records if they exist and are safe to delete
@@ -169,6 +176,7 @@ class PostManager:
         try:
             comment = Comment(postId=post_id, authorId=user_id, commentContent=content)
             db.session.add(comment)
+
             db.session.commit()
             
             return {
@@ -192,6 +200,9 @@ class PostManager:
         
         try:
             db.session.delete(comment)
+
+            # Create a new log entry
+
             db.session.commit()
             return {
                 'success': True,
@@ -230,6 +241,11 @@ class PostManager:
             text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower, :followed, NOW())"),
             {"follower": follower_user_id, "followed": followed_user_id}
         )
+
+        followed_user = User.query.filter_by(followed_user_id).first()
+        # Create a new log entry
+
+
         db.session.commit()
         return {'success': True}
 
@@ -267,3 +283,22 @@ class PostManager:
         except Exception as e:
             print(f"Error getting posts likes batch: {e}")
             return {post_id: False for post_id in post_ids}
+    
+    def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp, action_category)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
+        """
+
+        db.session.execute(sql, {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+            "action_category": action_category
+        })
+        db.session.commit()

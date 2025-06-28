@@ -60,6 +60,8 @@ class ProfileManager:
             user.visibility = visibility
         
         try:
+            # Create a new log entry
+
             db.session.commit()
             return {
                 'success': True,
@@ -119,6 +121,8 @@ class ProfileManager:
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
                 message = 'Follow request sent'
             
+            # Create a new log entry
+
             db.session.commit()
             
             # Clear cache for both users
@@ -166,6 +170,8 @@ class ProfileManager:
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
                 message = 'Follow request declined'
             
+            # Create a new log entry
+
             db.session.commit()
             
             # Clear cache for both users
@@ -259,6 +265,9 @@ class ProfileManager:
                 WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
             """)
             db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+
+            # Create a new log entry
+
             db.session.commit()
             
             # Clear cache for both users
@@ -288,6 +297,9 @@ class ProfileManager:
             # Remove the relationship regardless of status
             query = text("DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id")
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
+
+            # Create a new log entry
+
             db.session.commit()
             
             # Clear cache for both users
@@ -656,6 +668,8 @@ class ProfileManager:
             
             # Update the password
             user.password = hashed_password
+            # Create a new log entry
+
             db.session.commit()
             
             return {
@@ -756,6 +770,10 @@ class ProfileManager:
             
             # 6. Finally, delete the user account
             db.session.delete(user)
+
+            # Create a new log entry
+
+
             db.session.commit()
             
             # Clear any cached data for this user
@@ -822,6 +840,8 @@ class ProfileManager:
             self._clear_user_cache(user_id)
             self._clear_user_cache(follower_user_id)
 
+            # Create a new log entry
+
             return {'success': True, 'message': 'Follower removed successfully.'}
         except Exception as e:
             db.session.rollback()
@@ -884,3 +904,22 @@ class ProfileManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to fix visibility case: {str(e)}'}
+        
+    def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp, action_category)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
+        """
+
+        db.session.execute(sql, {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+            "action_category": action_category
+        })
+        db.session.commit()

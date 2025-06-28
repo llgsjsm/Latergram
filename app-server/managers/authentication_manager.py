@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
 from datetime import datetime, timedelta
 import re
+from sqlalchemy import text
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -30,15 +31,22 @@ class AuthenticationManager:
 
         if user:
             if not bcrypt.check_password_hash(user.password, password):
+                # Create a new log entry
+
                 return {'success': False, 'error': 'Invalid password'}
             
             # enforce account disablement period
             if user.disabledUntil and user.disabledUntil > datetime.utcnow():
+                # Create a new log entry
+
                 return {
                     'success': False,
                     'error': f'Login failed. Your account is disabled until {user.disabledUntil.strftime("%Y-%m-%d %H:%M:%S")}.'
                 }
             
+            # Create a new log entry
+
+
             return {
                 'success': True,
                 'login_type': 'user',
@@ -484,6 +492,8 @@ class AuthenticationManager:
             'success': True,
             'requires_otp': True,
             'email': moderator.email,
+            'mod_id': moderator.modID,
+            'mod_level': moderator.modLevel,
             'message': 'OTP sent to your email. Please verify to complete login.'
         }
     
@@ -645,3 +655,22 @@ class AuthenticationManager:
         db.session.commit()
         
         return {'success': True, 'user_id': current_user.userId, 'message': 'OTP verified successfully'}
+    
+    def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp, action_category)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
+        """
+
+        db.session.execute(sql, {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+            "action_category": action_category
+        })
+        db.session.commit()

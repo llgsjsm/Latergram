@@ -136,6 +136,25 @@ def verify_recaptcha(token, remote_ip):
     ).json()
     return response.get('success', False)
 
+def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
+    """
+    Logs an action to the application_log table.
+    """
+    sql = """
+    INSERT INTO application_log 
+    (user_id, action, target_id, target_type, timestamp, action_category)
+    VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
+    """
+
+    db.session.execute(sql, {
+        "user_id": user_id,
+        "action": action,
+        "target_id": target_id,
+        "target_type": target_type,
+        "action_category": action_category
+    })
+    db.session.commit()
+
 @app.route('/home')
 def home():
     # log_to_splunk("Visited /home")
@@ -245,6 +264,9 @@ def login():
                         if moderator:
                             # Use OTP login for moderators (always enabled for moderators)
                             result = auth_manager.moderator_login_with_otp(email, password)
+                            if result['success']:
+                                session['mod_id'] = result['mod_id']
+                                session['mod_level'] = result['mod_level']
                             return jsonify(result)
                         else:
                             return jsonify({'success': False, 'error': 'User not found'})
@@ -267,6 +289,7 @@ def login():
                     if result['success']:
                         if result['login_type'] == 'moderator':
                             session['mod_id'] = result['moderator']['mod_id']
+                            session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
                             return redirect(url_for('moderation'))
                         else:
@@ -414,6 +437,10 @@ def create_post():
         )
 
         db.session.add(new_post)
+
+        db.session.flush()
+        # Create a new log entry
+
         db.session.commit()
 
         flash("Post created successfully!", "success")
@@ -547,6 +574,9 @@ def add_comment(post_id):
             parentCommentId=parent_comment_id
         )
         db.session.add(new_comment)
+
+        # Create a new log entry
+
         db.session.commit()
         
         # Check if this is an AJAX request by looking for XMLHttpRequest header
@@ -1172,9 +1202,9 @@ def moderation():
 
     try:
         # Pending reports for the first table
-        reports = moderator_manager.get_report_queue()
+        reports = moderator_manager.get_report_queue(session['mod_level'])
         # All reports for history table, paginated
-        all_reports_query = moderator_manager.get_all_reports_query()
+        all_reports_query = moderator_manager.get_all_reports_query(session['mod_level'])
         paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
     except Exception as e:
         print(f"Error getting reports: {e}")
@@ -1193,7 +1223,7 @@ def report_detail(report_id):
     if 'mod_id' not in session:
         return redirect(url_for('login'))
 
-    report = moderator_manager.get_report_by_id(report_id)
+    report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
     referenced = None
     referenced_type = None
 
@@ -1224,15 +1254,15 @@ def moderation_action(action, report_id):
 
     result = None
     if action == 'review':
-        result = moderator_manager.review_report(report_id, session['mod_id'])
+        result = moderator_manager.review_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'resolve':
-        result = moderator_manager.resolve_report(report_id, session['mod_id'])
+        result = moderator_manager.resolve_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'reject':
-        result = moderator_manager.reject_report(report_id, session['mod_id'])
+        result = moderator_manager.reject_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'disable_user':
         days = int(request.form.get('disable_days', 1))
         # Get the referenced user from the report
-        report = moderator_manager.get_report_by_id(report_id)
+        report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
         if report and report.targetType == "User":
             result = moderator_manager.disable_user(report.targetId, days, session['mod_id'])
     else:

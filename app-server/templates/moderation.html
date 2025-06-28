@@ -166,8 +166,10 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if paginated_reports %}
         <!-- Pagination controls -->
         <nav>
+            
             <ul class="pagination justify-content-center">
                 {% if paginated_reports.has_prev %}
                 <li class="page-item">
@@ -189,7 +191,9 @@
                 <li class="page-item disabled"><span class="page-link bg-dark text-light">Next</span></li>
                 {% endif %}
             </ul>
+            
         </nav>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
