@@ -217,6 +217,10 @@ def hello_world():
     # log_to_splunk("Visited /")
     return redirect(url_for('home'))
 
+@app.route('/reset_password2', methods=['GET', 'POST'])
+def reset_password2():
+    return render_template('reset_password.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -307,12 +311,6 @@ def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
-    
-    # Captcha Form 
-    token = request.form.get('g-recaptcha-response', '')
-    if not verify_recaptcha(token, request.remote_addr):
-        flash('Captcha verification failed.', 'danger')
-        return jsonify({'success': False, 'error': 'Captcha verification failed.'})
 
     if not email or not otp_code:
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
@@ -340,14 +338,15 @@ def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
 
-    token = data.get('g-recaptcha-response', '')
-    if not verify_recaptcha(token, request.remote_addr):
-        return jsonify({'success': False, 'error': 'Captcha verification failed.'})
+    # token = data.get('g-recaptcha-response', '')
+    # if not verify_recaptcha(token, request.remote_addr):
+    #     return jsonify({'success': False, 'error': 'Captcha verification failed.'})
 
     if not email:
         return jsonify({'success': False, 'error': 'Email is required'})
     
     result = auth_manager.initiate_password_reset(email)
+    print(result)
     return jsonify(result)
 
 @app.route('/verify-reset-otp', methods=['POST'])
@@ -360,6 +359,7 @@ def verify_reset_otp():
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
     result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+    print(result)
     return jsonify(result)
 
 @app.route('/reset-password', methods=['POST'])
@@ -373,6 +373,7 @@ def reset_password():
         return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
     
     result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    result['redirect'] = url_for('login')
     return jsonify(result)
 
 @app.route('/register', methods=['GET', 'POST'])

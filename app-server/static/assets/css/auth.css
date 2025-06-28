@@ -80,7 +80,6 @@ a:hover {
 /* OTP input styling */
 #otp-code {
     text-align: center;
-    letter-spacing: 8px;
     font-size: 18px;
     font-weight: bold;
 }

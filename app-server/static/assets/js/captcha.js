@@ -1,12 +1,4 @@
 
-      function renderCaptcha() {
-        if (typeof grecaptcha !== 'undefined') {
-          captchaWidgetId = grecaptcha.render('g-recaptcha', {
-            sitekey: '6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX',
-            callback: onCaptchaVerified,
-          });
-        }
-      }
       function onCaptchaVerified(token) {
         captchaToken = token;
         console.log("Captcha verified:", token);
@@ -29,3 +21,19 @@
           captchaContainer.classList.add("d-none");
         }
       }
+
+function showCaptcha() {
+  const container = document.getElementById("captcha-container");
+  if (container) {
+    container.classList.remove("d-none"); // show it
+    if (typeof grecaptcha !== 'undefined') {
+      // Render only if not already rendered
+      if (!window.captchaWidgetId) {
+        window.captchaWidgetId = grecaptcha.render('g-recaptcha', {
+          sitekey: '6LdiSG8rAAAAAJKJYfIl48jO3lg',
+          callback: onCaptchaVerified,
+        });
+      }
+    }
+  }
+}
