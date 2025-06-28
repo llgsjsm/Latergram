@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from models import db, Report, Post, Comment, User, Moderator
 from models.enums import ReportStatus, UserDisableDays, ReportTarget
+from sqlalchemy import text
 
 class ModeratorManager:
     def __init__(self, moderator: Moderator = None):
@@ -63,19 +64,58 @@ class ModeratorManager:
         else:
             return {'success': False, 'message': 'Report not found'}
 
+    def remove_reported_post(self, report_id, mod_level):
+        if mod_level != 2:  # Only content moderators can remove posts
+            return {'success': False, 'message': 'Only content moderators may remove reported posts.'}
+        
+        report = Report.query.get(report_id)
+        if report:
+            try:
+                post = Post.query.get(report.targetId)
+                if not post:
+                    return {'success': False, 'error': 'Post not found'}
+            
+                # Delete related comments first (if any)
+                Comment.query.filter_by(postId=report.targetId).delete()
+                
+                # Delete related likes from junction table
+                db.session.execute(
+                    text("DELETE FROM post_likes WHERE post_id = :post_id"),
+                    {"post_id": report.targetId}
+                )
+            
+                # Delete the post
+                db.session.delete(post)
 
+                # Create a new log entry
 
-    def remove_post(self, post_id):
-        post = Post.query.get(post_id)
-        if post:
-            db.session.delete(post)
-            db.session.commit()
+                db.session.commit()
+                return {'success': True, 'message': 'Post deleted successfully'}    
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error deleting post: {e}")
+                return {'success': False, 'error': f'Failed to delete post: {str(e)}'}
 
-    def remove_comment(self, comment_id):
-        comment = Comment.query.get(comment_id)
-        if comment:
-            db.session.delete(comment)
-            db.session.commit()
+    def remove_reported_comment(self, report_id, mod_level):
+        if mod_level != 2:  # Only content moderators can remove posts
+            return {'success': False, 'message': 'Only content moderators may remove reported comments.'}
+        
+        report = Report.query.get(report_id)
+        if report:
+            try:
+                comment = Comment.query.get_or_404(report.targetId)
+                post_id = comment.postId
+                
+                # Delete the comment
+                db.session.delete(comment)
+                # Create a new log entry
+
+                db.session.commit()
+                return {'success': True, 'message': 'Comment deleted successfully'}    
+
+            except Exception as e:
+                print(f"Error deleting comment: {e}")
+                return {'success': False, 'error': 'Failed to delete comment'}
 
     def disable_user(self, user_id, disabled_days, mod_id, mod_level):
         """
@@ -115,10 +155,10 @@ class ModeratorManager:
     
     def get_report_by_id(self, report_id, mod_level):
         if mod_level == 1:
-            return Report.query.filter_by(id=report_id, targetType=ReportTarget.USER.value).first()
+            return Report.query.filter_by(reportId=report_id, targetType=ReportTarget.USER.value).first()
         elif mod_level == 2:
             return Report.query.filter(
-                Report.id == report_id,
+                Report.reportId == report_id,
                 Report.targetType.in_([ReportTarget.COMMENT.value, ReportTarget.POST.value])
             ).first()
 

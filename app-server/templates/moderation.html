@@ -28,18 +28,14 @@
                 </td>
                 <td>
                     {% if report.reporter %}
-                    <a class="text-decoration-none fw-bold" href="{{ url_for('profile', user_id=report.reporter.userId) }}">
                         {{ report.reporter.username }}
-                    </a>
                     {% else %}
                     Unknown
                     {% endif %}
                 </td>
                 <td>
                     {% if report.reviewer %}
-                    <a class="text-decoration-none fw-bold" href="{{ url_for('profile', user_id=report.reviewer.modID) }}">
                         {{ report.reviewer.username }}
-                    </a>
                     {% else %}
                     -
                     {% endif %}
@@ -126,20 +122,14 @@
                     </td>
                     <td>
                         {% if report.reporter %}
-                        <a class="text-decoration-none fw-bold"
-                            href="{{ url_for('profile', user_id=report.reporter.userId) }}">
                             {{ report.reporter.username }}
-                        </a>
                         {% else %}
                         Unknown
                         {% endif %}
                     </td>
                     <td>
                         {% if report.reviewer %}
-                        <a class="text-decoration-none fw-bold"
-                            href="{{ url_for('profile', user_id=report.reviewer.modID) }}">
                             {{ report.reviewer.username }}
-                        </a>
                         {% else %}
                         -
                         {% endif %}
@@ -169,7 +159,6 @@
         {% if paginated_reports %}
         <!-- Pagination controls -->
         <nav>
-            
             <ul class="pagination justify-content-center">
                 {% if paginated_reports.has_prev %}
                 <li class="page-item">
@@ -195,5 +184,60 @@
         </nav>
         {% endif %}
     </div>
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="actionConfirmModal" tabindex="-1" aria-labelledby="actionConfirmModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="actionConfirmModalLabel">Confirm Action</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="actionConfirmModalBody">
+                    Are you sure you want to perform this action?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="actionConfirmModalConfirmBtn">Yes, proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>  
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let modal = new bootstrap.Modal(document.getElementById('actionConfirmModal'));
+        let confirmBtn = document.getElementById('actionConfirmModalConfirmBtn');
+        let currentForm = null;
+        let modalBody = document.getElementById('actionConfirmModalBody');
+
+        // Attach event listeners to all action buttons in forms
+        document.querySelectorAll('.btn-group form button[type="submit"]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                currentForm = btn.closest('form');
+                // Set modal message based on button
+                if (btn.title === "Review") {
+                    modalBody.textContent = "Are you sure you want to mark this report as Under Review?";
+                } else if (btn.title === "Resolve") {
+                    modalBody.textContent = "Are you sure you want to resolve this report?";
+                } else if (btn.title === "Reject") {
+                    modalBody.textContent = "Are you sure you want to reject this report?";
+                } else {
+                    modalBody.textContent = "Are you sure you want to perform this action?";
+                }
+                modal.show();
+            });
+        });
+
+        confirmBtn.addEventListener('click', function () {
+            if (currentForm) {
+                currentForm.submit();
+            }
+            modal.hide();
+        });
+    });
+</script>
 {% endblock %}

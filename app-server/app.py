@@ -1273,7 +1273,11 @@ def moderation_action(action, report_id):
         # Get the referenced user from the report
         report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
         if report and report.targetType == "User":
-            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'])
+            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'], session['mod_level'])
+    elif action == 'delete_post':
+        result = moderator_manager.remove_reported_post(report_id, session['mod_level'])
+    elif action == 'delete_comment':
+        result = moderator_manager.remove_reported_comment(report_id, session['mod_level'])
     else:
         flash('Invalid action.', 'danger')
         return redirect(url_for('moderation'))
