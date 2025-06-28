@@ -217,8 +217,8 @@ def hello_world():
     # log_to_splunk("Visited /")
     return redirect(url_for('home'))
 
-@app.route('/reset_password2', methods=['GET', 'POST'])
-def reset_password2():
+@app.route('/reset_password_portal', methods=['GET', 'POST'])
+def reset_password_portal():
     return render_template('reset_password.html')
 
 @app.route('/login', methods=['GET', 'POST'])
