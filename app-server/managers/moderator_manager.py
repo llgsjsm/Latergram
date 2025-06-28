@@ -10,12 +10,13 @@ class ModeratorManager:
 
     def review_report(self, report_id, mod_id, mod_level):
         report = Report.query.get(report_id)
-        if mod_level == 2 and report.targetType == ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only user moderators may manage user reports.'}
-        elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only content moderators may manage content reports.'}
         
         if report:
+            if mod_level == 2 and report.targetType == ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only user moderators may manage user reports.'}
+            elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only content moderators may manage content reports.'}
+            
             if report.status == ReportStatus.PENDING.value:
                 report.status = ReportStatus.UNDER_REVIEW.value
                 report.reviewedBy = mod_id
@@ -23,38 +24,45 @@ class ModeratorManager:
                 return {'success': True, 'message': 'Report marked as under review'}
             else:
                 return {'success': False, 'message': 'Report is not pending for review!'}
-
+        else:
+            return {'success': False, 'message': 'Report not found'}
 
     def resolve_report(self, report_id, mod_id, mod_level):
         report = Report.query.get(report_id)
-        if mod_level == 2 and report.targetType == ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only user moderators may manage user reports.'}
-        elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only content moderators may manage content reports.'}
         
         if report:
+            if mod_level == 2 and report.targetType == ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only user moderators may manage user reports.'}
+            elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only content moderators may manage content reports.'}
+            
             if report.status == ReportStatus.UNDER_REVIEW.value:
                 report.status = ReportStatus.RESOLVED.value
                 db.session.commit()
                 return {'success': True, 'message': 'Report resolved'}
             else:
                 return {'success': False, 'message': 'Report is not under review!'}
-
+        else:
+            return {'success': False, 'message': 'Report not found'}
 
     def reject_report(self, report_id, mod_id, mod_level):
         report = Report.query.get(report_id)
-        if mod_level == 2 and report.targetType == ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only user moderators may manage user reports.'}
-        elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
-            return {'success': False, 'message': 'Only content moderators may manage content reports.'}
           
         if report:
+            if mod_level == 2 and report.targetType == ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only user moderators may manage user reports.'}
+            elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
+                return {'success': False, 'message': 'Only content moderators may manage content reports.'}
+            
             if report.status == ReportStatus.UNDER_REVIEW.value:
                 report.status = ReportStatus.REJECTED.value
                 db.session.commit()
                 return {'success': True, 'message': 'Report rejected'}
             else:
                 return {'success': False, 'message': 'Report is not under review!'}
+        else:
+            return {'success': False, 'message': 'Report not found'}
+
 
 
     def remove_post(self, post_id):

@@ -1224,6 +1224,9 @@ def report_detail(report_id):
         return redirect(url_for('login'))
 
     report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
+    if report is None:
+        flash('Report not found or you do not have permission to view it.', 'danger')
+        return redirect(url_for('moderation'))
     referenced = None
     referenced_type = None
 
