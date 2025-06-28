@@ -11,6 +11,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 import random
+import time
 
 bcrypt = Bcrypt()
 
@@ -33,7 +34,7 @@ class AuthenticationManager:
             if not bcrypt.check_password_hash(user.password, password):
                 # Create a new log entry
 
-                return {'success': False, 'error': 'Invalid password'}
+                return {'success': False, 'error': 'Error logging in. Try again.'}
             
             # enforce account disablement period
             if user.disabledUntil and user.disabledUntil > datetime.utcnow():
@@ -68,7 +69,7 @@ class AuthenticationManager:
             ).first()
             if moderator:
                 if not bcrypt.check_password_hash(moderator.password, password):
-                    return {'success': False, 'error': 'Invalid password'}
+                    return {'success': False, 'error': 'Error logging in. Try again.'}
                 return {
                     'success': True,
                     'login_type': 'moderator',
@@ -85,7 +86,7 @@ class AuthenticationManager:
                 # not in user or moderator table
                 return {
                     'success': False,
-                    'error': 'User not found'
+                    'error': 'Error logging in. Try again.'
                 }
 
     def logout(self):
@@ -235,38 +236,25 @@ class AuthenticationManager:
     
     def generate_and_send_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Generate and send OTP to user's email"""
-        # Find user by email
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            return {'success': False, 'error': 'User not found'}
-        
-        # Rate limiting: Check if user requested OTP recently
-        if user.last_otp_request:
-            time_since_last_request = datetime.utcnow() - user.last_otp_request
-            if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
-                return {'success': False, 'error': 'Please wait before requesting another OTP'}
-        
-        # Generate OTP
-        otp_code = user.generate_otp()
-        
-        # Set OTP in database
-        user.set_otp(otp_code, otp_type, expiry_minutes=10)
-        
         try:
-            db.session.commit()
-            
-            # Send OTP via email
-            if self.send_otp_email(email, otp_code, otp_type):
-                return {'success': True, 'message': f'OTP sent to {email}'}
-            else:
-                # Rollback if email sending fails
-                user.clear_otp()
+            user = User.query.filter_by(email=email).first()
+            delay = 5 # Dummy delay against timing attacks :)
+            if user:
+                if user.last_otp_request:
+                    # Bootleg rate limiting
+                    time_since_last_request = datetime.utcnow() - user.last_otp_request
+                    if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
+                        time.sleep(delay)
+                        return {'success': True, 'message': 'An OTP has been sent.'}
+                otp_code = user.generate_otp()
+                user.set_otp(otp_code, otp_type, expiry_minutes=10)
                 db.session.commit()
-                return {'success': False, 'error': 'Failed to send OTP email'}
-                
+                self.send_otp_email(email, otp_code, otp_type)
+            else:
+                time.sleep(delay)
         except Exception as e:
             db.session.rollback()
-            return {'success': False, 'error': f'Database error: {str(e)}'}
+        return { 'success': True, 'message': 'An OTP has been sent.' }
     
     def generate_and_send_moderator_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Generate and send OTP to moderator's email"""

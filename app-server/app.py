@@ -31,7 +31,6 @@ DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
 CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
-BYPASS_CAPTCHA = os.getenv("BYPASS_CAPTCHA", "false").lower() == "true"
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
@@ -121,7 +120,7 @@ def ensure_firebase_initialized():
     bucket = storage.bucket()
 
 def verify_recaptcha(token, remote_ip):
-    if BYPASS_CAPTCHA:
+    if IS_TESTING:
         print("Skipping reCAPTCHA verification in test mode")
         return True
     if not token:
@@ -269,7 +268,7 @@ def login():
                                 session['mod_level'] = result['mod_level']
                             return jsonify(result)
                         else:
-                            return jsonify({'success': False, 'error': 'User not found'})
+                            return jsonify({'success': False, 'error': 'Error logging in. Try again.'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
         else:
@@ -309,6 +308,12 @@ def verify_login_otp():
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
     
+    # Captcha Form 
+    token = request.form.get('g-recaptcha-response', '')
+    if not verify_recaptcha(token, request.remote_addr):
+        flash('Captcha verification failed.', 'danger')
+        return jsonify({'success': False, 'error': 'Captcha verification failed.'})
+
     if not email or not otp_code:
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
@@ -334,7 +339,11 @@ def resend_login_otp():
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
-    
+
+    token = data.get('g-recaptcha-response', '')
+    if not verify_recaptcha(token, request.remote_addr):
+        return jsonify({'success': False, 'error': 'Captcha verification failed.'})
+
     if not email:
         return jsonify({'success': False, 'error': 'Email is required'})
     
@@ -511,9 +520,6 @@ def api_report_post(post_id):
     db.session.commit()
 
     return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
-
-
-
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):

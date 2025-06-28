@@ -149,9 +149,10 @@
           >
         </div>
 
-        <!-- Uncomment this if you want to enable CAPTCHA -->
-        <!--<div class="g-recaptcha d-flex justify-content-center" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX" data-callback="onCaptchaVerified"></div> 
-        -->
+        <div id="captcha-container" class="d-flex justify-content-center">
+          <div id="g-recaptcha"></div>
+        </div>
+
 
         <!-- Login and Reset Buttons -->
         <div class="d-grid my-4 login-btn-wrapper">
@@ -199,7 +200,6 @@
           </button>
         </div>
       </form>
-
       <!-- Flash Messages -->
       {% with messages = get_flashed_messages(with_categories=True) %} {% if
       messages %} {% for category, message in messages %}
@@ -220,17 +220,50 @@
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
+      // reCAPTCHA INTEGRATION STARTS HERE - Separate JS later.
+      let captchaWidgetId = null;
+      let captchaToken = null;
+
+      function renderCaptcha() {
+        if (typeof grecaptcha !== 'undefined') {
+          captchaWidgetId = grecaptcha.render('g-recaptcha', {
+            sitekey: '6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX',
+            callback: onCaptchaVerified,
+          });
+        }
+      }
+      function onCaptchaVerified(token) {
+        captchaToken = token;
+        console.log("Captcha verified:", token);
+      }
+
+      function resetCaptcha() {
+        if (captchaWidgetId !== null) {
+          grecaptcha.reset(captchaWidgetId);
+        }
+      }
+      function resetCaptchaOnError() {
+        if (typeof grecaptcha !== "undefined" && captchaWidgetId !== null) {
+          grecaptcha.reset(captchaWidgetId);
+          captchaToken = null;
+        }
+      }
+      function hideApprovedCaptcha() {
+        const captchaContainer = document.getElementById("captcha-container");
+        if (captchaContainer) {
+          captchaContainer.classList.add("d-none");
+        }
+      }
+
+      window.onload = renderCaptcha;
+      // ENDS HERE
+
       // Safeguard: Always hide reset-btn-wrapper on page load
       document.addEventListener("DOMContentLoaded", function () {
         // Initialize the page to show only login section
         showSection("login");
       });
 
-      // Captcha token variable
-      let captchaToken = null;
-      function onCaptchaVerified(token) {
-        captchaToken = token;
-      }
       // Function to show only specific sections
       function showSection(sectionClass) {
         // Hide all form sections
@@ -254,7 +287,7 @@
         // Hide all individual buttons
         document
           .querySelectorAll(
-            "#login-btn, #send-reset-link, #verify-otp-btn, #reset-password-btn"
+            "#login-btn, #send-reset-link, #verify-otp-btn, #reset-password-btn, #captcha-container"
           )
           .forEach(function (el) {
             el.style.display = "none";
@@ -271,6 +304,9 @@
           document.querySelector(".login-btn-wrapper").style.display = "block";
           document.querySelector("#login-btn").style.display = "block";
           document.querySelector("#signup-link").style.display = "block";
+          document.querySelector("#captcha-container").style.display = "block";
+          document.getElementById("captcha-container").classList.remove("d-none");
+
         } else if (sectionClass === "reset") {
           document.querySelector(".reset-text-field").style.display = "block";
           document.querySelector(".reset-btn-wrapper").style.display = "block";
@@ -329,12 +365,6 @@
         const loginWrapper = document.querySelector(".login-btn-wrapper");
         if (loginWrapper && loginWrapper.style.display !== "none") {
           e.preventDefault();
-          
-          // Uncomment this if you want to enable CAPTCHA
-          // if (!captchaToken) {
-          //   showMessage("Please complete the CAPTCHA.", "error");
-          //   return;
-          // }
 
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
@@ -370,10 +400,12 @@
                 }
               } else {
                 showMessage(data.error, "error");
+                resetCaptchaOnError();
               }
             })
             .catch((error) => {
               showMessage("An error occurred", "error");
+              resetCaptchaOnError();
             });
         }
       });
@@ -397,6 +429,7 @@
             },
             body: JSON.stringify({
               email: email,
+              'g-recaptcha-response': captchaToken,
             }),
           })
             .then((response) => response.json())
@@ -406,7 +439,7 @@
                 document.getElementById("otp-email").value = email;
                 document.getElementById("otp-type").value = "moderator_password_reset";
                 showSection("otp");
-                showMessage("Reset code sent to your email", "success");
+                showMessage("An OTP has been sent.", "success");
               } else {
                 // Try user password reset
                 fetch("/forgot-password", {
@@ -416,6 +449,7 @@
                   },
                   body: JSON.stringify({
                     email: email,
+                    'g-recaptcha-response': captchaToken,
                   }),
                 })
                   .then((response) => response.json())
@@ -424,18 +458,23 @@
                       document.getElementById("otp-email").value = email;
                       document.getElementById("otp-type").value = "password_reset";
                       showSection("otp");
-                      showMessage("Reset code sent to your email", "success");
+                      showMessage("An OTP has been sent.", "success");
+                      hideApprovedCaptcha();
+                      resetCaptcha();
                     } else {
                       showMessage(data.error, "error");
+                      resetCaptchaOnError();
                     }
                   })
                   .catch((error) => {
                     showMessage("An error occurred", "error");
+                    resetCaptchaOnError();
                   });
               }
             })
             .catch((error) => {
               showMessage("An error occurred", "error");
+              resetCaptchaOnError();
             });
         });
 
