@@ -8,7 +8,7 @@ pytest
 flake8
 mysql-connector-python==8.0.33
 PyMySQL==1.0.3
-python-dotenv==1.0.0
+python-dotenv==1.1.1
 firebase-admin==6.8.0
 Flask-Mail==0.9.1
 redis
