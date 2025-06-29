@@ -527,9 +527,14 @@ class AuthenticationManager:
     
     def reset_password_with_otp(self, email: str, otp_code: str, new_password: str) -> Dict[str, Any]:
         """Reset password after OTP verification"""
-        user = User.query.filter_by(email=email).first()
+        user = Moderator.query.filter_by(email=email).first()
         if not user:
+            user = User.query.filter_by(email=email).first()
+        else:
             return {'success': False, 'error': 'User not found'}
+        
+        # if not user:
+        #     return {'success': False, 'error': 'User not found'}
         
         # Verify OTP is still valid for password reset
         if not user.is_otp_valid(otp_code, 'password_reset'):
