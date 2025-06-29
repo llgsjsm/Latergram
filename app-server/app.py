@@ -14,7 +14,7 @@ import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 
 # Load environment variables
-load_dotenv('app-server/.env')
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
