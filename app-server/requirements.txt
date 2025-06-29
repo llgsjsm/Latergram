@@ -3,7 +3,7 @@ Flask-Bcrypt
 Flask-Limiter
 Werkzeug>=2.2,<3.0
 Flask>=2.2.0,<3.0
-requests==2.31.0
+requests==2.32.4
 pytest
 flake8
 mysql-connector-python==8.0.33
