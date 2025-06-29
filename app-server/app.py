@@ -12,6 +12,8 @@ import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
+from flask_limiter import Limiter
+
 
 # Load environment variables
 load_dotenv()
@@ -76,6 +78,13 @@ def get_real_ip():
     if forwarded_for:
         return forwarded_for.split(',')[0].strip()
     return request.remote_addr
+
+# rate limiting
+limiter = Limiter(
+    key_func=get_real_ip,
+    app=app,
+    default_limits=['5 per minute'],
+)
 
 def log_to_splunk(event_data):
     client_ip = get_real_ip()
@@ -321,6 +330,7 @@ def verify_login_otp():
     return jsonify(result)
 
 @app.route('/resend-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -332,6 +342,7 @@ def resend_login_otp():
     return jsonify(result)
 
 @app.route('/forgot-password', methods=['POST'])
+@limiter.limit('1 per minute')
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
@@ -348,6 +359,7 @@ def forgot_password():
     return jsonify(result)
 
 @app.route('/verify-reset-otp', methods=['POST'])
+@limiter.limit('10 per minute')
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1454,6 +1466,7 @@ def verify_moderator_login_otp():
     return jsonify(result)
 
 @app.route('/resend-moderator-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
 def resend_moderator_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1465,6 +1478,7 @@ def resend_moderator_login_otp():
     return jsonify(result)
 
 @app.route('/moderator-forgot-password', methods=['POST'])
+@limiter.limit('1 per minute')
 def moderator_forgot_password():
     data = request.get_json()
     email = data.get('email', '')
@@ -1499,6 +1513,10 @@ def reset_moderator_password():
     
     result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
     return jsonify(result)
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify(error="Too many requests, slow down!"), 429
 
 if __name__ == '__main__':
     with app.app_context():
