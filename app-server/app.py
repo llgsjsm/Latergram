@@ -623,7 +623,7 @@ def edit_comment(comment_id):
         
         # Update comment
         comment.commentContent = new_content
-        comment.timestamp = datetime.utcnow()  # Update timestamp to show it was edited
+        comment.mark_as_edited()  # Set edited_at timestamp
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Comment updated successfully'})
@@ -1028,6 +1028,8 @@ def api_get_comments(post_id):
         'authorId': comment.authorId,
         'commentContent': comment.commentContent,
         'timestamp': comment.timestamp,
+        'edited_at': comment.edited_at,
+        'is_edited': comment.is_edited(),
         'parentCommentId': comment.parentCommentId
     } for comment in comments])
 
@@ -1151,7 +1153,7 @@ def load_comments(post_id):
         
         # Get comments for the post with author information
         comments_query = text("""
-            SELECT c.commentId, c.commentContent, c.timestamp, c.parentCommentId,
+            SELECT c.commentId, c.commentContent, c.timestamp, c.edited_at, c.parentCommentId,
                    u.username, u.profilePicture
             FROM comment c
             JOIN user u ON c.authorId = u.userId
@@ -1166,10 +1168,16 @@ def load_comments(post_id):
         
         comments = []
         for row in result:
+            # Format timestamps
+            timestamp_str = row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else ''
+            edited_at_str = row.edited_at.strftime('%b %d, %Y at %I:%M %p') if row.edited_at else None
+            
             comments.append({
                 'commentId': row.commentId,
                 'content': row.commentContent,
-                'timestamp': row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else '',
+                'timestamp': timestamp_str,
+                'edited_at': edited_at_str,
+                'is_edited': row.edited_at is not None,
                 'author': {
                     'username': row.username,
                     'profilePicture': row.profilePicture or ''

@@ -9,6 +9,7 @@ class Comment(db.Model):
     postId = db.Column(db.Integer, db.ForeignKey('post.postId'), nullable=False)
     commentContent = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    edited_at = db.Column(db.DateTime, nullable=True)
     parentCommentId = db.Column(db.Integer, db.ForeignKey('comment.commentId'))
     
     # Relationships
@@ -44,6 +45,20 @@ class Comment(db.Model):
 
     def set_timestamp(self, timestamp):
         self.timestamp = timestamp
+
+    def get_edited_at(self):
+        return self.edited_at
+
+    def set_edited_at(self, edited_at):
+        self.edited_at = edited_at
+
+    def is_edited(self):
+        """Check if the comment has been edited"""
+        return self.edited_at is not None
+
+    def mark_as_edited(self):
+        """Mark the comment as edited with current timestamp"""
+        self.edited_at = datetime.datetime.utcnow()
 
 # Add self-referential relationship after class definition
 Comment.replies = db.relationship('Comment', 

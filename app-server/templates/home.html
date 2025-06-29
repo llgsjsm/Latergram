@@ -56,8 +56,8 @@
                 {{ post.author.username }}
               </a>
               <div class="text-muted small">
-                {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost
-                else '' }}
+                {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else
+                '' }}
               </div>
             </div>
             {% endif %}
@@ -71,9 +71,16 @@
             style="cursor: pointer"
             onclick="enablePostEdit('{{ post.postId }}', false)"
           >
-            {{ post.title }}
-            {% if post.updatedAt %}
-              <span class="badge bg-secondary" style="font-size: 0.8rem; vertical-align: middle; margin-left: 8px;">Edited</span>
+            {{ post.title }} {% if post.updatedAt %}
+            <span
+              class="badge bg-secondary"
+              style="
+                font-size: 0.8rem;
+                vertical-align: middle;
+                margin-left: 8px;
+              "
+              >Edited</span
+            >
             {% endif %}
           </h6>
           <input
@@ -85,11 +92,10 @@
             style="font-size: 1rem; font-weight: 600; margin-bottom: 4px"
           />
           {% else %}
-          <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}"> {# Added fw-bold here #}
-            {{ post.title }}
+          <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
+            {# Added fw-bold here #} {{ post.title }}
           </h6>
-          {% endif %} {% endif %} {% if user and post.authorId == user.userId
-          %}
+          {% endif %} {% endif %} {% if user and post.authorId == user.userId %}
           <p
             class="card-text"
             id="post-caption-{{ post.postId }}"
@@ -114,12 +120,20 @@
           {% endif %}
 
           <!-- Post Actions -->
-          <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-start align-items-md-center"> {# Changed parent flex behavior #}
-            <div class="d-flex flex-wrap mb-2 mb-md-0"> {# Wrapped action buttons in their own flex-wrap div #}
-              {% if liked_posts.get(post.postId, False) %}
+          <div
+            class="d-flex flex-column flex-md-row justify-content-md-between align-items-start align-items-md-center"
+          >
+            {# Changed parent flex behavior #}
+            <div class="d-flex flex-wrap mb-2 mb-md-0">
+              {# Wrapped action buttons in their own flex-wrap div #} {% if
+              liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
               <button
-                class="btn btn-danger btn-sm like-btn me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn btn-danger btn-sm like-btn me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 data-post-id="{{ post.postId }}"
                 data-action="unlike"
               >
@@ -129,7 +143,11 @@
               {% else %}
               <!-- Like button -->
               <button
-                class="btn btn-outline-danger btn-sm like-btn me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn btn-outline-danger btn-sm like-btn me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 data-post-id="{{ post.postId }}"
                 data-action="like"
               >
@@ -138,25 +156,38 @@
               </button>
               {% endif %}
               <button
-                class="btn btn-secondary btn-sm me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn btn-secondary btn-sm me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i>
                 <span id="comment-btn-text-{{ post.postId }}">
-                    {{ comment_counts.get(post.postId, 0) }}
-                </span> {# Removed "Comments" text #}
+                  {{ comment_counts.get(post.postId, 0) }}
+                </span>
+                {# Removed "Comments" text #}
               </button>
               {% if user and post.authorId == user.userId %}
               <button
                 id="save-post-{{ post.postId }}"
-                class="btn card-btn-primary btn-sm d-none me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn card-btn-primary btn-sm d-none me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 onclick="savePostEdit('{{ post.postId }}')"
               >
                 Save
               </button>
               <button
                 id="cancel-post-{{ post.postId }}"
-                class="btn btn-outline-secondary btn-sm d-none me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn btn-outline-secondary btn-sm d-none me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 onclick="hideEditFields('{{ post.postId }}')"
               >
                 Cancel
@@ -164,16 +195,21 @@
               {% elif user %}
               <!-- Report Button for posts not owned by current user -->
               <button
-                class="btn btn-outline-warning btn-sm me-2 mb-2 mb-md-0" {# Adjusted spacing #}
+                class="btn btn-outline-warning btn-sm me-2 mb-2 mb-md-0"
+                {#
+                Adjusted
+                spacing
+                #}
                 onclick="openReportModal('{{ post.postId }}')"
               >
                 <i class="fas fa-flag"></i> {# Removed "Report" text #}
               </button>
               {% endif %}
             </div>
-            <small class="text-muted ms-md-auto"> {# Moved timestamp and adjusted margin #}
-              {{ post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else
-              '' }}</small
+            <small class="text-muted ms-md-auto">
+              {# Moved timestamp and adjusted margin #} {{
+              post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else ''
+              }}</small
             >
           </div>
           <!-- Comments Section - Only show if there are comments -->
@@ -262,16 +298,27 @@
             >
             <textarea
               class="form-control bg-secondary text-white border-secondary rounded"
-              <!-- Darker input for text area -->
+              <!--
+              Darker
+              input
+              for
+              text
+              area
+              --
+            >
               id="reportReason"
               rows="3"
               name="reason"
               required
               maxlength="200"
               placeholder="Please describe why you are reporting this post (max 200 characters)."
-            ></textarea>
+            ></textarea
+            >
           </div>
-          <button type="submit" class="btn btn-danger rounded-pill px-4">Submit Report</button> <!-- Added rounded-pill and px-4 -->
+          <button type="submit" class="btn btn-danger rounded-pill px-4">
+            Submit Report
+          </button>
+          <!-- Added rounded-pill and px-4 -->
         </form>
       </div>
     </div>
@@ -329,10 +376,9 @@
                       ${
                         canEdit
                           ? `
-                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content.replace(
-                              /'/g,
-                              "\\'"
-                            )}')">
+                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${
+                          comment.commentId
+                        }, '${comment.content.replace(/'/g, "\\'")}')">
                           <i class="fas fa-edit"></i>
                         </button>
                       `
@@ -341,7 +387,9 @@
                       ${
                         canDelete
                           ? `
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})"
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${
+                          comment.commentId
+                        }, ${postId})"
                           title="${
                             isOwnComment
                               ? "Delete your comment"
@@ -360,20 +408,29 @@
                   <div class="comment-edit-actions-row mt-2" id="edit-actions-${
                     comment.commentId
                   }" style="display:none;"></div>
-                  <div class="text-muted small mt-2">${comment.timestamp}</div>
+                  <div class="text-muted small mt-2">
+                    ${comment.timestamp}
+                    ${
+                      comment.is_edited
+                        ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>`
+                        : ""
+                    }
+                  </div>
                 </div>
               `;
             });
             commentsDiv.innerHTML = commentsHtml;
             commentsDiv.style.display = "block";
           } else {
-            commentsDiv.innerHTML = '<p class="text-muted">Failed to load comments</p>';
+            commentsDiv.innerHTML =
+              '<p class="text-muted">Failed to load comments</p>';
             commentsDiv.style.display = "block";
           }
         })
         .catch((error) => {
           console.error("Error loading comments:", error);
-          commentsDiv.innerHTML = '<p class="text-muted">Error loading comments</p>';
+          commentsDiv.innerHTML =
+            '<p class="text-muted">Error loading comments</p>';
           commentsDiv.style.display = "block";
         });
     } else {
@@ -473,7 +530,10 @@
 
               // Show error without blocking UI
               if (!data.already_liked && !data.not_liked) {
-                showNotification("Error: " + (data.error || "Failed to update like"), "danger");
+                showNotification(
+                  "Error: " + (data.error || "Failed to update like"),
+                  "danger"
+                );
               }
             }
           })
@@ -485,7 +545,10 @@
             btn.dataset.action = originalAction;
             btn.querySelector("i").className = originalIconClass;
 
-            showNotification("Network error occurred while updating like", "danger");
+            showNotification(
+              "Network error occurred while updating like",
+              "danger"
+            );
           });
       });
     });
@@ -534,9 +597,15 @@
                 updateCommentCount(postId, data.comment_count);
               } else {
                 // Fallback: increment by 1 if we can't get exact count
-                const commentButtonTextSpan = document.getElementById(`comment-btn-text-${postId}`);
+                const commentButtonTextSpan = document.getElementById(
+                  `comment-btn-text-${postId}`
+                );
                 if (commentButtonTextSpan) {
-                  const currentCount = parseInt(commentButtonTextSpan.textContent.match(/(\d+)\s+Comments/)?.[1] || '0');
+                  const currentCount = parseInt(
+                    commentButtonTextSpan.textContent.match(
+                      /(\d+)\s+Comments/
+                    )?.[1] || "0"
+                  );
                   updateCommentCount(postId, currentCount + 1);
                 }
               }
@@ -560,21 +629,27 @@
     if (!window._postEditOriginal) window._postEditOriginal = {};
     if (!window._postEditOriginal[postId]) {
       window._postEditOriginal[postId] = {
-        title: document.getElementById(`edit-title-${postId}`)?.value || document.getElementById(`post-title-${postId}`)?.textContent || '',
-        content: document.getElementById(`edit-caption-${postId}`)?.value || document.getElementById(`post-caption-${postId}`)?.textContent || ''
+        title:
+          document.getElementById(`edit-title-${postId}`)?.value ||
+          document.getElementById(`post-title-${postId}`)?.textContent ||
+          "",
+        content:
+          document.getElementById(`edit-caption-${postId}`)?.value ||
+          document.getElementById(`post-caption-${postId}`)?.textContent ||
+          "",
       };
     }
-    
+
     // Hide display elements, show edit elements
     const titleDisplay = document.getElementById(`post-title-${postId}`);
     const titleInput = document.getElementById(`edit-title-${postId}`);
     const captionDisplay = document.getElementById(`post-caption-${postId}`);
     const captionInput = document.getElementById(`edit-caption-${postId}`);
 
-    if (titleDisplay) titleDisplay.classList.add('d-none');
-    if (titleInput) titleInput.classList.remove('d-none');
-    if (captionDisplay) captionDisplay.classList.add('d-none');
-    if (captionInput) captionInput.classList.remove('d-none');
+    if (titleDisplay) titleDisplay.classList.add("d-none");
+    if (titleInput) titleInput.classList.remove("d-none");
+    if (captionDisplay) captionDisplay.classList.add("d-none");
+    if (captionInput) captionInput.classList.remove("d-none");
 
     // Focus on the clicked element
     if (!isCaption && titleInput) {
@@ -584,17 +659,22 @@
     }
 
     // Show save and cancel buttons
-    document.getElementById(`save-post-${postId}`).classList.remove('d-none');
-    document.getElementById(`cancel-post-${postId}`).classList.remove('d-none');
+    document.getElementById(`save-post-${postId}`).classList.remove("d-none");
+    document.getElementById(`cancel-post-${postId}`).classList.remove("d-none");
   }
 
   function hideEditFields(postId) {
     // Restore original values if present and not saving
-    if (!_postEditSaving[postId] && window._postEditOriginal && window._postEditOriginal[postId]) {
+    if (
+      !_postEditSaving[postId] &&
+      window._postEditOriginal &&
+      window._postEditOriginal[postId]
+    ) {
       const titleInput = document.getElementById(`edit-title-${postId}`);
       const captionInput = document.getElementById(`edit-caption-${postId}`);
       if (titleInput) titleInput.value = window._postEditOriginal[postId].title;
-      if (captionInput) captionInput.value = window._postEditOriginal[postId].content;
+      if (captionInput)
+        captionInput.value = window._postEditOriginal[postId].content;
     }
 
     // Hide edit fields, show display fields
@@ -603,61 +683,68 @@
     const captionDisplay = document.getElementById(`post-caption-${postId}`);
     const captionInput = document.getElementById(`edit-caption-${postId}`);
 
-    if (titleDisplay) titleDisplay.classList.remove('d-none');
-    if (titleInput) titleInput.classList.add('d-none');
-    if (captionDisplay) captionDisplay.classList.remove('d-none');
-    if (captionInput) captionInput.classList.add('d-none');
+    if (titleDisplay) titleDisplay.classList.remove("d-none");
+    if (titleInput) titleInput.classList.add("d-none");
+    if (captionDisplay) captionDisplay.classList.remove("d-none");
+    if (captionInput) captionInput.classList.add("d-none");
 
     // Hide save and cancel buttons
-    document.getElementById(`save-post-${postId}`).classList.add('d-none');
-    document.getElementById(`cancel-post-${postId}`).classList.add('d-none');
-    
+    document.getElementById(`save-post-${postId}`).classList.add("d-none");
+    document.getElementById(`cancel-post-${postId}`).classList.add("d-none");
+
     _postEditSaving[postId] = false; // Reset saving flag
     if (window._postEditOriginal) delete window._postEditOriginal[postId]; // Clean up original values
   }
 
   // Optional: handle Esc key to cancel edit for post fields
-  document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-          document.querySelectorAll('.form-control:not(.d-none)[id^="edit-"]').forEach(input => {
-              const postId = input.id.split('-').pop();
-              hideEditFields(postId);
-          });
-      }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      document
+        .querySelectorAll('.form-control:not(.d-none)[id^="edit-"]')
+        .forEach((input) => {
+          const postId = input.id.split("-").pop();
+          hideEditFields(postId);
+        });
+    }
   });
 
   function savePostEdit(postId) {
     _postEditSaving[postId] = true; // Set flag to prevent blur from hiding fields immediately
     const titleInput = document.getElementById(`edit-title-${postId}`);
     const captionInput = document.getElementById(`edit-caption-${postId}`);
-    const title = titleInput ? titleInput.value.trim() : '';
-    const content = captionInput ? captionInput.value.trim() : '';
+    const title = titleInput ? titleInput.value.trim() : "";
+    const content = captionInput ? captionInput.value.trim() : "";
 
     fetch(`/api/edit-post/${postId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, content }),
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        if (document.getElementById(`post-title-${postId}`))
-          document.getElementById(`post-title-${postId}`).textContent = data.title;
-        if (document.getElementById(`post-caption-${postId}`))
-          document.getElementById(`post-caption-${postId}`).textContent = data.content;
-        hideEditFields(postId); // Hide fields and clear original values
-        showNotification('Post updated!', 'success');
-        location.reload(); // Refresh the page to show updated badge and post
-      } else {
-        showNotification(data.error || 'Failed to update post', 'danger');
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          if (document.getElementById(`post-title-${postId}`))
+            document.getElementById(`post-title-${postId}`).textContent =
+              data.title;
+          if (document.getElementById(`post-caption-${postId}`))
+            document.getElementById(`post-caption-${postId}`).textContent =
+              data.content;
+          hideEditFields(postId); // Hide fields and clear original values
+          showNotification("Post updated!", "success");
+          location.reload(); // Refresh the page to show updated badge and post
+        } else {
+          showNotification(data.error || "Failed to update post", "danger");
+          _postEditSaving[postId] = false; // Allow blur to hide if save failed
+        }
+      })
+      .catch((error) => {
+        console.error("Error saving post:", error);
+        showNotification(
+          "Network error occurred while updating post",
+          "danger"
+        );
         _postEditSaving[postId] = false; // Allow blur to hide if save failed
-      }
-    })
-    .catch((error) => {
-      console.error('Error saving post:', error);
-      showNotification('Network error occurred while updating post', 'danger');
-      _postEditSaving[postId] = false; // Allow blur to hide if save failed
-    });
+      });
   }
 
   // Function to save edited comment
@@ -680,18 +767,27 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          // Update the content
-          document.getElementById(`content-${commentId}`).innerHTML = newContent;
-          // Hide the save/cancel buttons
-          document.getElementById(`edit-actions-${commentId}`).style.display = "none";
           showNotification("Comment updated successfully", "success");
+          // Find the post ID to reload comments and show the edited timestamp
+          const commentElement = document.getElementById(
+            `comment-${commentId}`
+          );
+          const postElement = commentElement.closest('[id^="comments-"]');
+          if (postElement) {
+            const postId = postElement.id.replace("comments-", "");
+            // Reload comments to show the "Edited" timestamp
+            loadComments(postId);
+          }
         } else {
           showNotification("Error: " + data.error, "danger");
         }
       })
       .catch((error) => {
         console.error("Error:", error);
-        showNotification("An error occurred while updating the comment", "danger");
+        showNotification(
+          "An error occurred while updating the comment",
+          "danger"
+        );
       });
   }
 
@@ -729,12 +825,17 @@
 
             // Check if no comments left and hide section if necessary
             const commentsDiv = document.getElementById(`comments-${postId}`);
-            const remainingComments = commentsDiv.querySelectorAll(".comment-item");
+            const remainingComments =
+              commentsDiv.querySelectorAll(".comment-item");
             if (remainingComments.length === 0) {
-              commentsDiv.innerHTML = '<p class="text-muted">No comments yet</p>';
-              commentsDiv.style.display = 'none'; // Hide the comments section entirely if no comments
-              const commentSectionBorder = commentsDiv.closest('.comments-section-border');
-              if (commentSectionBorder) commentSectionBorder.style.display = 'none';
+              commentsDiv.innerHTML =
+                '<p class="text-muted">No comments yet</p>';
+              commentsDiv.style.display = "none"; // Hide the comments section entirely if no comments
+              const commentSectionBorder = commentsDiv.closest(
+                ".comments-section-border"
+              );
+              if (commentSectionBorder)
+                commentSectionBorder.style.display = "none";
             }
           } else {
             showNotification("Error: " + data.error, "danger");
@@ -742,7 +843,10 @@
         })
         .catch((error) => {
           console.error("Error:", error);
-          showNotification("An error occurred while deleting the comment", "danger");
+          showNotification(
+            "An error occurred while deleting the comment",
+            "danger"
+          );
         });
     }
   }
@@ -750,40 +854,48 @@
   // Function to update comment count on buttons
   function updateCommentCount(postId, newCount) {
     // Update the main comment button text
-    const commentButtonTextSpan = document.getElementById(`comment-btn-text-${postId}`);
+    const commentButtonTextSpan = document.getElementById(
+      `comment-btn-text-${postId}`
+    );
     if (commentButtonTextSpan) {
       commentButtonTextSpan.textContent = `${newCount}`; // Only count, no "Comments" text
     }
 
     // Update the "View All" link section
-    const viewAllCommentsSection = document.getElementById(`view-all-comments-${postId}`);
+    const viewAllCommentsSection = document.getElementById(
+      `view-all-comments-${postId}`
+    );
     const commentsDiv = document.getElementById(`comments-${postId}`);
-    const commentSectionBorder = commentsDiv ? commentsDiv.closest('.comments-section-border') : null;
+    const commentSectionBorder = commentsDiv
+      ? commentsDiv.closest(".comments-section-border")
+      : null;
 
     if (newCount > 0) {
       if (viewAllCommentsSection) {
         viewAllCommentsSection.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none text-white" style="vertical-align: baseline; font-size: inherit;" onclick="loadComments('${postId}')">View All</button>`;
       } else if (commentSectionBorder) {
         // If the section was hidden and now has comments, unhide and create the small tag
-        commentSectionBorder.style.display = 'block';
-        const newSmallTag = document.createElement('small');
-        newSmallTag.className = 'text-muted';
+        commentSectionBorder.style.display = "block";
+        const newSmallTag = document.createElement("small");
+        newSmallTag.className = "text-muted";
         newSmallTag.id = `view-all-comments-${postId}`;
         newSmallTag.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none text-white" style="vertical-align: baseline; font-size: inherit;" onclick="loadComments('${postId}')">View All</button>`;
         commentSectionBorder.prepend(newSmallTag); // Add to the top of the section
       }
     } else {
       // If no comments, hide the entire comments section border and clear the view all text
-      if (viewAllCommentsSection) viewAllCommentsSection.innerHTML = '';
-      if (commentSectionBorder) commentSectionBorder.style.display = 'none';
-      if (commentsDiv) commentsDiv.innerHTML = ''; // Clear comments display
+      if (viewAllCommentsSection) viewAllCommentsSection.innerHTML = "";
+      if (commentSectionBorder) commentSectionBorder.style.display = "none";
+      if (commentsDiv) commentsDiv.innerHTML = ""; // Clear comments display
     }
   }
 
   // Function to show notification
   function showNotification(message, type = "success") {
     // Remove any existing notifications to prevent multiples
-    const existingNotification = document.querySelector(".latergram-notification");
+    const existingNotification = document.querySelector(
+      ".latergram-notification"
+    );
     if (existingNotification) {
       existingNotification.remove();
     }
@@ -807,66 +919,88 @@
 
   // --- Report Modal Functions ---
   function openReportModal(postId) {
-    const reportPostIdInput = document.getElementById('reportPostId');
-    const reportReasonTextarea = document.getElementById('reportReason');
-    const reportModalElement = document.getElementById('reportModal');
+    const reportPostIdInput = document.getElementById("reportPostId");
+    const reportReasonTextarea = document.getElementById("reportReason");
+    const reportModalElement = document.getElementById("reportModal");
 
     // Add null checks for elements before trying to access their properties
     if (!reportPostIdInput) {
       console.error("Error: 'reportPostId' element not found for reporting.");
-      showNotification("Error: Report form element missing. Please refresh.", "danger");
+      showNotification(
+        "Error: Report form element missing. Please refresh.",
+        "danger"
+      );
       return;
     }
     if (!reportReasonTextarea) {
       console.error("Error: 'reportReason' element not found for reporting.");
-      showNotification("Error: Report form element missing. Please refresh.", "danger");
+      showNotification(
+        "Error: Report form element missing. Please refresh.",
+        "danger"
+      );
       return;
     }
     if (!reportModalElement) {
-        console.error("Error: 'reportModal' element not found.");
-        showNotification("Error: Report modal missing. Please refresh.", "danger");
-        return;
+      console.error("Error: 'reportModal' element not found.");
+      showNotification(
+        "Error: Report modal missing. Please refresh.",
+        "danger"
+      );
+      return;
     }
 
     reportPostIdInput.value = postId;
-    reportReasonTextarea.value = ''; // Clear previous reason
+    reportReasonTextarea.value = ""; // Clear previous reason
 
     const reportModal = new bootstrap.Modal(reportModalElement);
     reportModal.show();
   }
 
-  document.getElementById('reportForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const postId = document.getElementById('reportPostId').value;
-    const reason = document.getElementById('reportReason').value.trim();
+  document
+    .getElementById("reportForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const postId = document.getElementById("reportPostId").value;
+      const reason = document.getElementById("reportReason").value.trim();
 
-    if (!reason) {
-      showNotification("Please provide a reason for reporting.", "warning");
-      return;
-    }
-
-    fetch(`/api/report_post/${postId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ reason: reason }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        const reportModal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
-        if (reportModal) reportModal.hide();
-        showNotification("Post reported successfully. Thank you for your feedback!", "success");
-      } else {
-        showNotification("Failed to report post: " + (data.error || "Unknown error"), "danger");
+      if (!reason) {
+        showNotification("Please provide a reason for reporting.", "warning");
+        return;
       }
-    })
-    .catch(error => {
-      console.error('Error reporting post:', error);
-      showNotification("Network error occurred while reporting post.", "danger");
+
+      fetch(`/api/report_post/${postId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: reason }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            const reportModal = bootstrap.Modal.getInstance(
+              document.getElementById("reportModal")
+            );
+            if (reportModal) reportModal.hide();
+            showNotification(
+              "Post reported successfully. Thank you for your feedback!",
+              "success"
+            );
+          } else {
+            showNotification(
+              "Failed to report post: " + (data.error || "Unknown error"),
+              "danger"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error reporting post:", error);
+          showNotification(
+            "Network error occurred while reporting post.",
+            "danger"
+          );
+        });
     });
-  });
 </script>
 {% endblock %} {% block rightpanel %} {% if pending_requests %}
 <div class="card m-3 mt-4">
@@ -878,7 +1012,10 @@
   </div>
   <div class="card-body">
     {% for request in pending_requests %}
-    <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
+    <div
+      class="mb-3 request-item"
+      data-requester-id="{{ request.requester_id }}"
+    >
       <div class="text-muted small mb-1">
         {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at
         else '' }}
@@ -908,7 +1045,10 @@
           </span>
           {% endif %}
           <div>
-            <a href="{{ url_for('profile', user_id=request.requester_id) }}" class="text-decoration-none">
+            <a
+              href="{{ url_for('profile', user_id=request.requester_id) }}"
+              class="text-decoration-none"
+            >
               <strong>{{ request.username }}</strong>
             </a>
           </div>
@@ -1013,10 +1153,13 @@
               requestItem.remove();
 
               // Check if there are any remaining requests
-              const remainingRequests = document.querySelectorAll(".request-item");
+              const remainingRequests =
+                document.querySelectorAll(".request-item");
               if (remainingRequests.length === 0) {
                 // Hide the entire follow requests section
-                const requestsCard = document.querySelector(".card:has(.request-item)");
+                const requestsCard = document.querySelector(
+                  ".card:has(.request-item)"
+                );
                 if (requestsCard) {
                   requestsCard.remove();
                 }
@@ -1027,15 +1170,21 @@
                   countElement.innerHTML = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
                 }
               }
-              showNotification(data.message, 'success');
+              showNotification(data.message, "success");
             }, 300);
           } else {
-            showNotification(data.error || 'Failed to process request', 'danger');
+            showNotification(
+              data.error || "Failed to process request",
+              "danger"
+            );
           }
         })
-        .catch(error => {
-            console.error('Error handling follow request:', error);
-            showNotification('Network error occurred while processing request', 'danger');
+        .catch((error) => {
+          console.error("Error handling follow request:", error);
+          showNotification(
+            "Network error occurred while processing request",
+            "danger"
+          );
         });
     });
   });
