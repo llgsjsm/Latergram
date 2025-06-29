@@ -47,4 +47,6 @@ class LogActionTypes(Enum):
     LOGIN = "login"
     LOGOUT = "logout"
     UPDATE_PROFILE = "update_profile"
+    UPDATE_EMAIL = "update_email"
+    CHANGE_PASSWORD = "change_password"
     RESET_PASSWORD = "reset_password"

@@ -691,7 +691,7 @@ class ProfileManager:
             # Update the password
             user.password = hashed_password
             # Create a new log entry
-
+            self.log_action(user_id, LogActionTypes.CHANGE_PASSWORD.value, None)
             db.session.commit()
             
             return {

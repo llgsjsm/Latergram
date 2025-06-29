@@ -14,7 +14,7 @@ import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 
 # Load environment variables
-load_dotenv()
+load_dotenv('app-server/.env')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -396,6 +396,7 @@ def register():
 def logout():
     if 'user_id' in session:
         session.pop('user_id', None)
+        log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
     else:
         session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
@@ -1325,6 +1326,8 @@ def api_edit_post(post_id):
     post.title = title
     post.content = content
     post.updatedAt = datetime.utcnow()
+    # Create a new log entry
+    log_action(session['user_id'], LogActionTypes.UPDATE_POST.value, post.postId, ReportTarget.POST.value)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
@@ -1426,6 +1429,7 @@ def api_update_email():
 
     user.email = new_email
     try:
+        log_action(session['user_id'], LogActionTypes.UPDATE_EMAIL.value, user.userId, None)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Email updated successfully', 'email': new_email})
     except Exception as e:

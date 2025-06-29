@@ -59,7 +59,7 @@ class AuthenticationManager:
                 }
             
             # Create a new log entry
-            self.log_action(user.userId, LogActionTypes.LOGIN.value, user.userId)
+            self.log_action(user.userId, LogActionTypes.LOGIN.value, None)
             db.session.commit()
             return {
                 'success': True,
@@ -456,7 +456,7 @@ class AuthenticationManager:
         
         user = User.query.filter_by(email=email).first()
         # Create a new log entry
-        self.log_action(user.userId, LogActionTypes.LOGIN.value, user.userId)
+        self.log_action(user.userId, LogActionTypes.LOGIN.value, None)
         db.session.commit()
         return {
             'success': True,
@@ -549,7 +549,7 @@ class AuthenticationManager:
             # Clear OTP after successful password reset
             user.clear_otp()
             # Create a new log entry
-            self.log_action(user.userId, LogActionTypes.RESET_PASSWORD.value, user.userId)
+            self.log_action(user.userId, LogActionTypes.RESET_PASSWORD.value, None)
             db.session.commit()
             
             return {'success': True, 'message': 'Password reset successfully'}
