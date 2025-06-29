@@ -908,13 +908,9 @@
           </span>
           {% endif %}
           <div>
-            <strong>{{ request.username }}</strong>
-            {% if request.bio %}
-            <div class="text-muted small">
-              {{ request.bio[:50] }}{% if request.bio|length > 50 %}...{% endif
-              %}
-            </div>
-            {% endif %}
+            <a href="{{ url_for('profile', user_id=request.requester_id) }}" class="text-decoration-none">
+              <strong>{{ request.username }}</strong>
+            </a>
           </div>
         </div>
         <div>
