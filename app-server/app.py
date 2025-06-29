@@ -314,6 +314,7 @@ def login():
     return render_template('login.html')
 
 @app.route('/verify-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')

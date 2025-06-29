@@ -4,12 +4,6 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
     const email = document.getElementById("otp-email").value;
     const otpType = document.getElementById("otp-type").value;
 
-    // !!! Validate backend 
-    // if (!otpCode || otpCode.length !== 6) {
-    //   showMessage("Please enter a valid 6-digit code", "error");
-    //   return;
-    // }
-
     if (otpType === "login") {
         // Try user login OTP verification first
         fetch("/verify-login-otp", {
@@ -146,7 +140,7 @@ document.getElementById("resend-otp").addEventListener("click", function (e) {
                     if (data.success) {
                         showMessage("New code sent to your email", "success");
                     } else {
-                        showMessage("Unable to resend OTP", "error");
+                        showMessage(data.error, "error");
                     }
                 })
                 .catch((error) => {
