@@ -666,6 +666,8 @@
               }
 
               showNotification("Comment added successfully", "success");
+              window.location.reload();
+
             } else {
               throw new Error(data.error || "Failed to add comment");
             }

@@ -648,7 +648,10 @@
                 <div class="flex-grow-1">
                   <div><strong>${comment.author.username}</strong></div>
                   <div class="comment-content" id="content-${comment.commentId}">${comment.content}</div>
-                  <div class="text-muted small">${comment.timestamp}</div>
+                  <div class="text-muted small">
+                    ${comment.timestamp}
+                    ${comment.is_edited ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>` : ''}
+                  </div>
                 </div>
                 ${editDeleteButtons}
               </div>
@@ -850,8 +853,8 @@
                   updateCommentCount(postId, currentCount + 1);
                 }
               }
-
               showNotification('Comment added successfully', 'success');
+              window.location.reload();
             } else {
               throw new Error(data.error || 'Failed to add comment');
             }
