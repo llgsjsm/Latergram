@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
-from models.enums import VisibilityType
+from models.enums import VisibilityType, LogActionTypes, ReportTarget
 from sqlalchemy import text
 
 class ProfileManager:
@@ -11,6 +11,23 @@ class ProfileManager:
         self._suggested_users_cache = {}
         self._user_profile_cache = {}
         self._cache_timeout = 300  # 5 minutes cache timeout
+
+    def log_action(self, user_id: int, action: str, target_id: int):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": ReportTarget.USER.value,
+        })
 
     def _clear_user_cache(self, user_id: int):
         """Clear cache for a specific user"""
@@ -61,7 +78,7 @@ class ProfileManager:
         
         try:
             # Create a new log entry
-
+            self.log_action(user_id, LogActionTypes.UPDATE_PROFILE.value, user_id)
             db.session.commit()
             return {
                 'success': True,
@@ -111,6 +128,8 @@ class ProfileManager:
                     VALUES (:requester_id, :target_id, NOW(), 'accepted')
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(requester_user_id, LogActionTypes.FOLLOW_USER.value, target_user_id)
                 message = 'Now following user'
             else:
                 # For private or followers-only accounts, send pending request
@@ -119,9 +138,10 @@ class ProfileManager:
                     VALUES (:requester_id, :target_id, NOW(), 'pending')
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(requester_user_id, LogActionTypes.REQUEST_FOLLOW.value, target_user_id)
                 message = 'Follow request sent'
             
-            # Create a new log entry
 
             db.session.commit()
             
@@ -160,6 +180,8 @@ class ProfileManager:
                     WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(target_user_id, LogActionTypes.ACCEPT_FOLLOW_REQUEST.value, requester_user_id)
                 message = 'Follow request accepted'
             else:
                 # Remove the pending request
@@ -167,11 +189,11 @@ class ProfileManager:
                     DELETE FROM followers 
                     WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
                 """)
+                # Create a new log entry
+                self.log_action(target_user_id, LogActionTypes.REJECT_FOLLOW_REQUEST.value, requester_user_id)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
                 message = 'Follow request declined'
             
-            # Create a new log entry
-
             db.session.commit()
             
             # Clear cache for both users
@@ -267,7 +289,7 @@ class ProfileManager:
             db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
 
             # Create a new log entry
-
+            self.log_action(requester_user_id, LogActionTypes.CANCEL_PENDING_FOLLOW_REQUEST.value, target_user_id)
             db.session.commit()
             
             # Clear cache for both users
@@ -299,7 +321,7 @@ class ProfileManager:
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
 
             # Create a new log entry
-
+            self.log_action(follower_user_id, LogActionTypes.UNFOLLOW_USER.value, followed_user_id)
             db.session.commit()
             
             # Clear cache for both users
@@ -771,9 +793,6 @@ class ProfileManager:
             # 6. Finally, delete the user account
             db.session.delete(user)
 
-            # Create a new log entry
-
-
             db.session.commit()
             
             # Clear any cached data for this user
@@ -834,13 +853,13 @@ class ProfileManager:
             db.session.execute(text("""
                 DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :user_id
             """), {"follower_id": follower_user_id, "user_id": user_id})
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.REMOVE_FOLLOWER.value, follower_user_id)
             db.session.commit()
 
             # Clear cache for both users
             self._clear_user_cache(user_id)
             self._clear_user_cache(follower_user_id)
-
-            # Create a new log entry
 
             return {'success': True, 'message': 'Follower removed successfully.'}
         except Exception as e:
@@ -904,22 +923,3 @@ class ProfileManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to fix visibility case: {str(e)}'}
-        
-    def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
-        """
-        Logs an action to the application_log table.
-        """
-        sql = """
-        INSERT INTO application_log 
-        (user_id, action, target_id, target_type, timestamp, action_category)
-        VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
-        """
-
-        db.session.execute(sql, {
-            "user_id": user_id,
-            "action": action,
-            "target_id": target_id,
-            "target_type": target_type,
-            "action_category": action_category
-        })
-        db.session.commit()

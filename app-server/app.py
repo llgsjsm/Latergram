@@ -11,7 +11,7 @@ from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
-from models.enums import ReportStatus, ReportTarget
+from models.enums import ReportStatus, ReportTarget, LogActionTypes
 
 # Load environment variables
 load_dotenv()
@@ -135,24 +135,22 @@ def verify_recaptcha(token, remote_ip):
     ).json()
     return response.get('success', False)
 
-def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
-    """
-    Logs an action to the application_log table.
-    """
-    sql = """
-    INSERT INTO application_log 
-    (user_id, action, target_id, target_type, timestamp, action_category)
-    VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
-    """
+def log_action(user_id: int, action: str, target_id: int, target_type: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
 
-    db.session.execute(sql, {
-        "user_id": user_id,
-        "action": action,
-        "target_id": target_id,
-        "target_type": target_type,
-        "action_category": action_category
-    })
-    db.session.commit()
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+        })
 
 @app.route('/home')
 def home():
@@ -450,7 +448,7 @@ def create_post():
 
         db.session.flush()
         # Create a new log entry
-
+        log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
 
         flash("Post created successfully!", "success")
@@ -581,9 +579,9 @@ def add_comment(post_id):
             parentCommentId=parent_comment_id
         )
         db.session.add(new_comment)
-
+        db.session.flush()
         # Create a new log entry
-
+        log_action(session['user_id'], LogActionTypes.CREATE_COMMENT.value, new_comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         # Check if this is an AJAX request by looking for XMLHttpRequest header
@@ -624,6 +622,9 @@ def edit_comment(comment_id):
         # Update comment
         comment.commentContent = new_content
         comment.mark_as_edited()  # Set edited_at timestamp
+        
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.UPDATE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Comment updated successfully'})
@@ -652,6 +653,8 @@ def delete_comment(comment_id):
         
         # Delete the comment
         db.session.delete(comment)
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.DELETE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         # Get updated comment count

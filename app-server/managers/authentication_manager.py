@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User, Moderator
-from models.enums import VisibilityType
+from models.enums import VisibilityType, ReportTarget, LogActionTypes
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
 from datetime import datetime, timedelta
@@ -22,7 +22,24 @@ class AuthenticationManager:
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
         self.email_user = os.environ.get('EMAIL_USER', '')
         self.email_password = os.environ.get('EMAIL_PASSWORD', '')
-        
+    
+    def log_action(self, user_id: int, action: str, target_id: int):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": ReportTarget.USER.value
+        })
+
     def login(self, username_or_email: str, password: str) -> Dict[str, Any]:
         """Authenticate user login - supports both username and email"""
         # Optimize: Single query using OR condition instead of two separate queries
@@ -32,22 +49,18 @@ class AuthenticationManager:
 
         if user:
             if not bcrypt.check_password_hash(user.password, password):
-                # Create a new log entry
-
                 return {'success': False, 'error': 'Error logging in. Try again.'}
             
             # enforce account disablement period
             if user.disabledUntil and user.disabledUntil > datetime.utcnow():
-                # Create a new log entry
-
                 return {
                     'success': False,
                     'error': f'Login failed. Your account is disabled until {user.disabledUntil.strftime("%Y-%m-%d %H:%M:%S")}.'
                 }
             
             # Create a new log entry
-
-
+            self.log_action(user.userId, LogActionTypes.LOGIN.value, user.userId)
+            db.session.commit()
             return {
                 'success': True,
                 'login_type': 'user',
@@ -442,7 +455,9 @@ class AuthenticationManager:
             return verify_result
         
         user = User.query.filter_by(email=email).first()
-        
+        # Create a new log entry
+        self.log_action(user.userId, LogActionTypes.LOGIN.value, user.userId)
+        db.session.commit()
         return {
             'success': True,
             'login_type': 'user',
@@ -533,7 +548,8 @@ class AuthenticationManager:
             
             # Clear OTP after successful password reset
             user.clear_otp()
-            
+            # Create a new log entry
+            self.log_action(user.userId, LogActionTypes.RESET_PASSWORD.value, user.userId)
             db.session.commit()
             
             return {'success': True, 'message': 'Password reset successfully'}
@@ -643,22 +659,3 @@ class AuthenticationManager:
         db.session.commit()
         
         return {'success': True, 'user_id': current_user.userId, 'message': 'OTP verified successfully'}
-    
-    def action_logger(self, user_id: int, action: str, target_id: int, target_type: str, action_category: str):
-        """
-        Logs an action to the application_log table.
-        """
-        sql = """
-        INSERT INTO application_log 
-        (user_id, action, target_id, target_type, timestamp, action_category)
-        VALUES (:user_id, :action, :target_id, :target_type, NOW(), :action_category)
-        """
-
-        db.session.execute(sql, {
-            "user_id": user_id,
-            "action": action,
-            "target_id": target_id,
-            "target_type": target_type,
-            "action_category": action_category
-        })
-        db.session.commit()
