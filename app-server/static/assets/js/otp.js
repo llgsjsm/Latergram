@@ -6,7 +6,7 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
 
     if (otpType === "password_reset") {
         // Moderator password reset OTP verification
-        fetch("/verify-reset-otp-helper", {
+        fetch("/verify-reset-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -32,7 +32,7 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         });
     } else {
         // Try user login OTP verification first
-        fetch("/verify-login-otp-helper", {
+        fetch("/verify-login-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -62,7 +62,7 @@ document.getElementById("resend-otp").addEventListener("click", function (e) {
     const otpType = document.getElementById("otp-type").value;
 
     if (otpType === "password_reset") {
-        fetch("/forgot-password-helper", {
+        fetch("/forgot-password", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
