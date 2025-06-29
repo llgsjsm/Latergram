@@ -73,7 +73,7 @@ class AuthenticationManager:
                     'bio': user.bio,
                     'visibility': user.visibility
                     },
-                'message': 'Authentication successful'
+                'message': 'Login successful'
             }
         # if user not found, check in moderators table
         else:

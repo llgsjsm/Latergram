@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment, User, Report
+from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -203,20 +203,15 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
-                            return jsonify(result)
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
-                            print(f"Login result: {result}")
                             if result['success']:
                                 session['user_id'] = result['user']['user_id']
                                 log_to_splunk("Login", "User logged in", username=result['user']['username'])
-                                return jsonify({'success': True, 'redirect': '/home'})
-                            
-                            return jsonify(result)
+                        return jsonify(result)
                     else:
                         # Check if it's a moderator
-                        from models import Moderator
                         moderator = Moderator.query.filter(
                             or_(Moderator.username == email, Moderator.email == email)
                         ).first()
@@ -227,7 +222,6 @@ def login():
                             if result['success']:
                                 session['mod_id'] = result['mod_id']
                                 session['mod_level'] = result['mod_level']
-                                log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
                             return jsonify(result)
                         else:
                             log_to_splunk("Login", "Failed login attempt", username=email)
@@ -282,6 +276,7 @@ def verify_login_otp():
     
     if result['success']:
         session['user_id'] = result['user']['user_id']
+        log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
     
     return jsonify(result)
 
@@ -1418,7 +1413,9 @@ def verify_moderator_login_otp():
     if result['success']:
         session['mod_id'] = result['moderator']['mod_id']
         result['redirect'] = '/moderation'
-    
+        log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
+    else:
+        log_to_splunk("Login", "Moderator login failed", username=result['moderator']['username'])
     return jsonify(result)
 
 @app.route('/resend-moderator-login-otp', methods=['POST'])
