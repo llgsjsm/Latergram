@@ -408,8 +408,8 @@ def register():
 @app.route('/logout')
 def logout():
     if 'user_id' in session:
-        session.pop('user_id', None)
         log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
+        session.pop('user_id', None)
     else:
         session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
