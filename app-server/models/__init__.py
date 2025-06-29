@@ -1,6 +1,7 @@
 from .database import db
 from .base_user import BaseUserMixin
-from .user import User, Follower
+from .user import User
+from .follower import Follower
 from .moderator import Moderator
 from .post import Post
 from .comment import Comment

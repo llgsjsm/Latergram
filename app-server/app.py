@@ -11,7 +11,9 @@ from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
 import uuid
-from models.enums import ReportStatus, ReportTarget
+from models.enums import ReportStatus, ReportTarget, LogActionTypes
+from flask_limiter import Limiter
+
 
 # Load environment variables
 load_dotenv()
@@ -77,6 +79,13 @@ def get_real_ip():
         return forwarded_for.split(',')[0].strip()
     return request.remote_addr
 
+# rate limiting
+limiter = Limiter(
+    key_func=get_real_ip,
+    app=app,
+    default_limits=['5 per minute'],
+)
+
 def log_to_splunk(event_data):
     client_ip = get_real_ip()
     payload = {
@@ -118,6 +127,39 @@ def ensure_firebase_initialized():
         else:
             raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     bucket = storage.bucket()
+
+def verify_recaptcha(token, remote_ip):
+    if IS_TESTING:
+        print("Skipping reCAPTCHA verification in test mode")
+        return True
+    if not token:
+        return False
+    response = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={
+            'secret': CAPTCHA_KEY,
+            'response': token,
+            'remoteip': remote_ip
+        }
+    ).json()
+    return response.get('success', False)
+
+def log_action(user_id: int, action: str, target_id: int, target_type: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+        })
 
 @app.route('/home')
 def home():
@@ -182,40 +224,62 @@ def hello_world():
     # log_to_splunk("Visited /")
     return redirect(url_for('home'))
 
+@app.route('/reset_password_portal', methods=['GET', 'POST'])
+def reset_password_portal():
+    return render_template('reset_password.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         # Check if it's a JSON request (AJAX)
         if request.is_json:
             data = request.get_json()
+
+            # Captcha JSON
+            token = data.get('g-recaptcha-response', '')
+            if not verify_recaptcha(token, request.remote_addr):
+                return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
+            
             if data.get('action') == 'login':
                 email = data.get('email', '')
                 password = data.get('password', '')
                 
                 if email and password:
-                    # Check if user has OTP enabled in their settings
+                    # Check if user exists in User table first
                     user = User.query.filter(
                         or_(User.username == email, User.email == email)
                     ).first()
                     
-                    # Use OTP login if user has it enabled, otherwise use normal login
-                    if user and getattr(user, 'otp_enabled', True):  # Default to True (enabled)
-                        result = auth_manager.login_with_otp(email, password)
-                        return jsonify(result)
-                    else:
-                        # Use normal login
-                        result = auth_manager.login(email, password)
-                        
-                        # Handle normal login response for AJAX
-                        if result['success']:
-                            if result['login_type'] == 'moderator':
-                                session['mod_id'] = result['moderator']['mod_id']
-                                return jsonify({'success': True, 'redirect': '/moderation'})
-                            else:
+                    if user:
+                        # Use OTP login if user has it enabled, otherwise use normal login
+                        if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
+                            result = auth_manager.login_with_otp(email, password)
+                            return jsonify(result)
+                        else:
+                            # Use normal login for user
+                            result = auth_manager.login(email, password)
+                            
+                            if result['success']:
                                 session['user_id'] = result['user']['user_id']
                                 return jsonify({'success': True, 'redirect': '/home'})
+                            
+                            return jsonify(result)
+                    else:
+                        # Check if it's a moderator
+                        from models import Moderator
+                        moderator = Moderator.query.filter(
+                            or_(Moderator.username == email, Moderator.email == email)
+                        ).first()
                         
-                        return jsonify(result)
+                        if moderator:
+                            # Use OTP login for moderators (always enabled for moderators)
+                            result = auth_manager.moderator_login_with_otp(email, password)
+                            if result['success']:
+                                session['mod_id'] = result['mod_id']
+                                session['mod_level'] = result['mod_level']
+                            return jsonify(result)
+                        else:
+                            return jsonify({'success': False, 'error': 'Error logging in. Try again.'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
         else:
@@ -223,11 +287,19 @@ def login():
             if request.form.get('login-btn') is not None:
                 email = request.form.get('email', '')
                 password = request.form.get('password', '')
+
+                # Captcha Form 
+                token = request.form.get('g-recaptcha-response', '')
+                if not verify_recaptcha(token, request.remote_addr):
+                    flash('Captcha verification failed.', 'danger')
+                    return render_template('login.html')
+                
                 if email and password:
                     result = auth_manager.login(email, password)
                     if result['success']:
                         if result['login_type'] == 'moderator':
                             session['mod_id'] = result['moderator']['mod_id']
+                            session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
                             return redirect(url_for('moderation'))
                         else:
@@ -242,11 +314,12 @@ def login():
     return render_template('login.html')
 
 @app.route('/verify-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
-    
+
     if not email or not otp_code:
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
@@ -258,6 +331,7 @@ def verify_login_otp():
     return jsonify(result)
 
 @app.route('/resend-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -269,17 +343,24 @@ def resend_login_otp():
     return jsonify(result)
 
 @app.route('/forgot-password', methods=['POST'])
+@limiter.limit('1 per minute')
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
-    
+
+    # token = data.get('g-recaptcha-response', '')
+    # if not verify_recaptcha(token, request.remote_addr):
+    #     return jsonify({'success': False, 'error': 'Captcha verification failed.'})
+
     if not email:
         return jsonify({'success': False, 'error': 'Email is required'})
     
     result = auth_manager.initiate_password_reset(email)
+    print(result)
     return jsonify(result)
 
 @app.route('/verify-reset-otp', methods=['POST'])
+@limiter.limit('10 per minute')
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -289,6 +370,7 @@ def verify_reset_otp():
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
     result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+    print(result)
     return jsonify(result)
 
 @app.route('/reset-password', methods=['POST'])
@@ -302,6 +384,7 @@ def reset_password():
         return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
     
     result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    result['redirect'] = url_for('login')
     return jsonify(result)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -326,6 +409,7 @@ def register():
 def logout():
     if 'user_id' in session:
         session.pop('user_id', None)
+        log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
     else:
         session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
@@ -375,6 +459,10 @@ def create_post():
         )
 
         db.session.add(new_post)
+
+        db.session.flush()
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
 
         flash("Post created successfully!", "success")
@@ -446,9 +534,6 @@ def api_report_post(post_id):
 
     return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
 
-
-
-
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
     if 'user_id' not in session:
@@ -508,6 +593,9 @@ def add_comment(post_id):
             parentCommentId=parent_comment_id
         )
         db.session.add(new_comment)
+        db.session.flush()
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.CREATE_COMMENT.value, new_comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         # Check if this is an AJAX request by looking for XMLHttpRequest header
@@ -547,7 +635,10 @@ def edit_comment(comment_id):
         
         # Update comment
         comment.commentContent = new_content
-        comment.timestamp = datetime.utcnow()  # Update timestamp to show it was edited
+        comment.mark_as_edited()  # Set edited_at timestamp
+        
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.UPDATE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Comment updated successfully'})
@@ -576,6 +667,8 @@ def delete_comment(comment_id):
         
         # Delete the comment
         db.session.delete(comment)
+        # Create a new log entry
+        log_action(session['user_id'], LogActionTypes.DELETE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
         db.session.commit()
         
         # Get updated comment count
@@ -952,6 +1045,8 @@ def api_get_comments(post_id):
         'authorId': comment.authorId,
         'commentContent': comment.commentContent,
         'timestamp': comment.timestamp,
+        'edited_at': comment.edited_at,
+        'is_edited': comment.is_edited(),
         'parentCommentId': comment.parentCommentId
     } for comment in comments])
 
@@ -1075,7 +1170,7 @@ def load_comments(post_id):
         
         # Get comments for the post with author information
         comments_query = text("""
-            SELECT c.commentId, c.commentContent, c.timestamp, c.parentCommentId,
+            SELECT c.commentId, c.commentContent, c.timestamp, c.edited_at, c.parentCommentId,
                    u.username, u.profilePicture
             FROM comment c
             JOIN user u ON c.authorId = u.userId
@@ -1090,10 +1185,16 @@ def load_comments(post_id):
         
         comments = []
         for row in result:
+            # Format timestamps
+            timestamp_str = row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else ''
+            edited_at_str = row.edited_at.strftime('%b %d, %Y at %I:%M %p') if row.edited_at else None
+            
             comments.append({
                 'commentId': row.commentId,
                 'content': row.commentContent,
-                'timestamp': row.timestamp.strftime('%b %d, %Y at %I:%M %p') if row.timestamp else '',
+                'timestamp': timestamp_str,
+                'edited_at': edited_at_str,
+                'is_edited': row.edited_at is not None,
                 'author': {
                     'username': row.username,
                     'profilePicture': row.profilePicture or ''
@@ -1133,9 +1234,9 @@ def moderation():
 
     try:
         # Pending reports for the first table
-        reports = moderator_manager.get_report_queue()
+        reports = moderator_manager.get_report_queue(session['mod_level'])
         # All reports for history table, paginated
-        all_reports_query = moderator_manager.get_all_reports_query()
+        all_reports_query = moderator_manager.get_all_reports_query(session['mod_level'])
         paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
     except Exception as e:
         print(f"Error getting reports: {e}")
@@ -1154,7 +1255,10 @@ def report_detail(report_id):
     if 'mod_id' not in session:
         return redirect(url_for('login'))
 
-    report = moderator_manager.get_report_by_id(report_id)
+    report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
+    if report is None:
+        flash('Report not found or you do not have permission to view it.', 'danger')
+        return redirect(url_for('moderation'))
     referenced = None
     referenced_type = None
 
@@ -1185,17 +1289,21 @@ def moderation_action(action, report_id):
 
     result = None
     if action == 'review':
-        result = moderator_manager.review_report(report_id, session['mod_id'])
+        result = moderator_manager.review_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'resolve':
-        result = moderator_manager.resolve_report(report_id, session['mod_id'])
+        result = moderator_manager.resolve_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'reject':
-        result = moderator_manager.reject_report(report_id, session['mod_id'])
+        result = moderator_manager.reject_report(report_id, session['mod_id'], session['mod_level'])
     elif action == 'disable_user':
         days = int(request.form.get('disable_days', 1))
         # Get the referenced user from the report
-        report = moderator_manager.get_report_by_id(report_id)
+        report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
         if report and report.targetType == "User":
-            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'])
+            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'], session['mod_level'])
+    elif action == 'delete_post':
+        result = moderator_manager.remove_reported_post(report_id, session['mod_level'])
+    elif action == 'delete_comment':
+        result = moderator_manager.remove_reported_comment(report_id, session['mod_level'])
     else:
         flash('Invalid action.', 'danger')
         return redirect(url_for('moderation'))
@@ -1231,6 +1339,8 @@ def api_edit_post(post_id):
     post.title = title
     post.content = content
     post.updatedAt = datetime.utcnow()
+    # Create a new log entry
+    log_action(session['user_id'], LogActionTypes.UPDATE_POST.value, post.postId, ReportTarget.POST.value)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
@@ -1332,11 +1442,82 @@ def api_update_email():
 
     user.email = new_email
     try:
+        log_action(session['user_id'], LogActionTypes.UPDATE_EMAIL.value, user.userId, None)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Email updated successfully', 'email': new_email})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
+
+@app.route('/verify-moderator-login-otp', methods=['POST'])
+def verify_moderator_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
+    
+    if result['success']:
+        session['mod_id'] = result['moderator']['mod_id']
+        result['redirect'] = '/moderation'
+    
+    return jsonify(result)
+
+@app.route('/resend-moderator-login-otp', methods=['POST'])
+@limiter.limit('1 per minute')
+def resend_moderator_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.generate_and_send_moderator_otp(email, 'login')
+    return jsonify(result)
+
+@app.route('/moderator-forgot-password', methods=['POST'])
+@limiter.limit('1 per minute')
+def moderator_forgot_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    result = auth_manager.initiate_moderator_password_reset(email)
+    return jsonify(result)
+
+@app.route('/verify-moderator-reset-otp', methods=['POST'])
+def verify_moderator_reset_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
+    return jsonify(result)
+
+@app.route('/reset-moderator-password', methods=['POST'])
+def reset_moderator_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+    new_password = data.get('new_password', '')
+    
+    if not email or not otp_code or not new_password:
+        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
+    
+    result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    return jsonify(result)
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify(error="Too many requests, slow down!"), 429
 
 if __name__ == '__main__':
     with app.app_context():

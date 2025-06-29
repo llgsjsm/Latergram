@@ -43,6 +43,13 @@
   }
 }
 
+/* Tablet adjustments */
+@media (max-width: 1199px) and (min-width: 992px) {
+  #right-panel {
+    width: 280px;
+  }
+}
+
 .base-btn:hover,
 .base-btn:focus {
   background: #4660c7 !important;
@@ -98,14 +105,16 @@
   transform: scale(1.1);
 }
 
-.card-body .btn-secondary, .card-text .btn-secondary:active {
+.card-body .btn-secondary,
+.card-text .btn-secondary:active {
   background-color: #363947 !important;
   color: #fff !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.card-body .btn-secondary:hover, .card-text .btn-secondary:focus {
+.card-body .btn-secondary:hover,
+.card-text .btn-secondary:focus {
   background: var(--color-navbg) !important;
 }
 
@@ -130,7 +139,8 @@
 }
 
 .comment-content-row {
-  margin: 4px 0 0 40px; /* indent to align with username, adjust as needed */
+  margin: 4px 0 0 40px;
+  /* indent to align with username, adjust as needed */
   font-size: 1rem;
   color: #fff;
 }
@@ -146,14 +156,202 @@
   margin-bottom: 0;
 }
 
-.comment-edit-input:focus, .comment-edit-input:active {
+.comment-edit-input:focus,
+.comment-edit-input:active {
   border: 1.5px solid var(--color-primary) !important;
   outline: none;
 }
 
 .comment-edit-actions-row {
-  margin: 6px 0 0 40px; /* indent to align with content */
+  margin: 6px 0 0 40px;
+  /* indent to align with content */
   gap: 0.5rem;
   display: flex;
   justify-content: space-between;
+}
+
+/* Responsive post actions layout */
+.post-actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.post-actions-container .d-flex {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.post-timestamp {
+  align-self: flex-end;
+}
+
+/* Better responsive behavior for small screens */
+@media (max-width: 768px) {
+  .container-fluid {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .card {
+    margin-bottom: 1rem !important;
+  }
+
+  .card-body {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .post-actions-container .d-flex {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.775rem !important;
+  }
+
+  /* Make images more responsive on mobile */
+  .card-img-top {
+    max-height: 250px !important;
+  }
+
+  /* Better spacing for profile pictures */
+  .rounded-circle {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  /* Adjust text sizes for mobile */
+  .card-title {
+    font-size: 1rem !important;
+  }
+
+  .card-text {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Medium screens optimization */
+@media (max-width: 991px) and (min-width: 769px) {
+  .post-actions-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .post-timestamp {
+    align-self: auto;
+  }
+}
+
+/* Large screens - keep the current layout */
+@media (min-width: 992px) {
+  .post-actions-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .post-timestamp {
+    align-self: auto;
+  }
+}
+
+/* Fix for very small screens */
+@media (max-width: 576px) {
+  .col-12 {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  .card-img-top {
+    max-height: 200px !important;
+  }
+
+  .btn-sm {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .post-actions-container .d-flex {
+    gap: 0.25rem;
+  }
+}
+
+/* Mobile friend requests section */
+.d-lg-none .card-header {
+  background-color: var(--color-navbg) !important;
+  border-bottom: 1px solid #363947;
+}
+
+.d-lg-none .card-header:hover {
+  background-color: #272940 !important;
+}
+
+.d-lg-none .card-header i.fa-chevron-down,
+.d-lg-none .card-header i.fa-chevron-up {
+  transition: transform 0.3s ease;
+}
+
+.d-lg-none .request-item {
+  border-radius: 8px;
+  padding: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.d-lg-none .request-item:hover {
+  background-color: rgba(54, 57, 71, 0.3);
+}
+
+/* Better mobile request button spacing */
+@media (max-width: 576px) {
+  .d-lg-none .request-item .d-flex.justify-content-between {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  
+  .d-lg-none .request-item .d-flex.gap-2 {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+  
+  .d-lg-none .request-btn {
+    flex: 1;
+    max-width: 80px;
+  }
+}
+
+/* Notification styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  z-index: 9999;
+  min-width: 250px;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
+}
+
+.notification.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification.success {
+  background-color: #28a745;
+}
+
+.notification.danger {
+  background-color: #dc3545;
+}
+
+.notification.info {
+  background-color: #17a2b8;
 }

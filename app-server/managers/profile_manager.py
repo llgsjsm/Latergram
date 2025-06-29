@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from models import db, User
-from models.enums import VisibilityType
+from models.enums import VisibilityType, LogActionTypes, ReportTarget
 from sqlalchemy import text
 
 class ProfileManager:
@@ -11,6 +11,23 @@ class ProfileManager:
         self._suggested_users_cache = {}
         self._user_profile_cache = {}
         self._cache_timeout = 300  # 5 minutes cache timeout
+
+    def log_action(self, user_id: int, action: str, target_id: int):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": ReportTarget.USER.value,
+        })
 
     def _clear_user_cache(self, user_id: int):
         """Clear cache for a specific user"""
@@ -60,6 +77,8 @@ class ProfileManager:
             user.visibility = visibility
         
         try:
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.UPDATE_PROFILE.value, user_id)
             db.session.commit()
             return {
                 'success': True,
@@ -109,6 +128,8 @@ class ProfileManager:
                     VALUES (:requester_id, :target_id, NOW(), 'accepted')
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(requester_user_id, LogActionTypes.FOLLOW_USER.value, target_user_id)
                 message = 'Now following user'
             else:
                 # For private or followers-only accounts, send pending request
@@ -117,8 +138,11 @@ class ProfileManager:
                     VALUES (:requester_id, :target_id, NOW(), 'pending')
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(requester_user_id, LogActionTypes.REQUEST_FOLLOW.value, target_user_id)
                 message = 'Follow request sent'
             
+
             db.session.commit()
             
             # Clear cache for both users
@@ -156,6 +180,8 @@ class ProfileManager:
                     WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
                 """)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+                # Create a new log entry
+                self.log_action(target_user_id, LogActionTypes.ACCEPT_FOLLOW_REQUEST.value, requester_user_id)
                 message = 'Follow request accepted'
             else:
                 # Remove the pending request
@@ -163,6 +189,8 @@ class ProfileManager:
                     DELETE FROM followers 
                     WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
                 """)
+                # Create a new log entry
+                self.log_action(target_user_id, LogActionTypes.REJECT_FOLLOW_REQUEST.value, requester_user_id)
                 db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
                 message = 'Follow request declined'
             
@@ -259,6 +287,9 @@ class ProfileManager:
                 WHERE followerUserId = :requester_id AND followedUserId = :target_id AND status = 'pending'
             """)
             db.session.execute(query, {"requester_id": requester_user_id, "target_id": target_user_id})
+
+            # Create a new log entry
+            self.log_action(requester_user_id, LogActionTypes.CANCEL_PENDING_FOLLOW_REQUEST.value, target_user_id)
             db.session.commit()
             
             # Clear cache for both users
@@ -288,6 +319,9 @@ class ProfileManager:
             # Remove the relationship regardless of status
             query = text("DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :followed_id")
             db.session.execute(query, {"follower_id": follower_user_id, "followed_id": followed_user_id})
+
+            # Create a new log entry
+            self.log_action(follower_user_id, LogActionTypes.UNFOLLOW_USER.value, followed_user_id)
             db.session.commit()
             
             # Clear cache for both users
@@ -656,6 +690,8 @@ class ProfileManager:
             
             # Update the password
             user.password = hashed_password
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.CHANGE_PASSWORD.value, None)
             db.session.commit()
             
             return {
@@ -756,6 +792,7 @@ class ProfileManager:
             
             # 6. Finally, delete the user account
             db.session.delete(user)
+
             db.session.commit()
             
             # Clear any cached data for this user
@@ -816,6 +853,8 @@ class ProfileManager:
             db.session.execute(text("""
                 DELETE FROM followers WHERE followerUserId = :follower_id AND followedUserId = :user_id
             """), {"follower_id": follower_user_id, "user_id": user_id})
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.REMOVE_FOLLOWER.value, follower_user_id)
             db.session.commit()
 
             # Clear cache for both users

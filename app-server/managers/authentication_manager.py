@@ -1,15 +1,17 @@
 from typing import Optional, List, Dict, Any
 from models import db, User, Moderator
-from models.enums import VisibilityType
+from models.enums import VisibilityType, ReportTarget, LogActionTypes
 from flask_bcrypt import Bcrypt
 from sqlalchemy import or_
 from datetime import datetime, timedelta
 import re
+from sqlalchemy import text
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 import random
+import time
 
 bcrypt = Bcrypt()
 
@@ -20,7 +22,24 @@ class AuthenticationManager:
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
         self.email_user = os.environ.get('EMAIL_USER', '')
         self.email_password = os.environ.get('EMAIL_PASSWORD', '')
-        
+    
+    def log_action(self, user_id: int, action: str, target_id: int):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": ReportTarget.USER.value
+        })
+
     def login(self, username_or_email: str, password: str) -> Dict[str, Any]:
         """Authenticate user login - supports both username and email"""
         # Optimize: Single query using OR condition instead of two separate queries
@@ -30,7 +49,7 @@ class AuthenticationManager:
 
         if user:
             if not bcrypt.check_password_hash(user.password, password):
-                return {'success': False, 'error': 'Invalid password'}
+                return {'success': False, 'error': 'Error logging in. Try again.'}
             
             # enforce account disablement period
             if user.disabledUntil and user.disabledUntil > datetime.utcnow():
@@ -39,6 +58,9 @@ class AuthenticationManager:
                     'error': f'Login failed. Your account is disabled until {user.disabledUntil.strftime("%Y-%m-%d %H:%M:%S")}.'
                 }
             
+            # Create a new log entry
+            self.log_action(user.userId, LogActionTypes.LOGIN.value, None)
+            db.session.commit()
             return {
                 'success': True,
                 'login_type': 'user',
@@ -60,7 +82,7 @@ class AuthenticationManager:
             ).first()
             if moderator:
                 if not bcrypt.check_password_hash(moderator.password, password):
-                    return {'success': False, 'error': 'Invalid password'}
+                    return {'success': False, 'error': 'Error logging in. Try again.'}
                 return {
                     'success': True,
                     'login_type': 'moderator',
@@ -77,7 +99,7 @@ class AuthenticationManager:
                 # not in user or moderator table
                 return {
                     'success': False,
-                    'error': 'User not found'
+                    'error': 'Error logging in. Try again.'
                 }
 
     def logout(self):
@@ -227,38 +249,109 @@ class AuthenticationManager:
     
     def generate_and_send_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Generate and send OTP to user's email"""
-        # Find user by email
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            return {'success': False, 'error': 'User not found'}
+        try:
+            user = User.query.filter_by(email=email).first()
+            delay = 5 # Dummy delay against timing attacks :)
+            if user:
+                if user.last_otp_request:
+                    # Bootleg rate limiting
+                    time_since_last_request = datetime.utcnow() - user.last_otp_request
+                    if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
+                        time.sleep(delay)
+                        return {'success': True, 'message': 'An OTP has been sent.'}
+                otp_code = user.generate_otp()
+                user.set_otp(otp_code, otp_type, expiry_minutes=10)
+                db.session.commit()
+                self.send_otp_email(email, otp_code, otp_type)
+            else:
+                time.sleep(delay)
+        except Exception as e:
+            db.session.rollback()
+        return { 'success': True, 'message': 'An OTP has been sent.' }
+    
+    def generate_and_send_moderator_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
+        """Generate and send OTP to moderator's email"""
+        # Find moderator by email
+        moderator = Moderator.query.filter_by(email=email).first()
+        if not moderator:
+            return {'success': False, 'error': 'Moderator not found'}
         
-        # Rate limiting: Check if user requested OTP recently
-        if user.last_otp_request:
-            time_since_last_request = datetime.utcnow() - user.last_otp_request
+        # Rate limiting: Check if moderator requested OTP recently
+        if moderator.last_otp_request:
+            time_since_last_request = datetime.utcnow() - moderator.last_otp_request
             if time_since_last_request.total_seconds() < 60:  # 1 minute cooldown
                 return {'success': False, 'error': 'Please wait before requesting another OTP'}
         
         # Generate OTP
-        otp_code = user.generate_otp()
+        otp_code = moderator.generate_otp()
         
         # Set OTP in database
-        user.set_otp(otp_code, otp_type, expiry_minutes=10)
+        moderator.set_otp(otp_code, otp_type, expiry_minutes=10)
         
         try:
             db.session.commit()
             
-            # Send OTP via email
-            if self.send_otp_email(email, otp_code, otp_type):
+            # Send OTP via email (using subject appropriate for moderators)
+            if self.send_moderator_otp_email(email, otp_code, otp_type):
                 return {'success': True, 'message': f'OTP sent to {email}'}
             else:
                 # Rollback if email sending fails
-                user.clear_otp()
+                moderator.clear_otp()
                 db.session.commit()
                 return {'success': False, 'error': 'Failed to send OTP email'}
                 
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Database error: {str(e)}'}
+            
+    def send_moderator_otp_email(self, email: str, otp_code: str, otp_type: str = 'login') -> bool:
+        """Send OTP code via email to moderators"""
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = self.email_user
+            msg['To'] = email
+            
+            if otp_type == 'login':
+                msg['Subject'] = 'LaterGram Moderator - Login Verification Code'
+                body = f"""
+                Hello Moderator,
+                
+                Your LaterGram moderator login verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this code, please contact the system administrator immediately.
+                
+                Best regards,
+                LaterGram Admin Team
+                """
+            else:  # password_reset
+                msg['Subject'] = 'LaterGram Moderator - Password Reset Code'
+                body = f"""
+                Hello Moderator,
+                
+                Your LaterGram moderator password reset code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this password reset, please contact the system administrator immediately.
+                
+                Best regards,
+                LaterGram Admin Team
+                """
+            
+            msg.attach(MIMEText(body, 'plain'))
+            
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server.starttls()
+            server.login(self.email_user, self.email_password)
+            server.send_message(msg)
+            server.quit()
+            
+            return True
+        except Exception as e:
+            print(f"Error sending moderator email: {str(e)}")
+            return False
     
     def verify_otp(self, email: str, otp_code: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Verify OTP code"""
@@ -291,6 +384,37 @@ class AuthenticationManager:
         db.session.commit()
         
         return {'success': True, 'user_id': user.userId, 'message': 'OTP verified successfully'}
+    
+    def verify_moderator_otp(self, email: str, otp_code: str, otp_type: str = 'login') -> Dict[str, Any]:
+        """Verify moderator OTP code"""
+        moderator = Moderator.query.filter_by(email=email).first()
+        if not moderator:
+            return {'success': False, 'error': 'Moderator not found'}
+        
+        # Check if OTP is valid
+        if not moderator.is_otp_valid(otp_code, otp_type):
+            # Increment failed attempts
+            if not moderator.login_attempts:
+                moderator.login_attempts = 0
+            moderator.login_attempts += 1
+            
+            # Lock account after 5 failed attempts for 15 minutes
+            if moderator.login_attempts >= 5:
+                moderator.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Too many failed attempts. Account locked for 15 minutes.'}
+            
+            db.session.commit()
+            return {'success': False, 'error': 'Invalid or expired OTP'}
+        
+        # OTP is valid - for login OTP, clear it immediately
+        # For password reset OTP, keep it until password is actually reset
+        if otp_type == 'login':
+            moderator.clear_otp()
+        moderator.login_attempts = 0
+        db.session.commit()
+        
+        return {'success': True, 'mod_id': moderator.modID, 'message': 'OTP verified successfully'}
     
     def login_with_otp(self, username_or_email: str, password: str) -> Dict[str, Any]:
         """Initiate login process that requires OTP verification"""
@@ -331,7 +455,9 @@ class AuthenticationManager:
             return verify_result
         
         user = User.query.filter_by(email=email).first()
-        
+        # Create a new log entry
+        self.log_action(user.userId, LogActionTypes.LOGIN.value, None)
+        db.session.commit()
         return {
             'success': True,
             'login_type': 'user',
@@ -343,6 +469,54 @@ class AuthenticationManager:
                 'profile_picture': user.profilePicture,
                 'bio': user.bio,
                 'visibility': user.visibility
+            },
+            'message': 'Login successful'
+        }
+    
+    def moderator_login_with_otp(self, username_or_email: str, password: str) -> Dict[str, Any]:
+        """Initiate moderator login process that requires OTP verification"""
+        # First verify username/email and password
+        moderator = Moderator.query.filter(
+            or_(Moderator.username == username_or_email, Moderator.email == username_or_email)
+        ).first()
+
+        if not moderator:
+            return {'success': False, 'error': 'Moderator not found'}
+
+        if not bcrypt.check_password_hash(moderator.password, password):
+            return {'success': False, 'error': 'Invalid password'}
+        
+        # Generate and send OTP
+        otp_result = self.generate_and_send_moderator_otp(moderator.email, 'login')
+        if not otp_result['success']:
+            return otp_result
+        
+        return {
+            'success': True,
+            'requires_otp': True,
+            'email': moderator.email,
+            'mod_id': moderator.modID,
+            'mod_level': moderator.modLevel,
+            'message': 'OTP sent to your email. Please verify to complete login.'
+        }
+    
+    def complete_moderator_login_with_otp(self, email: str, otp_code: str) -> Dict[str, Any]:
+        """Complete moderator login after OTP verification"""
+        verify_result = self.verify_moderator_otp(email, otp_code, 'login')
+        if not verify_result['success']:
+            return verify_result
+        
+        moderator = Moderator.query.filter_by(email=email).first()
+        
+        return {
+            'success': True,
+            'login_type': 'moderator',
+            'moderator': {
+                'mod_id': moderator.modID,
+                'mod_level': moderator.modLevel,
+                'username': moderator.username,
+                'email': moderator.email,
+                'created_at': moderator.createdAt,
             },
             'message': 'Login successful'
         }
@@ -374,7 +548,8 @@ class AuthenticationManager:
             
             # Clear OTP after successful password reset
             user.clear_otp()
-            
+            # Create a new log entry
+            self.log_action(user.userId, LogActionTypes.RESET_PASSWORD.value, None)
             db.session.commit()
             
             return {'success': True, 'message': 'Password reset successfully'}
@@ -382,6 +557,41 @@ class AuthenticationManager:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to reset password: {str(e)}'}
+    
+    def initiate_moderator_password_reset(self, email: str) -> Dict[str, Any]:
+        """Initiate moderator password reset by sending OTP"""
+        return self.generate_and_send_moderator_otp(email, 'password_reset')
+    
+    def reset_moderator_password_with_otp(self, email: str, otp_code: str, new_password: str) -> Dict[str, Any]:
+        """Reset moderator password after OTP verification"""
+        moderator = Moderator.query.filter_by(email=email).first()
+        if not moderator:
+            return {'success': False, 'error': 'Moderator not found'}
+        
+        # Verify OTP is still valid for password reset
+        if not moderator.is_otp_valid(otp_code, 'password_reset'):
+            return {'success': False, 'error': 'Invalid or expired OTP'}
+        
+        # Validate new password
+        if len(new_password) < 6:
+            return {'success': False, 'error': 'Password must be at least 6 characters long'}
+        
+        try:
+            # Update password
+            hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            moderator.password = hashed_password
+            moderator.login_attempts = 0  # Reset login attempts
+            
+            # Clear OTP after successful password reset
+            moderator.clear_otp()
+            
+            db.session.commit()
+            
+            return {'success': True, 'message': 'Moderator password reset successfully'}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to reset moderator password: {str(e)}'}
     
     def generate_and_send_email_update_otp(self, current_user_id: int, new_email: str) -> Dict[str, Any]:
         """Generate and send OTP to new email address for email update verification"""

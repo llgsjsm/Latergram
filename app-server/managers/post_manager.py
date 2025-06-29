@@ -2,11 +2,28 @@ from models import db, Post, Comment, User
 from typing import Dict, Any
 from sqlalchemy import text
 from datetime import datetime
+from models.enums import ReportTarget, LogActionTypes
 
 class PostManager:
     def __init__(self):
         pass
-        
+    def log_action(self, user_id: int, action: str, target_id: int, target_type: str):
+        """
+        Logs an action to the application_log table.
+        """
+        sql = """
+        INSERT INTO application_log 
+        (user_id, action, target_id, target_type, timestamp)
+        VALUES (:user_id, :action, :target_id, :target_type, NOW())
+        """
+
+        db.session.execute(text(sql), {
+            "user_id": user_id,
+            "action": action,
+            "target_id": target_id,
+            "target_type": target_type,
+        })
+
     def create_post(self, title, content, user_id):
         new_post = Post(title=title, content=content, authorId=user_id)
         db.session.add(new_post)
@@ -33,8 +50,10 @@ class PostManager:
             
             # Delete the post
             db.session.delete(post)
+
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.DELETE_POST.value, post_id, ReportTarget.POST.value)
             db.session.commit()
-            
             return {'success': True, 'message': 'Post deleted successfully'}
             
         except Exception as e:
@@ -75,7 +94,9 @@ class PostManager:
             
             # Update post like count
             post.like = (post.like or 0) + 1
-            
+
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.LIKE_POST.value, post_id, ReportTarget.POST.value)
             db.session.commit()
             
             return {'success': True, 'message': 'Post liked successfully', 'new_count': post.like}
@@ -112,7 +133,9 @@ class PostManager:
             
             # Don't touch post.likesId to avoid the NOT NULL constraint issue
             # The junction table is our source of truth for like tracking
-            
+
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.UNLIKE_POST.value, post_id, ReportTarget.POST.value)
             db.session.commit()
             
             # Clean up orphaned like records if they exist and are safe to delete
@@ -169,6 +192,8 @@ class PostManager:
         try:
             comment = Comment(postId=post_id, authorId=user_id, commentContent=content)
             db.session.add(comment)
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.CREATE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
             db.session.commit()
             
             return {
@@ -192,6 +217,9 @@ class PostManager:
         
         try:
             db.session.delete(comment)
+
+            # Create a new log entry
+            self.log_action(user_id, LogActionTypes.DELETE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
             db.session.commit()
             return {
                 'success': True,
@@ -230,6 +258,11 @@ class PostManager:
             text("INSERT INTO followers (followerUserId, followedUserId, createdAt) VALUES (:follower, :followed, NOW())"),
             {"follower": follower_user_id, "followed": followed_user_id}
         )
+
+        followed_user = User.query.filter_by(followed_user_id).first()
+        # Create a new log entry
+        self.log_action(follower_user_id, LogActionTypes.FOLLOW_USER.value, followed_user.userId, ReportTarget.USER.value)
+
         db.session.commit()
         return {'success': True}
 

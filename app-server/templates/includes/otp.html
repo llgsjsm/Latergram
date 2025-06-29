@@ -1,0 +1,12 @@
+<!-- OTP Verification Block -->
+<div class="mb-4 otp-text-field" style="display: none">
+    <label for="otp-code" class="form-label">Enter the OTP sent to your email</label>
+    <input type="text" class="form-control" id="otp-code" name="otp-code" placeholder="Enter OTP code"/>
+    <input type="hidden" id="otp-email" name="otp-email" />
+    <input type="hidden" id="otp-type" name="otp-type" />
+    <div style="margin-top: 10px">
+        <a href="#" id="resend-otp" style="color: var(--color-primary)">Resend OTP</a>
+        <span style="margin: 0 10px">|</span>
+        <a href="{{ url_for('login') }}" id="cancel-otp" style="color: var(--color-secondary-text)">Back to Login</a>
+    </div>
+</div>
