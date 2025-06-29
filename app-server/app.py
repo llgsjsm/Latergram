@@ -14,6 +14,9 @@ import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 from flask_limiter import Limiter
 
+# Backend imports
+from backend.splunk_utils import get_real_ip, log_to_splunk
+from backend.captcha_utils import verify_recaptcha
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +34,6 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
-CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
@@ -57,10 +59,6 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 moderator_manager = get_moderator_manager()
 
-# SPLUNK HEC Configuration
-SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
-SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
-
 if not IS_TESTING:
     if FILE_LOCATION and BUCKET:
         cred = credentials.Certificate(FILE_LOCATION)
@@ -73,46 +71,12 @@ if not IS_TESTING:
 else:
     print("Skipping Firebase init — test mode enabled")
 
-def get_real_ip():
-    forwarded_for = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
-    return request.remote_addr
-
 # rate limiting
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
     default_limits=['5 per minute'],
 )
-
-def log_to_splunk(event_data):
-    client_ip = get_real_ip()
-    payload = {
-        "event": {
-            "message": event_data,
-            "path": request.path,
-            "method": request.method,
-            "ip": client_ip,
-            "user_agent": request.headers.get("User-Agent")
-        },
-        "sourcetype": "flask-web",
-        "host": client_ip
-    }
-
-    headers = {
-        "Authorization": f"Splunk {SPLUNK_HEC_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(SPLUNK_HEC_URL, headers=headers, data=json.dumps(payload), verify=False)
-        if response.status_code != 200:
-            print(f"Splunk HEC error: {response.status_code} - {response.text}")
-        else:
-            print(f"Sent log to Splunk: {event_data}")
-    except Exception as e:
-        print(f"Failed to send log to Splunk: {e}")
 
 def ensure_firebase_initialized():
     global bucket
@@ -127,22 +91,6 @@ def ensure_firebase_initialized():
         else:
             raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     bucket = storage.bucket()
-
-def verify_recaptcha(token, remote_ip):
-    if IS_TESTING:
-        print("Skipping reCAPTCHA verification in test mode")
-        return True
-    if not token:
-        return False
-    response = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data={
-            'secret': CAPTCHA_KEY,
-            'response': token,
-            'remoteip': remote_ip
-        }
-    ).json()
-    return response.get('success', False)
 
 def log_action(user_id: int, action: str, target_id: int, target_type: str):
         """
@@ -221,7 +169,7 @@ def home():
 
 @app.route('/')
 def hello_world():
-    # log_to_splunk("Visited /")
+    log_to_splunk("Landing","Browsed to landing page")
     return redirect(url_for('home'))
 
 @app.route('/reset_password_portal', methods=['GET', 'POST'])
@@ -230,6 +178,7 @@ def reset_password_portal():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
         # Check if it's a JSON request (AJAX)
         if request.is_json:
@@ -258,9 +207,10 @@ def login():
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
-                            
+                            print(f"Login result: {result}")
                             if result['success']:
                                 session['user_id'] = result['user']['user_id']
+                                log_to_splunk("Login", "User logged in", username=result['user']['username'])
                                 return jsonify({'success': True, 'redirect': '/home'})
                             
                             return jsonify(result)
@@ -277,8 +227,10 @@ def login():
                             if result['success']:
                                 session['mod_id'] = result['mod_id']
                                 session['mod_level'] = result['mod_level']
+                                log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
                             return jsonify(result)
                         else:
+                            log_to_splunk("Login", "Failed login attempt", username=email)
                             return jsonify({'success': False, 'error': 'Error logging in. Try again.'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
@@ -301,12 +253,15 @@ def login():
                             session['mod_id'] = result['moderator']['mod_id']
                             session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
                             return redirect(url_for('moderation'))
                         else:
                             session['user_id'] = result['user']['user_id']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "User logged in", username=result['user']['username'])
                             return redirect(url_for('home'))
                     else:
+                        log_to_splunk("Login", "Failed login attempt", username=email)
                         flash(f'Login Unsuccessful. {result["error"]}', 'danger')
                 else:
                     flash('Please enter both email and password.', 'danger')
