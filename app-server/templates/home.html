@@ -4,11 +4,94 @@
   href="{{ url_for('static', filename='assets/css/home.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-2 px-md-3">
   <div class="row justify-content-center">
     <!-- Main Feed - Centered -->
-    <div class="col-12 col-md-8 col-lg-6">
+    <div class="col-12 col-sm-11 col-md-10 col-lg-8 col-xl-6">
       <h2 class="mb-4 text-center">Welcome to Latergram!</h2>
+
+      <!-- Mobile Friend Requests Section - Only visible on smaller screens -->
+      {% if pending_requests %}
+      <div class="d-lg-none mb-4">
+        <div class="card">
+          <div class="card-header" 
+               data-bs-toggle="collapse" 
+               data-bs-target="#mobileFollowRequests" 
+               aria-expanded="false" 
+               aria-controls="mobileFollowRequests"
+               style="cursor: pointer;">
+            <div class="d-flex align-items-center justify-content-between">
+              <h6 class="mb-0">
+                <i class="fas fa-user-plus me-2"></i>Follow Requests ({{ pending_requests|length }})
+              </h6>
+              <i class="fas fa-chevron-down" id="mobile-requests-chevron"></i>
+            </div>
+          </div>
+          <div class="collapse" id="mobileFollowRequests">
+            <div class="card-body">
+              {% for request in pending_requests %}
+              <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
+                <div class="text-muted small mb-2">
+                  {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at else '' }}
+                </div>
+                <div class="d-flex align-items-center justify-content-between flex-wrap">
+                  <div class="d-flex align-items-center mb-2 mb-sm-0">
+                    {% if request.profile_picture %}
+                    <img
+                      src="{{ request.profile_picture }}"
+                      class="rounded-circle me-3"
+                      style="width: 40px; height: 40px; object-fit: cover"
+                      alt="Profile Picture"
+                    />
+                    {% else %}
+                    <span
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
+                      style="
+                        width: 40px;
+                        height: 40px;
+                        background: #23263a;
+                        color: #bfc7d5;
+                        font-size: 1.3rem;
+                        border: 2px solid #343a40;
+                      "
+                    >
+                      <i class="fas fa-user"></i>
+                    </span>
+                    {% endif %}
+                    <div>
+                      <a
+                        href="{{ url_for('profile', user_id=request.requester_id) }}"
+                        class="text-decoration-none"
+                      >
+                        <strong>{{ request.username }}</strong>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button
+                      class="btn btn-primary btn-sm request-btn"
+                      data-action="accept"
+                      data-requester-id="{{ request.requester_id }}"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary btn-sm request-btn"
+                      data-action="decline"
+                      data-requester-id="{{ request.requester_id }}"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {% if not loop.last %}<hr class="my-2">{% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Posts Feed -->
       {% if posts %}
@@ -19,7 +102,7 @@
         <img
           src="{{ post.image }}"
           class="card-img-top img-fluid"
-          style="max-height: 300px; object-fit: cover"
+          style="max-height: 400px; width: 100%; object-fit: cover"
           alt="Post image"
         />
         {% endif %}
@@ -120,20 +203,12 @@
           {% endif %}
 
           <!-- Post Actions -->
-          <div
-            class="d-flex flex-column flex-md-row justify-content-md-between align-items-start align-items-md-center"
-          >
-            {# Changed parent flex behavior #}
-            <div class="d-flex flex-wrap mb-2 mb-md-0">
-              {# Wrapped action buttons in their own flex-wrap div #} {% if
-              liked_posts.get(post.postId, False) %}
+          <div class="post-actions-container">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              {% if liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
               <button
-                class="btn btn-danger btn-sm like-btn me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn btn-danger btn-sm like-btn"
                 data-post-id="{{ post.postId }}"
                 data-action="unlike"
               >
@@ -143,11 +218,7 @@
               {% else %}
               <!-- Like button -->
               <button
-                class="btn btn-outline-danger btn-sm like-btn me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn btn-outline-danger btn-sm like-btn"
                 data-post-id="{{ post.postId }}"
                 data-action="like"
               >
@@ -156,38 +227,25 @@
               </button>
               {% endif %}
               <button
-                class="btn btn-secondary btn-sm me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn btn-secondary btn-sm"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
                 <i class="fas fa-comment"></i>
                 <span id="comment-btn-text-{{ post.postId }}">
                   {{ comment_counts.get(post.postId, 0) }}
                 </span>
-                {# Removed "Comments" text #}
               </button>
               {% if user and post.authorId == user.userId %}
               <button
                 id="save-post-{{ post.postId }}"
-                class="btn card-btn-primary btn-sm d-none me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn card-btn-primary btn-sm d-none"
                 onclick="savePostEdit('{{ post.postId }}')"
               >
                 Save
               </button>
               <button
                 id="cancel-post-{{ post.postId }}"
-                class="btn btn-outline-secondary btn-sm d-none me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn btn-outline-secondary btn-sm d-none"
                 onclick="hideEditFields('{{ post.postId }}')"
               >
                 Cancel
@@ -195,22 +253,19 @@
               {% elif user %}
               <!-- Report Button for posts not owned by current user -->
               <button
-                class="btn btn-outline-warning btn-sm me-2 mb-2 mb-md-0"
-                {#
-                Adjusted
-                spacing
-                #}
+                class="btn btn-outline-warning btn-sm"
                 onclick="openReportModal('{{ post.postId }}')"
               >
-                <i class="fas fa-flag"></i> {# Removed "Report" text #}
+                <i class="fas fa-flag"></i>
               </button>
               {% endif %}
             </div>
-            <small class="text-muted ms-md-auto">
-              {# Moved timestamp and adjusted margin #} {{
-              post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else ''
-              }}</small
-            >
+            <div class="post-timestamp">
+              <small class="text-muted">
+                {{ post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else
+                '' }}
+              </small>
+            </div>
           </div>
           <!-- Comments Section - Only show if there are comments -->
           {% if comment_counts.get(post.postId, 0) > 0 %}
@@ -1129,6 +1184,24 @@
 {% endif %}
 
 <script>
+  // Mobile friend requests collapse handler
+  document.addEventListener('DOMContentLoaded', function() {
+    const mobileRequestsCollapse = document.getElementById('mobileFollowRequests');
+    const chevronIcon = document.getElementById('mobile-requests-chevron');
+    
+    if (mobileRequestsCollapse && chevronIcon) {
+      mobileRequestsCollapse.addEventListener('show.bs.collapse', function() {
+        chevronIcon.classList.remove('fa-chevron-down');
+        chevronIcon.classList.add('fa-chevron-up');
+      });
+      
+      mobileRequestsCollapse.addEventListener('hide.bs.collapse', function() {
+        chevronIcon.classList.remove('fa-chevron-up');
+        chevronIcon.classList.add('fa-chevron-down');
+      });
+    }
+  });
+
   // Handle follow request responses
   document.querySelectorAll(".request-btn").forEach((button) => {
     button.addEventListener("click", function () {
@@ -1145,33 +1218,43 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          if (data.success) {
-            // Remove the request item from the UI
-            requestItem.style.transition = "opacity 0.3s";
-            requestItem.style.opacity = "0";
-            setTimeout(() => {
-              requestItem.remove();
+          if (data.success) {              // Remove the request item from the UI
+              requestItem.style.transition = "opacity 0.3s";
+              requestItem.style.opacity = "0";
+              setTimeout(() => {
+                // Remove both mobile and desktop versions of this request
+                const allRequestItems = document.querySelectorAll(`[data-requester-id="${requesterId}"]`);
+                allRequestItems.forEach(item => item.remove());
 
-              // Check if there are any remaining requests
-              const remainingRequests =
-                document.querySelectorAll(".request-item");
-              if (remainingRequests.length === 0) {
-                // Hide the entire follow requests section
-                const requestsCard = document.querySelector(
-                  ".card:has(.request-item)"
-                );
-                if (requestsCard) {
-                  requestsCard.remove();
+                // Check if there are any remaining requests
+                const remainingRequests = document.querySelectorAll(".request-item");
+                if (remainingRequests.length === 0) {
+                  // Hide both mobile and desktop follow requests sections
+                  const desktopRequestsCard = document.querySelector("#right-panel .card");
+                  const mobileRequestsCard = document.querySelector(".d-lg-none .card");
+                  
+                  if (desktopRequestsCard) {
+                    desktopRequestsCard.remove();
+                  }
+                  if (mobileRequestsCard) {
+                    mobileRequestsCard.remove();
+                  }
+                } else {
+                  // Update the count in both sections
+                  const desktopCountElement = document.querySelector("#right-panel .card-header h6");
+                  const mobileCountElement = document.querySelector(".d-lg-none .card-header h6");
+                  
+                  const newCountText = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
+                  
+                  if (desktopCountElement) {
+                    desktopCountElement.innerHTML = newCountText;
+                  }
+                  if (mobileCountElement) {
+                    mobileCountElement.innerHTML = newCountText;
+                  }
                 }
-              } else {
-                // Update the count
-                const countElement = document.querySelector(".card-header h6");
-                if (countElement) {
-                  countElement.innerHTML = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
-                }
-              }
-              showNotification(data.message, "success");
-            }, 300);
+                showNotification(data.message, "success");
+              }, 300);
           } else {
             showNotification(
               data.error || "Failed to process request",
