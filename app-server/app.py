@@ -1105,6 +1105,7 @@ def moderation():
 
     # Pagination parameters
     page = request.args.get('page', 1, type=int)
+    log_page = request.args.get('log_page', 1, type=int)
     per_page = 10
 
     try:
@@ -1113,6 +1114,9 @@ def moderation():
         # All reports for history table, paginated
         all_reports_query = moderator_manager.get_all_reports_query(session['mod_level'])
         paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
+        # Application user log for the log table
+        moderation_log = moderator_manager.get_moderation_log(page=log_page, per_page=per_page)
+
     except Exception as e:
         print(f"Error getting reports: {e}")
         reports = []
@@ -1121,7 +1125,8 @@ def moderation():
     return render_template(
         'moderation.html',
         reports=reports,
-        paginated_reports=paginated_reports
+        paginated_reports=paginated_reports,
+        moderation_log=moderation_log,
     )
 
 @app.route('/moderation/report/<int:report_id>')
@@ -1421,14 +1426,14 @@ def verify_login_otp():
         if user:
             result = auth_manager.complete_login_with_otp(email, otp_code)
 
-    if result['success']:
+    if result['success'] and result['login_type'] == 'user':
         if (result['user']['user_id']):
             session['user_id'] = result['user']['user_id']
             result['redirect'] = '/home'
             log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
-
         else:
             session['mod_id'] = result['moderator']['mod_id']
+            session['mod_level'] = result['moderator']['mod_level']
             result['redirect'] = '/moderation'
             log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
     else:     

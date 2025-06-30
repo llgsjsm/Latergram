@@ -165,3 +165,50 @@ class ModeratorManager:
     def mod_level_check(self, mod_level):
         # Logic to check moderator level
         pass 
+
+    def get_moderation_log(self, page=1, per_page=10):
+        sql = """
+        SELECT
+            l.*,
+            u.username AS user_username,
+            CASE
+                WHEN l.target_type = 'Post' AND l.action IN ('like_post', 'unlike_post')
+                THEN (SELECT p_author.username FROM post p
+                      JOIN user p_author ON p.authorId = p_author.userId
+                      WHERE p.postId = l.target_id)
+                WHEN l.target_type = 'Comment' AND l.action IN ('create_comment', 'update_comment', 'delete_comment')
+                THEN (SELECT p_author.username FROM post p
+                      JOIN user p_author ON p.authorId = p_author.userId
+                      WHERE p.postId = (SELECT c.postId FROM comment c 
+                            WHERE c.commentId = l.target_id
+                        )
+                )
+                ELSE NULL
+            END AS target_author_username,
+            tu.username AS target_username
+        FROM application_log l
+        JOIN user u ON l.user_id = u.userId
+        LEFT JOIN user tu ON l.target_type = 'User' AND l.target_id IS NOT NULL AND tu.userId = l.target_id
+        ORDER BY l.timestamp DESC
+        LIMIT :limit OFFSET :offset
+        """
+        offset = (page - 1) * per_page
+        result = db.session.execute(text(sql), {"limit": per_page, "offset": offset})
+        logs = result.fetchall()
+
+        # Get total count for pagination
+        count_sql = "SELECT COUNT(*) FROM application_log"
+        total = db.session.execute(text(count_sql)).scalar()
+        total_pages = (total + per_page - 1) // per_page
+
+        return {
+            "items": logs,
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": total_pages,
+            "has_prev": page > 1,
+            "has_next": page < total_pages,
+            "prev_num": page - 1,
+            "next_num": page + 1,
+        }
