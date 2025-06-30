@@ -2,9 +2,12 @@ from flask import request
 import requests
 import json
 import os
+import urllib3
 
 SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')

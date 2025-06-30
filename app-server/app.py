@@ -264,19 +264,24 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    log_to_splunk("Register", "Visited registration page")
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
         result = auth_manager.register(username, email, password)
         if result['success']:
+            log_to_splunk("Register", "User registered an account", username=username)
             flash('Your account has been created! You are now able to log in', 'success')
             return redirect(url_for('login'))
         else:
+            print((f"Registration error: {result}"))
             if 'errors' in result:
                 for error in result['errors']:
+                    log_to_splunk("Register", f"Registration error: {error}")
                     flash(error, 'danger')
             else:
+                log_to_splunk("Register", f"Registration error: {error}")
                 flash(result['error'], 'danger')
     return render_template('register.html')
 

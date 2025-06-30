@@ -117,12 +117,17 @@ class AuthenticationManager:
         existing_user = User.query.filter(
             or_(User.username == username, User.email == email)
         ).first()
-        
+
+        # Suggested change
+        # existing_user = User.query.filter(
+        #     or_(User.username == username)
+        # ).first()
+
         if existing_user:
             if existing_user.username == username:
-                return {'success': False, 'error': 'Username already exists'}
+                return {'success': False, 'errors': 'Username already exists'}
             else:
-                return {'success': False, 'error': 'Email already exists'}
+                return {'success': False, 'errors': 'Email already exists'}
         
         try:
             # Create user with profile information in the same table
@@ -145,7 +150,7 @@ class AuthenticationManager:
             }
         except Exception as e:
             db.session.rollback()
-            return {'success': False, 'error': f'Failed to create user: {str(e)}'}
+            return {'success': False, 'errors': f'Failed to create user: {str(e)}'}
 
     def validate_session(self):
         # This would check if a user is logged in
