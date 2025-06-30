@@ -30,6 +30,29 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         .catch((error) => {
             showMessage("An error occurred", "error");
         });
+    } else if (otpType === "register") {
+        // Registration OTP verification
+        fetch("/verify-register-otp", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email: email,
+                otp_code: otpCode,
+            }),
+        })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                window.location.href = "/home";
+            } else {
+                showMessage(data.error, "error");
+            }
+        })
+        .catch((error) => {
+            showMessage("An error occurred", "error");
+        });
     } else {
         // Try user login OTP verification first
         fetch("/verify-login-otp", {

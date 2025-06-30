@@ -6,7 +6,7 @@ from dotenv import load_dotenv  # Add this import
 from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -266,23 +266,35 @@ def login():
 def register():
     log_to_splunk("Register", "Visited registration page")
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        result = auth_manager.register(username, email, password)
-        if result['success']:
-            log_to_splunk("Register", "User registered an account", username=username)
-            flash('Your account has been created! You are now able to log in', 'success')
-            return redirect(url_for('login'))
-        else:
-            print((f"Registration error: {result}"))
-            if 'errors' in result:
-                for error in result['errors']:
-                    log_to_splunk("Register", f"Registration error: {error}")
-                    flash(error, 'danger')
-            else:
-                log_to_splunk("Register", f"Registration error: {error}")
-                flash(result['error'], 'danger')
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+
+        init_result = auth_manager.initiate_registration(username, email, password)
+
+        if not init_result.get('success'):
+            return jsonify({'success': False, 'errors': init_result.get('errors', ['An unknown error occurred.'])}), 400
+        
+        # Centralized call to generate and send OTP
+        otp_result = auth_manager.generate_and_send_otp(email, otp_type='registration')
+
+        if not otp_result.get('success'):
+            return jsonify({'success': False, 'error': otp_result.get('error', 'Failed to send OTP.')})
+
+        session['registration_data'] = {
+            'username': username,
+            'email': email,
+            'password_hash': init_result['password_hash'],
+            'otp': otp_result['otp_code'], # Get the code from the result
+            'otp_expiry': (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+        }
+        
+        return jsonify({'success': True, 'email': email})
+
     return render_template('register.html')
 
 @app.route('/logout')
@@ -1446,6 +1458,44 @@ def verify_login_otp():
         log_to_splunk("Login", "Failed OTP verification", username=email)
 
     return jsonify(result)
+
+@app.route('/verify-register-otp', methods=['POST'])
+def verify_register_otp():
+    data = request.get_json()
+    email = data.get('email')
+    otp_code = data.get('otp_code')
+    
+    reg_data = session.get('registration_data')
+
+    if not reg_data or reg_data.get('email') != email:
+        return jsonify({'success': False, 'error': 'No registration in progress or email mismatch.'}), 400
+
+    if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.utcnow():
+        session.pop('registration_data', None)
+        return jsonify({'success': False, 'error': 'OTP has expired.'}), 400
+
+    if reg_data.get('otp') != otp_code:
+        return jsonify({'success': False, 'error': 'Invalid OTP.'}), 400
+
+    create_result = auth_manager.create_user(
+        username=reg_data['username'],
+        email=reg_data['email'],
+        password_hash=reg_data['password_hash']
+    )
+
+    if not create_result.get('success'):
+        session.pop('registration_data', None)
+        return jsonify({'success': False, 'error': create_result.get('errors', ['Failed to create user.'])}), 500
+
+    session.pop('registration_data', None)
+    
+    user = User.query.filter_by(email=email).first()
+    if user:
+        session['user_id'] = user.userId
+        log_to_splunk("Register", "User registered an account", username=user.username)
+        return jsonify({'success': True, 'redirect': url_for('home')})
+    else:
+        return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
 
 @app.errorhandler(429)
 def ratelimit_handler(e):

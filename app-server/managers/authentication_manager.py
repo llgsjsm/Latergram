@@ -23,6 +23,10 @@ class AuthenticationManager:
         self.email_user = os.environ.get('EMAIL_USER', '')
         self.email_password = os.environ.get('EMAIL_PASSWORD', '')
     
+    def _generate_otp(self) -> str:
+        """Generate a 6-digit OTP"""
+        return str(random.randint(100000, 999999)).zfill(6)
+    
     def log_action(self, user_id: int, action: str, target_id: int):
         """
         Logs an action to the application_log table.
@@ -106,36 +110,38 @@ class AuthenticationManager:
         # In a session-based approach, this would clear the session
         pass
 
-    def register(self, username: str, email: str, password: str) -> Dict[str, Any]:
-        """Create a new user with validation"""
+    def initiate_registration(self, username: str, email: str, password: str) -> Dict[str, Any]:
+        """Validate data and prepare for registration OTP"""
         # Validate input
         validation_result = self.validate_user_data(username, email, password)
         if not validation_result['valid']:
             return validation_result
         
-        # Check if username or email already exists - single query optimization
+        # Check if username or email already exists
         existing_user = User.query.filter(
             or_(User.username == username, User.email == email)
         ).first()
 
-        # Suggested change
-        # existing_user = User.query.filter(
-        #     or_(User.username == username)
-        # ).first()
-
         if existing_user:
             if existing_user.username == username:
-                return {'success': False, 'errors': 'Username already exists'}
+                return {'success': False, 'errors': ['Username already exists']}
             else:
-                return {'success': False, 'errors': 'Email already exists'}
+                return {'success': False, 'errors': ['Email already exists']}
         
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        
+        return {
+            'success': True,
+            'password_hash': hashed_password
+        }
+
+    def create_user(self, username: str, email: str, password_hash: str) -> Dict[str, Any]:
+        """Creates a new user in the database."""
         try:
-            # Create user with profile information in the same table
-            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
             user = User(
                 username=username,
                 email=email,
-                password=hashed_password,
+                password=password_hash,
                 profilePicture='',
                 bio='',
                 visibility=VisibilityType.PUBLIC.value
@@ -150,7 +156,7 @@ class AuthenticationManager:
             }
         except Exception as e:
             db.session.rollback()
-            return {'success': False, 'errors': f'Failed to create user: {str(e)}'}
+            return {'success': False, 'errors': [f'Failed to create user: {str(e)}']}
 
     def validate_session(self):
         # This would check if a user is logged in
@@ -224,6 +230,20 @@ class AuthenticationManager:
                 Best regards,
                 LaterGram Team
                 """
+            elif otp_type == 'registration':
+                msg['Subject'] = 'LaterGram - Account Verification Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram account verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this code, please ignore this email.
+                
+                Best regards,
+                LaterGram Team
+                """
             else:  # password_reset
                 msg['Subject'] = 'LaterGram - Password Reset Code'
                 body = f"""
@@ -255,6 +275,13 @@ class AuthenticationManager:
     def generate_and_send_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Generate and send OTP to user's email"""
         try:
+            if otp_type == 'registration':
+                otp_code = self._generate_otp()
+                if self.send_otp_email(email, otp_code, 'registration'):
+                    return {'success': True, 'otp_code': otp_code, 'message': 'OTP sent to your email.'}
+                else:
+                    return {'success': False, 'error': 'Failed to send OTP email.'}
+
             user = User.query.filter_by(email=email).first()
             delay = 5 # Dummy delay against timing attacks :)
             if user:
@@ -272,6 +299,8 @@ class AuthenticationManager:
                 time.sleep(delay)
         except Exception as e:
             db.session.rollback()
+            return {'success': False, 'error': f'An internal error occurred: {str(e)}'}
+
         return { 'success': True, 'message': 'An OTP has been sent.' }
     
     def generate_and_send_moderator_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:

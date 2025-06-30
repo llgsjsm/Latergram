@@ -4,7 +4,7 @@
     {% with title='Login' %} {% include 'includes/head.html' %} {% endwith %}
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='assets/css/auth.css') }}"
+      href="{{ url_for('static', filename='../static/assets/css/auth.css') }}"
     />
   </head>
   <body>
@@ -43,11 +43,11 @@
         <!-- Login and Reset Buttons -->
         <div class="d-grid my-4 login-btn-wrapper">
           <button type="submit" id="login-btn" name="login-btn" class="btn btn-login">Login</button>
-          </div>
-              <div class="d-grid mb-4 otp-btn-wrapper" style="display: none">
-              <button type="button" class="btn btn-login" id="verify-otp-btn">Verify Code
-              </button>
-          </div>
+        </div>
+        
+        <!-- <div class="d-grid mb-4 otp-btn-wrapper" style="display: none">
+          <button type="button" class="btn btn-login" id="verify-otp-btn">Verify Code</button>
+        </div> -->
 
         <!-- Sign Up Link -->
         <p id="signup-link">
