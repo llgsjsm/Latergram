@@ -15,9 +15,6 @@ def get_real_ip():
         return forwarded_for.split(',')[0].strip()
     return request.remote_addr
 
-from flask import request
-import json, requests
-
 def log_to_splunk(event_type, event_data=None, username=None):
     client_ip = get_real_ip() 
     payload = {

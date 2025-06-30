@@ -301,9 +301,20 @@ def register():
 def logout():
     if 'user_id' in session:
         log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
+
+        user = User.query.filter_by(userId=session['user_id']).first()
+        log_to_splunk("Logout", "User logged out", username=user.username)
         session.pop('user_id', None)
+        flash('You have been logged out.', 'info')
+
     else:
-        session.pop('mod_id', None)
+        try:
+            mod = Moderator.query.filter_by(modID=session['mod_id']).first()
+            log_to_splunk("Logout", "Moderator logged out", username=mod.username)
+            session.pop('mod_id', None)
+        except KeyError:
+            log_to_splunk("Logout", "Weird logout attempt")
+            return redirect(url_for('login'))
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
