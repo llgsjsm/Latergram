@@ -1397,7 +1397,7 @@ def resend_login_otp():
     return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
     })
 
-@app.route('/verify-reset', methods=['POST'])
+@app.route('/verify-reset-otp', methods=['POST'])
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1475,19 +1475,28 @@ def verify_register_otp():
     data = request.get_json()
     email = data.get('email')
     otp_code = data.get('otp_code')
-    
     reg_data = session.get('registration_data')
 
-    if not reg_data or reg_data.get('email') != email:
-        return jsonify({'success': False, 'error': 'No registration in progress or email mismatch.'}), 400
+    email_helper = User.query.filter(
+        or_(User.email == email)
+    ).first()
+
+    if not reg_data or reg_data.get('email') != email or email_helper:
+        if email_helper:
+            log_to_splunk("Register", "Attempted creation of multi-accounts", username=email)
+        else:
+            log_to_splunk("Register", "Attempted registration with invalid inputs", username=email)
+        return jsonify({'success': False, 'error': 'Error registering with email address.'})
 
     if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.utcnow():
+        log_to_splunk("Register", "OTP expired during registration", username=email)
         session.pop('registration_data', None)
-        return jsonify({'success': False, 'error': 'OTP has expired.'}), 400
+        return jsonify({'success': False, 'error': 'General OTP failure. Please try again.'}), 500
 
     if reg_data.get('otp') != otp_code:
-        return jsonify({'success': False, 'error': 'Invalid OTP.'}), 400
-
+        log_to_splunk("Register", "Invalid OTP during registration", username=email)
+        return jsonify({'success': False, 'error': 'General OTP failure. Please try again.'}), 500
+    
     create_result = auth_manager.create_user(
         username=reg_data['username'],
         email=reg_data['email'],
@@ -1495,8 +1504,9 @@ def verify_register_otp():
     )
 
     if not create_result.get('success'):
+        log_to_splunk("Register", "Failed to create user", username=email)
         session.pop('registration_data', None)
-        return jsonify({'success': False, 'error': create_result.get('errors', ['Failed to create user.'])}), 500
+        return jsonify({'success': False, 'error': create_result.get('errors', ['Failed to create user.'])})
 
     session.pop('registration_data', None)
     
@@ -1506,6 +1516,7 @@ def verify_register_otp():
         log_to_splunk("Register", "User registered an account", username=user.username)
         return jsonify({'success': True, 'redirect': url_for('home')})
     else:
+        log_to_splunk("Register", "Failed to register user after OTP verification", username=email)
         return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
 
 @app.errorhandler(429)

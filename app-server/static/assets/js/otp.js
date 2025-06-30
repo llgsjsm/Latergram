@@ -45,9 +45,18 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         .then((response) => response.json())
         .then((data) => {
             if (data.success) {
-                window.location.href = "/home";
+                window.location.href = data.redirect;
             } else {
-                showMessage(data.error, "error");
+                // false
+                console.log(data);
+                showMessage(data.error, "error", "otp-container");
+                if (!data.error.includes("otp")) {
+                    setTimeout(() => {
+                        window.location.href = "/register";
+                    }, 4000); // 4 Secs
+                }
+
+                
             }
         })
         .catch((error) => {

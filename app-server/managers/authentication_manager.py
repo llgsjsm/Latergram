@@ -119,14 +119,12 @@ class AuthenticationManager:
         
         # Check if username or email already exists
         existing_user = User.query.filter(
-            or_(User.username == username, User.email == email)
+            or_(User.username == username)
         ).first()
 
         if existing_user:
-            if existing_user.username == username:
+            if existing_user.username.lower() == username.lower():
                 return {'success': False, 'errors': ['Username already exists']}
-            else:
-                return {'success': False, 'errors': ['Email already exists']}
         
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
         
