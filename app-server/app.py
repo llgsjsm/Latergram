@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment, User, Report
+from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -14,6 +14,9 @@ import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 from flask_limiter import Limiter
 
+# Backend imports
+from backend.splunk_utils import get_real_ip, log_to_splunk
+from backend.captcha_utils import verify_recaptcha
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +34,6 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
-CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
@@ -57,10 +59,6 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 moderator_manager = get_moderator_manager()
 
-# SPLUNK HEC Configuration
-SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
-SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
-
 if not IS_TESTING:
     if FILE_LOCATION and BUCKET:
         cred = credentials.Certificate(FILE_LOCATION)
@@ -73,46 +71,12 @@ if not IS_TESTING:
 else:
     print("Skipping Firebase init — test mode enabled")
 
-def get_real_ip():
-    forwarded_for = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
-    return request.remote_addr
-
 # rate limiting
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
     default_limits=['5 per minute'],
 )
-
-def log_to_splunk(event_data):
-    client_ip = get_real_ip()
-    payload = {
-        "event": {
-            "message": event_data,
-            "path": request.path,
-            "method": request.method,
-            "ip": client_ip,
-            "user_agent": request.headers.get("User-Agent")
-        },
-        "sourcetype": "flask-web",
-        "host": client_ip
-    }
-
-    headers = {
-        "Authorization": f"Splunk {SPLUNK_HEC_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(SPLUNK_HEC_URL, headers=headers, data=json.dumps(payload), verify=False)
-        if response.status_code != 200:
-            print(f"Splunk HEC error: {response.status_code} - {response.text}")
-        else:
-            print(f"Sent log to Splunk: {event_data}")
-    except Exception as e:
-        print(f"Failed to send log to Splunk: {e}")
 
 def ensure_firebase_initialized():
     global bucket
@@ -127,22 +91,6 @@ def ensure_firebase_initialized():
         else:
             raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     bucket = storage.bucket()
-
-def verify_recaptcha(token, remote_ip):
-    if IS_TESTING:
-        print("Skipping reCAPTCHA verification in test mode")
-        return True
-    if not token:
-        return False
-    response = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data={
-            'secret': CAPTCHA_KEY,
-            'response': token,
-            'remoteip': remote_ip
-        }
-    ).json()
-    return response.get('success', False)
 
 def log_action(user_id: int, action: str, target_id: int, target_type: str):
         """
@@ -221,7 +169,7 @@ def home():
 
 @app.route('/')
 def hello_world():
-    # log_to_splunk("Visited /")
+    log_to_splunk("Landing","Browsed to landing page")
     return redirect(url_for('home'))
 
 @app.route('/reset_password_portal', methods=['GET', 'POST'])
@@ -230,6 +178,7 @@ def reset_password_portal():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
         # Check if it's a JSON request (AJAX)
         if request.is_json:
@@ -254,19 +203,15 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
-                            return jsonify(result)
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
-                            
                             if result['success']:
                                 session['user_id'] = result['user']['user_id']
-                                return jsonify({'success': True, 'redirect': '/home'})
-                            
-                            return jsonify(result)
+                                log_to_splunk("Login", "User logged in", username=result['user']['username'])
+                        return jsonify(result)
                     else:
                         # Check if it's a moderator
-                        from models import Moderator
                         moderator = Moderator.query.filter(
                             or_(Moderator.username == email, Moderator.email == email)
                         ).first()
@@ -279,6 +224,7 @@ def login():
                                 session['mod_level'] = result['mod_level']
                             return jsonify(result)
                         else:
+                            log_to_splunk("Login", "Failed login attempt", username=email)
                             return jsonify({'success': False, 'error': 'Error logging in. Try again.'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
@@ -301,91 +247,20 @@ def login():
                             session['mod_id'] = result['moderator']['mod_id']
                             session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
                             return redirect(url_for('moderation'))
                         else:
                             session['user_id'] = result['user']['user_id']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "User logged in", username=result['user']['username'])
                             return redirect(url_for('home'))
                     else:
+                        log_to_splunk("Login", "Failed login attempt", username=email)
                         flash(f'Login Unsuccessful. {result["error"]}', 'danger')
                 else:
                     flash('Please enter both email and password.', 'danger')
             return render_template('login.html')
     return render_template('login.html')
-
-@app.route('/verify-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def verify_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.complete_login_with_otp(email, otp_code)
-    
-    if result['success']:
-        session['user_id'] = result['user']['user_id']
-    
-    return jsonify(result)
-
-@app.route('/resend-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def resend_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.generate_and_send_otp(email, 'login')
-    return jsonify(result)
-
-@app.route('/forgot-password', methods=['POST'])
-@limiter.limit('1 per minute')
-def forgot_password():
-    data = request.get_json()
-    email = data.get('email', '')
-
-    # token = data.get('g-recaptcha-response', '')
-    # if not verify_recaptcha(token, request.remote_addr):
-    #     return jsonify({'success': False, 'error': 'Captcha verification failed.'})
-
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.initiate_password_reset(email)
-    print(result)
-    return jsonify(result)
-
-@app.route('/verify-reset-otp', methods=['POST'])
-@limiter.limit('10 per minute')
-def verify_reset_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-    
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.verify_otp(email, otp_code, 'password_reset')
-    print(result)
-    return jsonify(result)
-
-@app.route('/reset-password', methods=['POST'])
-def reset_password():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-    new_password = data.get('new_password', '')
-    
-    if not email or not otp_code or not new_password:
-        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
-    
-    result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
-    result['redirect'] = url_for('login')
-    return jsonify(result)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -408,8 +283,8 @@ def register():
 @app.route('/logout')
 def logout():
     if 'user_id' in session:
-        session.pop('user_id', None)
         log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
+        session.pop('user_id', None)
     else:
         session.pop('mod_id', None)
     flash('You have been logged out.', 'info')
@@ -1449,8 +1324,48 @@ def api_update_email():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
-@app.route('/verify-moderator-login-otp', methods=['POST'])
-def verify_moderator_login_otp():
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email', '')
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    # Try Moderator first
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        auth_manager.initiate_moderator_password_reset(email)
+    else:
+        # Try regular User
+        user = User.query.filter_by(email=email).first()
+        if user:
+            auth_manager.initiate_password_reset(email)
+
+    return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
+    })
+
+@app.route('/resend-login-otp', methods=['POST'])
+def resend_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+    
+    # Try Moderator first
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        auth_manager.generate_and_send_moderator_otp(email)
+    else:
+        # Try regular User
+        user = User.query.filter_by(email=email).first()
+        if user:
+            auth_manager.generate_and_send_otp(email)
+
+    return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
+    })
+
+@app.route('/verify-reset', methods=['POST'])
+def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
@@ -1458,52 +1373,18 @@ def verify_moderator_login_otp():
     if not email or not otp_code:
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
-    result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
-    
-    if result['success']:
-        session['mod_id'] = result['moderator']['mod_id']
-        result['redirect'] = '/moderation'
-    
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+
     return jsonify(result)
 
-@app.route('/resend-moderator-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def resend_moderator_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.generate_and_send_moderator_otp(email, 'login')
-    return jsonify(result)
-
-@app.route('/moderator-forgot-password', methods=['POST'])
-@limiter.limit('1 per minute')
-def moderator_forgot_password():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.initiate_moderator_password_reset(email)
-    return jsonify(result)
-
-@app.route('/verify-moderator-reset-otp', methods=['POST'])
-def verify_moderator_reset_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-    
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
-    return jsonify(result)
-
-@app.route('/reset-moderator-password', methods=['POST'])
-def reset_moderator_password():
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
@@ -1512,7 +1393,47 @@ def reset_moderator_password():
     if not email or not otp_code or not new_password:
         return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
     
-    result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    
+    return jsonify(result)
+
+@app.route('/verify-login-otp', methods=['POST'])
+# @limiter.limit('1 per minute')
+def verify_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.complete_login_with_otp(email, otp_code)
+
+    if result['success']:
+        if (result['user']['user_id']):
+            session['user_id'] = result['user']['user_id']
+            result['redirect'] = '/home'
+            log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
+
+        else:
+            session['mod_id'] = result['moderator']['mod_id']
+            result['redirect'] = '/moderation'
+            log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
+    else:     
+        log_to_splunk("Login", "Failed OTP verification", username=email)
+
     return jsonify(result)
 
 @app.errorhandler(429)

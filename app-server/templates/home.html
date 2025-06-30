@@ -7,8 +7,8 @@
 <div class="container-fluid px-2 px-md-3">
   <div class="row justify-content-center">
     <!-- Main Feed - Centered -->
-    <div class="col-12 col-sm-11 col-md-10 col-lg-8 col-xl-6">
-      <h2 class="mb-4 text-center">Welcome to Latergram!</h2>
+    <div class="col-12 col-sm-11 col-md-10 col-lg-8 col-xl-6 mt-1">
+      <h2 class="mb-4 text-center d-none d-lg-block">Welcome to Latergram!</h2>
 
       <!-- Mobile Friend Requests Section - Only visible on smaller screens -->
       {% if pending_requests %}
@@ -95,7 +95,7 @@
 
       <!-- Posts Feed -->
       {% if posts %}
-      <h5 class="mb-3">Recent Posts</h5>
+      <h5 class="mb-3 mt-2 mt-lg-0">Recent Posts</h5>
       {% for post in posts %}
       <div class="card mb-3">
         {% if post.image %}
@@ -666,6 +666,8 @@
               }
 
               showNotification("Comment added successfully", "success");
+              window.location.reload();
+
             } else {
               throw new Error(data.error || "Failed to add comment");
             }

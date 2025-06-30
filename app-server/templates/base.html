@@ -115,17 +115,25 @@
   </head>
 
   <body>
-    <!-- Mobile Navigation Toggle -->
-    <button class="mobile-nav-toggle d-lg-none" onclick="toggleMobileNav()">
-      <i class="fas fa-bars"></i>
-    </button>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-dark fixed-top px-3 d-lg-none d-flex align-items-center justify-content-center" style="height: 72px; z-index: 1100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: #151722 ;">
+      <div class="d-flex align-items-center justify-content-center w-100">
+        <!-- Mobile Navigation Toggle (already present, but moved inside navbar for alignment) -->
+        <button class="mobile-nav-toggle d-lg-none me-2" onclick="toggleMobileNav()" style="margin-bottom: 0;">
+          <i class="fas fa-bars"></i>
+        </button>
+        <a id="nav-brand-mobile" class="navbar-brand mb-0 h1" href="/" style="color: #fff; font-weight: 600; letter-spacing: 1px;">
+          Later<span class="beau">G</span>ram
+        </a>
+      </div>
+    </nav>
 
     <!-- Navigation Overlay for mobile -->
     <div class="nav-overlay" onclick="handleOverlayClick()"></div>
 
     <div class="d-flex">
       <nav id="main-nav" class="flex-column bg-light py-5 px-3">
-        <a class="navbar-brand mb-4" href="">
+        <a id="nav-brand" class="navbar-brand mb-4" href="">
           Later<span class="beau">G</span>ram
         </a>
         <ul class="nav nav-pills flex-column" id="nav-list">
