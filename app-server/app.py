@@ -1431,7 +1431,8 @@ def verify_login_otp():
             session['user_id'] = result['user']['user_id']
             result['redirect'] = '/home'
             log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
-        else:
+    elif result['success'] and result['login_type'] == 'moderator':
+        if(result['moderator']['mod_id']):
             session['mod_id'] = result['moderator']['mod_id']
             session['mod_level'] = result['moderator']['mod_level']
             result['redirect'] = '/moderation'
