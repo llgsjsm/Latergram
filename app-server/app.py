@@ -1477,26 +1477,27 @@ def verify_register_otp():
     otp_code = data.get('otp_code')
     reg_data = session.get('registration_data')
 
-    email_helper = User.query.filter(
-        or_(User.email == email)
-    ).first()
-
-    if not reg_data or reg_data.get('email') != email or email_helper:
-        if email_helper:
-            log_to_splunk("Register", "Attempted creation of multi-accounts", username=email)
-        else:
-            log_to_splunk("Register", "Attempted registration with invalid inputs", username=email)
+    # Input Tampering
+    if not reg_data or reg_data.get('email') != email:
+        log_to_splunk("Register", "Attempted registration with invalid inputs", username=email)
         return jsonify({'success': False, 'error': 'Error registering with email address.'})
 
+    # OTP expiry
     if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.utcnow():
         log_to_splunk("Register", "OTP expired during registration", username=email)
         session.pop('registration_data', None)
-        return jsonify({'success': False, 'error': 'General OTP failure. Please try again.'}), 500
+        return jsonify({'success': False, 'error': 'OTP Expired. Please try again.'}), 500
 
+    # OTP mismatch
     if reg_data.get('otp') != otp_code:
         log_to_splunk("Register", "Invalid OTP during registration", username=email)
-        return jsonify({'success': False, 'error': 'General OTP failure. Please try again.'}), 500
+        return jsonify({'success': False, 'error': 'Invalid OTP. Please try again.'}), 500
     
+    # Multi-account creation check
+    if User.query.filter(User.email == email).first() or Moderator.query.filter(Moderator.email == email).first():
+        log_to_splunk("Register", "Attempted creation of multi-accounts", username=email)
+        return jsonify({'success': False, 'error': 'Email already registered.'})
+
     create_result = auth_manager.create_user(
         username=reg_data['username'],
         email=reg_data['email'],

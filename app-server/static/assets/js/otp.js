@@ -48,9 +48,8 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
                 window.location.href = data.redirect;
             } else {
                 // false
-                console.log(data);
                 showMessage(data.error, "error", "otp-container");
-                if (!data.error.includes("otp")) {
+                if (!data.error.includes("OTP")) {
                     setTimeout(() => {
                         window.location.href = "/register";
                     }, 4000); // 4 Secs
@@ -116,7 +115,7 @@ document.getElementById("resend-otp").addEventListener("click", function (e) {
             showMessage("An error occurred", "error");
         });
     } else {
-        fetch("/resend-login-otp-helper", {
+        fetch("/resend-login-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
