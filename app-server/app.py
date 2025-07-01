@@ -203,12 +203,19 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
+                            if result['success']:
+                                session['user_id'] = result['user']['user_id']
+                                log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
+                            else:
+                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
                             if result['success']:
                                 session['user_id'] = result['user']['user_id']
                                 log_to_splunk("Login", "User logged in", username=result['user']['username'])
+                            else:
+                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
                         return jsonify(result)
                     else:
                         # Check if it's a moderator
@@ -222,6 +229,9 @@ def login():
                             if result['success']:
                                 session['mod_id'] = result['mod_id']
                                 session['mod_level'] = result['mod_level']
+                                log_to_splunk("Login", "Moderator logged in with OTP", username=moderator.username)
+                            else:
+                                log_to_splunk("Login", "Failed valid moderator login attempt", username=email)
                             return jsonify(result)
                         else:
                             log_to_splunk("Login", "Failed login attempt", username=email)
@@ -1394,13 +1404,16 @@ def resend_login_otp():
     # Try Moderator first
     user = Moderator.query.filter_by(email=email).first()
     if user:
-        auth_manager.generate_and_send_moderator_otp(email)
+        result = auth_manager.generate_and_send_moderator_otp(email)
     else:
         # Try regular User
         user = User.query.filter_by(email=email).first()
         if user:
-            auth_manager.generate_and_send_otp(email)
-
+            result = auth_manager.generate_and_send_otp(email)
+    if result['success']:
+        log_to_splunk("Login", "OTP resent successfully", username=email)
+    else:
+        log_to_splunk("Login OTP", "Failed to resend OTP", username=email)
     return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
     })
 
