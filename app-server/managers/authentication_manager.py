@@ -187,14 +187,10 @@ class AuthenticationManager:
             errors.append('Password must be at least 8 characters long')
         elif len(password) > 64:
             errors.append('Password must be less than 64 characters')
-        if not re.search(r"[A-Z]", password):
-            errors.append("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", password):
-            errors.append("Password must contain at least one lowercase letter")
-        if not re.search(r"[0-9]", password):
-            errors.append("Password must contain at least one digit")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-            errors.append("Password must contain at least one special character")
+            
+        count = check_password_breach(password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
         
         return {
             'valid': len(errors) == 0,

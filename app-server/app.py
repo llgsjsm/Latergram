@@ -203,10 +203,7 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
-                            if result['success']:
-                                session['user_id'] = result['user']['user_id']
-                                log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
-                            else:
+                            if not result['success']:
                                 log_to_splunk("Login", "Failed valid user login attempt", username=email)
                         else:
                             # Use normal login for user
@@ -1017,20 +1014,24 @@ def delete_account():
     confirm_deletion = request.form.get('confirm_deletion')
     
     # Validate inputs
-    if not password:
-        return jsonify({'success': False, 'error': 'Password is required for account deletion'}), 400
+    if not password or not confirm_deletion or confirm_deletion.strip() != 'DELETE':
+        log_to_splunk("Delete Account", "Failed to delete account due to incorrect fields", username=session.get('user_id', 'Unknown'))
+        return jsonify({'success': False, 'error': 'All correct fields required for account deletion'}), 400
     
-    if confirm_deletion != 'DELETE':
+    # if confirm_deletion != 'DELETE':
         return jsonify({'success': False, 'error': 'Please type DELETE to confirm account deletion'}), 400
     
     # Delete the account
     result = profile_manager.delete_account(session['user_id'], password)
     
     if result['success']:
+        log_to_splunk("Delete Account", "Account deleted successfully", username=session.get['user_id', 'Unknown'])
+
         # Clear the session after successful deletion
         session.clear()
         return jsonify({'success': True, 'message': 'Account deleted successfully'})
     else:
+        log_to_splunk("Delete Account", "Failed to delete account", username=session.get('user_id', 'Unknown'))
         return jsonify({'success': False, 'error': result['error']}), 400
 
 @app.route('/api/remove-follower/<int:follower_user_id>', methods=['POST'])
