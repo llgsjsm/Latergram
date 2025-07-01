@@ -12,6 +12,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 import random
 import time
+from backend.hibp_utils import check_password_breach
 
 bcrypt = Bcrypt()
 
@@ -583,6 +584,10 @@ class AuthenticationManager:
         elif len(new_password) > 64:
             return {'success': False, 'error': 'Password must be less than 64 characters'}
         
+        count = check_password_breach(new_password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in {count} data breaches. Please choose a different password.'}
+        
         try:
             # Update password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
@@ -622,6 +627,10 @@ class AuthenticationManager:
         elif len(new_password) > 64:
                 return {'success': False, 'error': 'Password must be less than 64 characters'}
         
+        count = check_password_breach(new_password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in {count} data breaches. Please choose a different password.'}
+
         try:
             # Update password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
