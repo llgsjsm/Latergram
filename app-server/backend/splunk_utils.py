@@ -2,9 +2,12 @@ from flask import request
 import requests
 import json
 import os
+import urllib3
 
 SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
 SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_real_ip():
     forwarded_for = request.headers.get('X-Forwarded-For')
@@ -12,10 +15,7 @@ def get_real_ip():
         return forwarded_for.split(',')[0].strip()
     return request.remote_addr
 
-from flask import request
-import json, requests
-
-def log_to_splunk(event_type, event_data=None, username=None):
+def log_to_splunk(event_type, event_data=None, username=None, content=None):
     client_ip = get_real_ip() 
     payload = {
         "event": {
@@ -25,7 +25,8 @@ def log_to_splunk(event_type, event_data=None, username=None):
             "method": request.method,
             "ip": client_ip,
             "user_agent": request.headers.get("User-Agent"),
-            "username": username
+            "username": username,
+            "content": content
         },
         "sourcetype": "flask-web",
         "host": client_ip
