@@ -1336,6 +1336,7 @@ def verify_email_update_otp():
     
     try:
         db.session.commit()
+        log_to_splunk("Edit Profile", "Email updated successfully", username=user.username, content=[old_email, new_email])
         return jsonify({
             'success': True, 
             'message': 'Email updated successfully', 
@@ -1344,6 +1345,7 @@ def verify_email_update_otp():
         })
     except Exception as e:
         db.session.rollback()
+        log_to_splunk("Edit Profile", "Failed to update email", username=user.username, content=[old_email, new_email])
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
 @app.route('/api/update-email', methods=['POST'])
