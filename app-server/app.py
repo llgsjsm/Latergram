@@ -801,7 +801,7 @@ def update_otp_setting():
         # Update the user's OTP preference
         user.otp_enabled = bool(otp_enabled)
         db.session.commit()
-        
+        log_to_splunk("Edit Profile", "Updated OTP setting", username=user.username)
         return jsonify({
             'success': True, 
             'message': f'OTP authentication {"enabled" if otp_enabled else "disabled"}'
@@ -847,7 +847,7 @@ def edit_profile():
         
         if result['success']:
             flash('Profile updated successfully!', 'success')
-            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username)
+            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
             return redirect(url_for('profile'))
         else:
             log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
@@ -871,12 +871,20 @@ def change_password():
     if new_password != confirm_password:
         return jsonify({'success': False, 'error': 'New passwords do not match'}), 400
     
+    user = db.session.get(User, session['user_id'])
+
     # Change the password
     result = profile_manager.change_password(session['user_id'], current_password, new_password)
+    if (not result['success']):
+        log_to_splunk("Edit Profile", "Failed to change password", username=user.username)
+        return jsonify({'success': False, 'error': result['error']}), 400
+
     
     if result['success']:
+        log_to_splunk("Edit Profile", "Password changed successfully", username=user.username)
         return jsonify({'success': True, 'message': 'Password changed successfully'})
     else:
+        log_to_splunk("Edit Profile", "Failed to change password", username=user.username)
         return jsonify({'success': False, 'error': result['error']}), 400
 
 @app.route('/api/followers/<int:user_id>')

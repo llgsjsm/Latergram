@@ -580,14 +580,8 @@ class AuthenticationManager:
         # Validate new password
         if len(new_password) < 8:
                 return {'success': False, 'error': 'Password must be at least 8 characters long'}
-        if not re.search(r"[A-Z]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one uppercase letter'}
-        if not re.search(r"[a-z]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one uppercase letter'}
-        if not re.search(r"[0-9]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one digit'}
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one special character'}
+        elif len(new_password) > 64:
+            return {'success': False, 'error': 'Password must be less than 64 characters'}
         
         try:
             # Update password
@@ -622,17 +616,11 @@ class AuthenticationManager:
         if not moderator.is_otp_valid(otp_code, 'password_reset'):
             return {'success': False, 'error': 'Invalid or expired OTP'}
         
-        # Validate new password
+        # Follow NIST -- 8 < x < 64 & check against breached
         if len(new_password) < 8:
                 return {'success': False, 'error': 'Password must be at least 8 characters long'}
-        if not re.search(r"[A-Z]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one uppercase letter'}
-        if not re.search(r"[a-z]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one uppercase letter'}
-        if not re.search(r"[0-9]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one digit'}
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
-                return {'success': False, 'error': 'Password must contain at least one special character'}
+        elif len(new_password) > 64:
+                return {'success': False, 'error': 'Password must be less than 64 characters'}
         
         try:
             # Update password

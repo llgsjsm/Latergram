@@ -679,11 +679,11 @@ class ProfileManager:
             if not bcrypt.check_password_hash(user.password, current_password):
                 return {'success': False, 'error': 'Current password is incorrect'}
             
-            # Validate new password (similar to registration)
-            if len(new_password) < 6:
-                return {'success': False, 'error': 'New password must be at least 6 characters long'}
-            elif len(new_password) > 255:
-                return {'success': False, 'error': 'New password must be less than 255 characters'}
+            # Validate new password (similar to registration) -- can modularize ngl
+            if len(new_password) < 8:
+                    return {'success': False, 'error': 'Password must be at least 8 characters long'}
+            elif len(new_password) > 64:
+                return {'success': False, 'error': 'Password must be less than 64 characters'}
             
             # Hash the new password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
