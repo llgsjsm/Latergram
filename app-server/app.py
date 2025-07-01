@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import requests
-import json
+import re
 import os
-from dotenv import load_dotenv  # Add this import
+from dotenv import load_dotenv 
 from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
@@ -71,7 +70,7 @@ if not IS_TESTING:
 else:
     print("Skipping Firebase init — test mode enabled")
 
-# rate limiting
+# Redis Rate limiting
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
@@ -174,6 +173,7 @@ def hello_world():
 
 @app.route('/reset_password_portal', methods=['GET', 'POST'])
 def reset_password_portal():
+    log_to_splunk("Reset Password", "Visited reset password portal")
     return render_template('reset_password.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1361,9 +1361,16 @@ def api_update_email():
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
+    # Backend email validation -- remove if already has existing validation somewhere...
+    email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
     if not email:
         return jsonify({'success': False, 'error': 'Email is required'})
-    
+
+    if not email_regex.match(email):
+        log_to_splunk("Reset Password", "Invalid email input", username=email)
+        return jsonify({'success': False, 'error': 'Invalid email. Please enter a valid email address.'})
+
     # Try Moderator first
     user = Moderator.query.filter_by(email=email).first()
     if user:
@@ -1373,7 +1380,7 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
         if user:
             auth_manager.initiate_password_reset(email)
-
+    log_to_splunk("Reset Password", "Password reset initiated", username=email)
     return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
     })
 
@@ -1414,6 +1421,10 @@ def verify_reset_otp():
         if user:
             result = auth_manager.verify_otp(email, otp_code, 'password_reset')
 
+    if result['success']:
+        log_to_splunk("Reset Password", "Succesful OTP verification for password reset", username=email)
+    else:
+        log_to_splunk("Reset Password", "Failed OTP verification for password reset", username=email)
     return jsonify(result)
 
 @app.route('/reset-password', methods=['POST'])
@@ -1434,6 +1445,10 @@ def reset_password():
         if user:
             result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
     
+    if result['success']:
+        log_to_splunk("Reset Password", "Password reset successful", username=email)
+    else:
+        log_to_splunk("Reset Password", "Password reset failed - " + result['error'], username=email)
     return jsonify(result)
 
 @app.route('/verify-login-otp', methods=['POST'])
