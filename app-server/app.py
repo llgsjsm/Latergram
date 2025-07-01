@@ -509,6 +509,7 @@ def add_comment(post_id):
         db.session.flush()
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_COMMENT.value, new_comment.commentId, ReportTarget.COMMENT.value)
+        log_to_splunk("Comment", "Commented on post", username=db.session.get(User, session['user_id']).username, content=[content, post_id])
         db.session.commit()
         
         # Check if this is an AJAX request by looking for XMLHttpRequest header
@@ -544,6 +545,7 @@ def edit_comment(comment_id):
             return jsonify({'success': False, 'error': 'Comment cannot be empty'}), 400
         
         if len(new_content) > 500:
+            log_to_splunk("Comment", "Comment edit failed - too long", username=db.session.get(User, session['user_id']).username, content=[new_content[:64], comment_id])
             return jsonify({'success': False, 'error': 'Comment too long (max 500 characters)'}), 400
         
         # Update comment
@@ -552,8 +554,8 @@ def edit_comment(comment_id):
         
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.UPDATE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
+        log_to_splunk("Comment", "Comment edited", username=db.session.get(User, session['user_id']).username, content=[new_content, comment_id])
         db.session.commit()
-        
         return jsonify({'success': True, 'message': 'Comment updated successfully'})
         
     except Exception as e:
@@ -574,6 +576,7 @@ def delete_comment(comment_id):
         is_post_owner = post.authorId == session['user_id']
         
         if not (is_comment_owner or is_post_owner):
+            log_to_splunk("Comment", "Comment delete failed - not owner", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
             return jsonify({'success': False, 'error': 'You can only delete your own comments or comments on your posts'}), 403
         
         post_id = comment.postId
@@ -586,7 +589,7 @@ def delete_comment(comment_id):
         
         # Get updated comment count
         comment_count = Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
-        
+        log_to_splunk("Comment", "Comment deleted", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
         return jsonify({
             'success': True, 
             'message': 'Comment deleted successfully',
@@ -596,6 +599,7 @@ def delete_comment(comment_id):
         
     except Exception as e:
         print(f"Error deleting comment: {e}")
+        log_to_splunk("Comment", "Comment delete failed", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
         return jsonify({'success': False, 'error': 'Failed to delete comment'}), 500
 
 @app.route('/delete-post/<int:post_id>', methods=['POST'])
@@ -614,11 +618,14 @@ def delete_post_route(post_id):
         
         if result.get('success'):
             flash('Post deleted successfully', 'success')
+            log_to_splunk("Delete Post", "Post deleted successfully", username=db.session.get(User, session['user_id']).username, content=[post_id])
             return jsonify({'success': True, 'message': result.get('message', 'Post deleted successfully')})
         else:
             error_message = result.get('error', 'Failed to delete post')
             print(f"Delete failed: {error_message}")
             flash(error_message, 'danger')
+            log_to_splunk("Delete Post", "Post deleted successfully", username=db.session.get(User, session['user_id']).username, content=[post_id])
+
             return jsonify({'success': False, 'error': error_message}), 403
     except Exception as e:
         print(f"Exception in delete route: {e}")
@@ -718,6 +725,7 @@ def follow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.send_follow_request(session['user_id'], user_id)
+    log_to_splunk("Follow User", "User followed another user", username=db.session.get(User, session['user_id']).username, content=[db.session.get(User, user_id).username])
     return jsonify(result)
 
 @app.route('/api/unfollow/<int:user_id>', methods=['POST'])
@@ -726,6 +734,7 @@ def unfollow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.unfollow_user(session['user_id'], user_id)
+    log_to_splunk("Unfollow User", "User unfollowed another user", username=db.session.get(User, session['user_id']).username, content=[db.session.get(User, user_id).username])
     return jsonify(result)
 
 @app.route('/api/follow-request/cancel/<int:target_user_id>', methods=['POST'])
@@ -772,6 +781,7 @@ def like_post_api(post_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = post_manager.like_post(session['user_id'], post_id)
+    log_to_splunk("Like Post", "Post liked", username=db.session.get(User, session['user_id']).username, content=[post_id])
     return jsonify(result)
 
 @app.route('/api/unlike/<int:post_id>', methods=['POST'])
@@ -780,6 +790,7 @@ def unlike_post_api(post_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = post_manager.unlike_post(session['user_id'], post_id)
+    log_to_splunk("Unlike Post", "Post unliked", username=db.session.get(User, session['user_id']).username, content=[post_id])
     return jsonify(result)
 
 @app.route('/update-otp-setting', methods=['POST'])
