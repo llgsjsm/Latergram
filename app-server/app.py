@@ -352,6 +352,9 @@ def create_post():
             blob.upload_from_file(image_file, content_type=image_file.content_type)
             blob.make_public()
             image_url = blob.public_url
+        else:
+            log_to_splunk("Create Post", "Post created failed", username=db.session.get(User, session['user_id']).username)
+            return jsonify({'success': False, 'error': 'Image upload failed or no image provided.'}), 400
 
         # Create likes record
         result = db.session.execute(
@@ -377,7 +380,7 @@ def create_post():
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
-
+        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username)
         flash("Post created successfully!", "success")
         return redirect(url_for('home'))
 
