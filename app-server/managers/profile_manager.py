@@ -688,7 +688,7 @@ class ProfileManager:
             
             count = check_password_breach(new_password)
             if count > 0:
-                return {'success': False, 'error': f'New password has been found in {count} data breaches. Please choose a different password.'}
+                return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
             
             # Hash the new password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
