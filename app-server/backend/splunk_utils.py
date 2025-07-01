@@ -15,7 +15,7 @@ def get_real_ip():
         return forwarded_for.split(',')[0].strip()
     return request.remote_addr
 
-def log_to_splunk(event_type, event_data=None, username=None):
+def log_to_splunk(event_type, event_data=None, username=None, content=None):
     client_ip = get_real_ip() 
     payload = {
         "event": {
@@ -25,7 +25,8 @@ def log_to_splunk(event_type, event_data=None, username=None):
             "method": request.method,
             "ip": client_ip,
             "user_agent": request.headers.get("User-Agent"),
-            "username": username
+            "username": username,
+            "content": content
         },
         "sourcetype": "flask-web",
         "host": client_ip

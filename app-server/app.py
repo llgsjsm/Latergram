@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -300,7 +300,7 @@ def register():
             'email': email,
             'password_hash': init_result['password_hash'],
             'otp': otp_result['otp_code'], # Get the code from the result
-            'otp_expiry': (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+            'otp_expiry': (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
         }
         
         return jsonify({'success': True, 'email': email})
@@ -368,7 +368,7 @@ def create_post():
             authorId=session['user_id'],
             title=title,
             content=content,
-            timeOfPost=datetime.utcnow(),
+            timeOfPost=datetime.now(timezone.utc),
             like=0,
             likesId=likes_id,
             image=image_url
@@ -380,7 +380,7 @@ def create_post():
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
-        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username)
+        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username,content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('home'))
 
@@ -439,7 +439,7 @@ def api_report_post(post_id):
     new_report = Report(
         reportedBy=user_id,
         reason=reason,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         targetType=target_type_enum.value,
         targetId=post_id,
         status=ReportStatus.PENDING.value
@@ -505,7 +505,7 @@ def add_comment(post_id):
             commentContent=content,
             authorId=session['user_id'],
             postId=post.postId,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             parentCommentId=parent_comment_id
         )
         db.session.add(new_comment)
@@ -847,8 +847,10 @@ def edit_profile():
         
         if result['success']:
             flash('Profile updated successfully!', 'success')
+            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username)
             return redirect(url_for('profile'))
         else:
+            log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
             flash(f'Error updating profile: {result["error"]}', 'danger')
     
     return render_template('edit_profile.html', user=user)
@@ -1199,7 +1201,7 @@ def report_detail(report_id):
         report=report,
         referenced=referenced,
         referenced_type=referenced_type,
-        now=datetime.utcnow()
+        now=datetime.now(timezone.utc)
     )
 
 @app.route('/moderation/action/<action>/<int:report_id>', methods=['POST'])
@@ -1259,7 +1261,7 @@ def api_edit_post(post_id):
 
     post.title = title
     post.content = content
-    post.updatedAt = datetime.utcnow()
+    post.updatedAt = datetime.now(timezone.utc)
     # Create a new log entry
     log_action(session['user_id'], LogActionTypes.UPDATE_POST.value, post.postId, ReportTarget.POST.value)
     db.session.commit()
@@ -1514,7 +1516,7 @@ def verify_register_otp():
         return jsonify({'success': False, 'error': 'Error registering with email address.'})
 
     # OTP expiry
-    if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.utcnow():
+    if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.now(timezone.utc):
         log_to_splunk("Register", "OTP expired during registration", username=email)
         session.pop('registration_data', None)
         return jsonify({'success': False, 'error': 'OTP Expired. Please try again.'}), 500
