@@ -33,7 +33,13 @@
                         </span>
                     </div>
                 </div>
-                <div class="d-grid mb-4">
+                
+                <!-- Google reCAPTCHA (hidden-initially)-->
+                <div id="captcha-container" class="d-flex justify-content-center">
+                <div class="g-recaptcha" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX"  data-callback="onCaptchaVerified"></div>
+                </div>
+                
+                <div class="d-grid mb-4 my-4">
                     <button type="submit" class="btn btn-login">Sign Up</button>
                 </div>
                 <p>Have an account?
@@ -51,10 +57,20 @@
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.5_2_3.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/otp.js') }}"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
     <script>
+    
     // Registration form AJAX submit
     document.getElementById('registration-form').addEventListener('submit', function(e) {
         e.preventDefault();
+
+        const recaptchaResponse = grecaptcha.getResponse();
+        if (!recaptchaResponse) {
+            showMessage('Please complete the CAPTCHA.', 'error', 'register-message');
+            return;
+        }
+
         const username = document.getElementById('username').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -62,7 +78,7 @@
         fetch('{{ url_for("register") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ username, email, password, "g-recaptcha-response": recaptchaResponse })
         })
         .then(response => response.json())
         .then(data => {
