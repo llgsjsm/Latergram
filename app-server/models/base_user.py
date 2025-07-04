@@ -1,3 +1,27 @@
+from .database import db
+import datetime
+
+class BaseUserModel(db.Model):
+    """
+    Abstract base model containing common user attributes.
+    This creates the shared database columns that both User and Moderator need.
+    """
+    __abstract__ = True  # This prevents SQLAlchemy from creating a table for this class
+    
+    # Common user attributes
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+    createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    # OTP fields - common to both users and moderators
+    otp_code = db.Column(db.String(6), nullable=True)
+    otp_expires_at = db.Column(db.DateTime, nullable=True)
+    otp_type = db.Column(db.String(20), nullable=True)  # 'login' or 'password_reset'
+    login_attempts = db.Column(db.Integer, default=0)
+    last_otp_request = db.Column(db.DateTime, nullable=True)
+    otp_enabled = db.Column(db.Boolean, default=True)  # User preference for OTP login
+
 class BaseUserMixin:
     """
     Base mixin class for all user types in the system.
@@ -16,31 +40,31 @@ class BaseUserMixin:
     
     def get_username(self):
         """Return the username for this user"""
-        raise NotImplementedError("Subclasses must implement get_username()")
+        return self.username
 
     def set_username(self, username):
         """Set the username for this user"""
-        raise NotImplementedError("Subclasses must implement set_username()")
+        self.username = username
 
     def get_email(self):
         """Return the email for this user"""
-        raise NotImplementedError("Subclasses must implement get_email()")
+        return self.email
 
     def set_email(self, email):
         """Set the email for this user"""
-        raise NotImplementedError("Subclasses must implement set_email()")
+        self.email = email
 
     def get_password(self):
         """Return the password for this user"""
-        raise NotImplementedError("Subclasses must implement get_password()")
+        return self.password
 
     def set_password(self, password):
         """Set the password for this user"""
-        raise NotImplementedError("Subclasses must implement set_password()")
+        self.password = password
         
     def get_created_at(self):
         """Return the creation timestamp for this user"""
-        raise NotImplementedError("Subclasses must implement get_created_at()")
+        return self.createdAt
     
     # Common utility methods that can be shared
     def is_valid_email(self, email):
