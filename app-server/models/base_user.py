@@ -21,13 +21,6 @@ class BaseUserModel(db.Model):
     login_attempts = db.Column(db.Integer, default=0)
     last_otp_request = db.Column(db.DateTime, nullable=True)
     otp_enabled = db.Column(db.Boolean, default=True)  # User preference for OTP login
-
-class BaseUserMixin:
-    """
-    Base mixin class for all user types in the system.
-    Provides common methods that all user types should have.
-    This is a mixin, not a database model, so it doesn't create tables.
-    """
     
     # Methods that subclasses should implement
     def get_id(self):

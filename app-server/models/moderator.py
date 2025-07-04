@@ -1,10 +1,10 @@
-from .base_user import BaseUserModel, BaseUserMixin
+from .base_user import BaseUserModel
 from .database import db
 import datetime
 
-class Moderator(BaseUserModel, BaseUserMixin):
+class Moderator(BaseUserModel):
     """
-    Moderator user class that inherits from BaseUserModel and BaseUserMixin.
+    Moderator user class that inherits from BaseUserModel.
     Represents moderators in the system with additional moderation capabilities.
     Uses the existing database table structure.
     """
@@ -16,13 +16,13 @@ class Moderator(BaseUserModel, BaseUserMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # Implementation of abstract methods from BaseUserMixin
+    # Implementation of abstract methods from BaseUserModel
     def get_id(self):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         return self.modID
     
     def set_id(self, user_id):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         self.modID = user_id
         
     # Moderator-specific methods

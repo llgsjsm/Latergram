@@ -1,9 +1,9 @@
-from .base_user import BaseUserModel, BaseUserMixin
+from .base_user import BaseUserModel
 from .database import db
 from .enums import Role, VisibilityType
 import datetime
 
-class User(BaseUserModel, BaseUserMixin):
+class User(BaseUserModel):
     __tablename__ = 'user'
     
     userId = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -15,13 +15,13 @@ class User(BaseUserModel, BaseUserMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # Implementation of abstract methods from BaseUserMixin
+    # Implementation of abstract methods from BaseUserModel
     def get_id(self):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         return self.userId
     
     def set_id(self, user_id):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         self.userId = user_id
 
     # User-specific getter and setter methods
