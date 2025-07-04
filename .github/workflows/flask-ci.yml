@@ -12,7 +12,7 @@ on:
 
 jobs:
   flask-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-xl
     name: Flask Container Tests
 
     steps:
