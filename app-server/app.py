@@ -831,6 +831,15 @@ def update_otp_setting():
     try:
         data = request.get_json()
         otp_enabled = data.get('otp_enabled', True)
+        confirmation = data.get('confirmation', False)
+        
+        # If disabling OTP, require explicit confirmation
+        if not otp_enabled and user.otp_enabled and not confirmation:
+            return jsonify({
+                'success': False, 
+                'error': 'Confirmation required to disable MFA',
+                'requires_confirmation': True
+            }), 400
         
         # Update the user's OTP preference
         user.otp_enabled = bool(otp_enabled)
@@ -897,6 +906,7 @@ def change_password():
     current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
+    otp_code = request.form.get('otp_code')
     
     # Validate inputs
     if not current_password or not new_password or not confirm_password:
@@ -906,6 +916,18 @@ def change_password():
         return jsonify({'success': False, 'error': 'New passwords do not match'}), 400
     
     user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    # Verify OTP if user has OTP enabled
+    if user.otp_enabled:
+        if not otp_code:
+            return jsonify({'success': False, 'error': 'OTP code is required for password change'}), 400
+        
+        otp_result = auth_manager.verify_otp(user.email, otp_code, 'password_change')
+        if not otp_result['success']:
+            log_to_splunk("Edit Profile", "Failed OTP verification for password change", username=user.username)
+            return jsonify({'success': False, 'error': 'Invalid OTP code'}), 400
 
     # Change the password
     result = profile_manager.change_password(session['user_id'], current_password, new_password)
@@ -1330,6 +1352,15 @@ def send_email_update_otp():
     if not new_email:
         return jsonify({'success': False, 'error': 'New email is required'}), 400
 
+    # Get current user
+    current_user = User.query.filter_by(userId=session['user_id']).first()
+    if not current_user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    # Check if new email is the same as current email
+    if new_email.lower() == current_user.email.lower():
+        return jsonify({'success': False, 'error': 'Cannot be same as current email'}), 400
+
     # Validate email format
     import re
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -1617,6 +1648,33 @@ def verify_register_otp():
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return jsonify(error="Too many requests, slow down!"), 429
+
+@app.route('/api/send-password-change-otp', methods=['POST'])
+@limiter.limit('5 per minute')
+def send_password_change_otp():
+    """Send OTP for password change verification"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    user = User.query.filter_by(userId=session['user_id']).first()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    # Only send OTP if user has OTP enabled
+    if not user.otp_enabled:
+        return jsonify({'success': False, 'error': 'OTP not enabled for this account'}), 400
+
+    try:
+        otp_result = auth_manager.generate_and_send_otp(user.email, 'password_change')
+        if otp_result['success']:
+            log_to_splunk("Edit Profile", "OTP sent for password change", username=user.username)
+            return jsonify({'success': True, 'message': 'OTP sent to your email'})
+        else:
+            log_to_splunk("Edit Profile", "Failed to send OTP for password change", username=user.username)
+            return jsonify({'success': False, 'error': 'Failed to send OTP'}), 500
+    except Exception as e:
+        log_to_splunk("Edit Profile", "Exception sending OTP for password change", username=user.username)
+        return jsonify({'success': False, 'error': 'Failed to send OTP'}), 500
 
 if __name__ == '__main__':
     with app.app_context():

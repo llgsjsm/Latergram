@@ -262,6 +262,16 @@
                                     <label for="confirm_password" class="form-label">Confirm New Password</label>
                                     <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="6" required>
                                 </div>
+                                <div class="mb-3" id="passwordOtpSection" style="display: {% if user.otp_enabled %}block{% else %}none{% endif %};">
+                                    <label for="password_otp_code" class="form-label">OTP Code</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="password_otp_code" name="otp_code" placeholder="Enter OTP code" {% if user.otp_enabled %}required{% endif %}>
+                                        <button type="button" class="btn btn-outline-secondary" id="sendPasswordOtpBtn">
+                                            <i class="fas fa-envelope"></i> Send OTP
+                                        </button>
+                                    </div>
+                                    <div class="form-text">OTP required for password change when MFA is enabled.</div>
+                                </div>
                                 <div class="d-flex justify-content-between">
                                     <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#passwordChangeForm">
                                         Cancel
@@ -341,6 +351,8 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
     const currentPassword = document.getElementById('current_password').value;
     const newPassword = document.getElementById('new_password').value;
     const confirmPassword = document.getElementById('confirm_password').value;
+    const otpCodeField = document.getElementById('password_otp_code');
+    const otpCode = otpCodeField ? otpCodeField.value : '';
     
     // Client-side validation
     if (newPassword !== confirmPassword) {
@@ -353,6 +365,12 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
         return;
     }
     
+    // Check if OTP is required but not provided
+    if (isOtpCurrentlyEnabled() && !otpCode) {
+        alert('OTP code is required for password change!');
+        return;
+    }
+    
     // Show loading state
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
     submitButton.disabled = true;
@@ -362,6 +380,9 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
     formData.append('current_password', currentPassword);
     formData.append('new_password', newPassword);
     formData.append('confirm_password', confirmPassword);
+    if (otpCode) {
+        formData.append('otp_code', otpCode);
+    }
     
     // Submit the form
     fetch('{{ url_for("change_password") }}', {
@@ -389,6 +410,40 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
         submitButton.disabled = false;
     });
 });
+
+// Send OTP for password change
+const sendPasswordOtpBtn = document.getElementById('sendPasswordOtpBtn');
+if (sendPasswordOtpBtn) {
+    sendPasswordOtpBtn.addEventListener('click', function() {
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        this.disabled = true;
+        
+        fetch('/api/send-password-change-otp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('OTP sent to your email!', 'success');
+            } else {
+                showMessage('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Failed to send OTP', 'error');
+        })
+        .finally(() => {
+            this.innerHTML = originalText;
+            this.disabled = false;
+        });
+    });
+}
 
 // Password confirmation validation
 document.getElementById('confirm_password').addEventListener('input', function() {
@@ -492,12 +547,73 @@ document.getElementById('delete_password').addEventListener('input', function() 
     }
 });
 
+// Helper function to check if OTP is currently required
+function isOtpCurrentlyEnabled() {
+    const otpToggle = document.getElementById('otpToggle');
+    return otpToggle ? otpToggle.checked : {{ 'true' if user.otp_enabled else 'false' }};
+}
+
+// Helper function to update password OTP section visibility
+function updatePasswordOtpSection() {
+    const passwordOtpSection = document.getElementById('passwordOtpSection');
+    const otpInput = document.getElementById('password_otp_code');
+    const isEnabled = isOtpCurrentlyEnabled();
+    
+    if (passwordOtpSection) {
+        passwordOtpSection.style.display = isEnabled ? 'block' : 'none';
+        if (otpInput) {
+            otpInput.required = isEnabled;
+            if (!isEnabled) {
+                otpInput.value = ''; // Clear OTP if not required
+            }
+        }
+    }
+}
+
+// Helper function to show messages (global scope)
+function showMessage(message, type) {
+    // Remove existing alerts
+    document.querySelectorAll('.alert-temp').forEach(el => el.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-temp mt-3`;
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.textContent = message;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // OTP Toggle Handler
     const otpToggle = document.getElementById('otpToggle');
     if (otpToggle) {
         otpToggle.addEventListener('change', function() {
             const isEnabled = this.checked;
+            const wasEnabled = {{ 'true' if user.otp_enabled else 'false' }};
+            
+            // If disabling MFA, show confirmation dialog
+            if (!isEnabled && wasEnabled) {
+                const confirmed = confirm(
+                    'Are you sure you want to disable Multi-Factor Authentication?\n\n' +
+                    'This will make your account less secure. You will only need your password to log in.\n\n' +
+                    'Click OK to disable MFA, or Cancel to keep it enabled.'
+                );
+                
+                if (!confirmed) {
+                    // User cancelled, revert toggle
+                    this.checked = true;
+                    return;
+                }
+            }
             
             // Show loading indicator
             const originalLabel = this.nextElementSibling;
@@ -513,7 +629,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
-                    otp_enabled: isEnabled
+                    otp_enabled: isEnabled,
+                    confirmation: true  // Always send confirmation since we already asked user
                 })
             })
             .then(response => response.json())
@@ -527,6 +644,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         isEnabled ? 'OTP authentication enabled' : 'OTP authentication disabled',
                         'success'
                     );
+                    
+                    // If disabling OTP, hide/show OTP sections in password form
+                    updatePasswordOtpSection();
                 } else {
                     // Revert toggle on error
                     this.checked = !isEnabled;
@@ -540,28 +660,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('An error occurred while updating OTP setting', 'error');
             });
         });
-    }
-    
-    // Helper function to show messages
-    function showMessage(message, type) {
-        // Remove existing alerts
-        document.querySelectorAll('.alert-temp').forEach(el => el.remove());
-        
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-temp mt-3`;
-        alertDiv.style.position = 'fixed';
-        alertDiv.style.top = '20px';
-        alertDiv.style.right = '20px';
-        alertDiv.style.zIndex = '9999';
-        alertDiv.style.minWidth = '300px';
-        alertDiv.textContent = message;
-        
-        document.body.appendChild(alertDiv);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
     }
 
     const removeBtn = document.getElementById('removeProfilePicBtn');
@@ -610,9 +708,16 @@ document.addEventListener('DOMContentLoaded', function() {
         sendEmailOtpBtn.addEventListener('click', function() {
             const newEmailInput = document.getElementById('new_email');
             const newEmail = newEmailInput.value.trim();
+            const currentEmail = document.getElementById('current_email_display').value.trim();
             
             if (!newEmail) {
                 showMessage('Please enter a new email address.', 'error');
+                return;
+            }
+            
+            // Check if new email is same as current email
+            if (newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+                showMessage('Cannot be same as current email.', 'error');
                 return;
             }
             
