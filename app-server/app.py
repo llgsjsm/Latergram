@@ -69,7 +69,7 @@ if not IS_TESTING:
     else:
         print("Firebase FILE_LOCATION or BUCKET not set — skipping Firebase init")
 else:
-    print("Skipping Firebase init — test mode enabled")
+    print("Skipping Firebase init: Test mode enabled")
 
 
 storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
