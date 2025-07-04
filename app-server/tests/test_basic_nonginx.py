@@ -13,6 +13,7 @@ for attempt in range(10):
             sys.exit(0)
         else:
             print(f"❌ Health check failed with status: {response.status_code}")
+            print(f"📄 Response body:\n{response.text.strip()[:500]}")
     except Exception as e:
         print(f"⌛ Attempt {attempt + 1}: Could not connect — {e}")
 

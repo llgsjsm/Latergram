@@ -26,7 +26,7 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 # Enable debug mode for development (auto-reload on code changes)
 app.debug = True
-
+print('hi')
 # MySQL Database Configuration
 DB_USER = os.environ.get('DB_USER', '') 
 DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
