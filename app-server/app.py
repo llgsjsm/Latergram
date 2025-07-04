@@ -71,12 +71,14 @@ if not IS_TESTING:
 else:
     print("Skipping Firebase init — test mode enabled")
 
+
+storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
 # Redis Rate limiting
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
     default_limits=[],
-    storage_uri="redis://10.20.0.5:6379"
+    storage_uri=storage_uri
 )
 
 def ensure_firebase_initialized():
