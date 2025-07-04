@@ -83,7 +83,8 @@ def get_real_ip():
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
-    default_limits=['5 per minute'],
+    default_limits=[],
+    storage_uri="redis://10.20.0.5:6379"
 )
 
 def log_to_splunk(event_data):
