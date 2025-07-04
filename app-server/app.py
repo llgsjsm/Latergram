@@ -1295,6 +1295,7 @@ def api_edit_post(post_id):
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
 @app.route('/api/send-email-update-otp', methods=['POST'])
+@limiter.limit('5 per minute')
 def send_email_update_otp():
     """Send OTP to new email address for email update verification"""
     if 'user_id' not in session:
@@ -1325,6 +1326,7 @@ def send_email_update_otp():
     return jsonify({'success': True, 'message': 'OTP sent if email is valid'})
 
 @app.route('/api/verify-email-update-otp', methods=['POST'])
+@limiter.limit('5 per minute')
 def verify_email_update_otp():
     """Verify OTP and update email address"""
     if 'user_id' not in session:
@@ -1405,6 +1407,7 @@ def api_update_email():
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
 @app.route('/forgot-password', methods=['POST'])
+@limiter.limit('5 per minute')
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
@@ -1428,10 +1431,11 @@ def forgot_password():
         if user:
             auth_manager.initiate_password_reset(email)
     log_to_splunk("Reset Password", "Password reset initiated", username=email)
-    return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
+    return jsonify({'success': True, 'message': 'If an account with that email exists, an OTP has been sent.'
     })
 
 @app.route('/resend-login-otp', methods=['POST'])
+@limiter.limit('5 per minute')
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1455,6 +1459,7 @@ def resend_login_otp():
     })
 
 @app.route('/verify-reset-otp', methods=['POST'])
+@limiter.limit('5 per minute')
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1502,7 +1507,7 @@ def reset_password():
     return jsonify(result)
 
 @app.route('/verify-login-otp', methods=['POST'])
-# @limiter.limit('1 per minute')
+@limiter.limit('5 per minute')
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -1536,6 +1541,7 @@ def verify_login_otp():
     return jsonify(result)
 
 @app.route('/verify-register-otp', methods=['POST'])
+@limiter.limit('5 per minute')
 def verify_register_otp():
     data = request.get_json()
     email = data.get('email')
