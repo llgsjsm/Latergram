@@ -74,6 +74,47 @@
     });
   });
 
+document.addEventListener('DOMContentLoaded', function () {
+  const postForm = document.getElementById('createPostForm');
+  const imageInput = document.getElementById('image');
+
+  postForm.addEventListener('submit', function (e) {
+    e.preventDefault(); // always prevent the default form submit
+
+    // Validate image
+    if (!imageInput.files || imageInput.files.length === 0) {
+      showNotification("Please upload an image before creating a post.", "warning");
+      return; // Stop here if no image
+    }
+
+    const formData = new FormData(postForm);
+
+    fetch('/create-post', {
+      method: 'POST',
+      body: formData
+    })
+    .then(async response => {
+      if (!response.ok) {
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { error: "An unknown error occurred." };
+        }
+        showNotification(data.error || 'Something went wrong.', 'danger');
+        return;
+      }
+
+      // If successful, redirect to home
+      window.location.href = '/';
+    })
+    .catch(err => {
+      console.error(err);
+      showNotification("Unexpected error occurred.", "danger");
+    });
+  });
+});
+
   
 </script>
 {% endblock %}

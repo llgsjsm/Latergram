@@ -16,6 +16,7 @@ from flask_limiter import Limiter
 # Backend imports
 from backend.splunk_utils import get_real_ip, log_to_splunk
 from backend.captcha_utils import verify_recaptcha
+from backend.profanity_helper import check_profanity
 
 # Load environment variables
 load_dotenv()
@@ -283,6 +284,12 @@ def register():
         email = data.get('email')
         password = data.get('password')
     
+        if not username or not email or not password:
+            return jsonify({'success': False, 'error': 'Username, email, and password are required.'}), 400
+
+        if check_profanity(username):
+            return jsonify({'success': False, 'error': 'Watch your profanity'}), 400
+
         # Captcha JSON
         token = data.get('g-recaptcha-response', '')
         if not verify_recaptcha(token, request.remote_addr):
@@ -345,6 +352,14 @@ def create_post():
         title = request.form['title']
         content = request.form['content']
         visibility = request.form.get('visibility', 'followers')
+
+        if not title or not content:
+            log_to_splunk("Create Post", "Post creation failed - missing title or content", username=db.session.get(User, session['user_id']).username)
+            return jsonify({'success': False, 'error': 'Title and content are required.'}), 400
+
+        if check_profanity(title) or check_profanity(content):
+            log_to_splunk("Create Post", "Post creation failed - profanity detected", username=db.session.get(User, session['user_id']).username)
+            return jsonify({'success': False, 'error': 'Profanity detected in title or content.'}), 400
 
         image_url = "https://fastly.picsum.photos/id/404/200/300.jpg?hmac=..."  # default
 
@@ -550,6 +565,10 @@ def edit_comment(comment_id):
         
         if not new_content:
             return jsonify({'success': False, 'error': 'Comment cannot be empty'}), 400
+        
+        if check_profanity(new_content):
+            log_to_splunk("Comment", "Comment edit failed - profanity detected", username=db.session.get(User, session['user_id']).username, content=[new_content[:64], comment_id])
+            return jsonify({'success': False, 'error': 'Profanity detected in comment'}), 400
         
         if len(new_content) > 500:
             log_to_splunk("Comment", "Comment edit failed - too long", username=db.session.get(User, session['user_id']).username, content=[new_content[:64], comment_id])
@@ -1283,8 +1302,12 @@ def api_edit_post(post_id):
     data = request.get_json()
     title = data.get('title', '').strip()
     content = data.get('content', '').strip()
+
     if not title or not content:
         return jsonify({'success': False, 'error': 'Title and caption required'}), 400
+    
+    if check_profanity(title) or check_profanity(content):
+        return jsonify({'success': False, 'error': 'Watch your profanity'}), 400
 
     post.title = title
     post.content = content
