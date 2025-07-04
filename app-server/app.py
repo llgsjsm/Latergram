@@ -276,10 +276,16 @@ def register():
         if not request.is_json:
             return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
+
         data = request.get_json()
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
+    
+        # Captcha JSON
+        token = data.get('g-recaptcha-response', '')
+        if not verify_recaptcha(token, request.remote_addr):
+            return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
 
         init_result = auth_manager.initiate_registration(username, email, password)
 
@@ -1307,12 +1313,15 @@ def send_email_update_otp():
 
     # Check if email is already in use
     existing = User.query.filter(User.email == new_email).first()
-    if existing:
-        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+    
+    if not existing:
+        try:
+            auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
+        except Exception:
+            log_to_splunk("Edit Profile", "Failed to send OTP for email update", username=db.session.get(User, session['user_id']).username, content=[new_email])
+            pass
 
-    # Generate and send OTP to the new email
-    result = auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
-    return jsonify(result)
+    return jsonify({'success': True, 'message': 'OTP sent if email is valid'})
 
 @app.route('/api/verify-email-update-otp', methods=['POST'])
 def verify_email_update_otp():

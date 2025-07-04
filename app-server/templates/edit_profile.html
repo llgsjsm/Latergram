@@ -46,8 +46,8 @@
     text-align: center;
     font-size: 1.2rem;
     font-weight: bold;
-    letter-spacing: 0.5em;
-    font-family: 'Courier New', monospace;
+    /* letter-spacing: 0.5em; */
+    /* font-family: 'Courier New', monospace; */
 }
 
 #email_otp_code:focus {
@@ -165,11 +165,11 @@
                                 <div id="email-otp-section" style="display: none;">
                                   <div class="alert alert-info">
                                     <i class="fas fa-envelope"></i>
-                                    We've sent a 6-digit verification code to <span id="otp-target-email"></span>
+                                    We've sent a verification code to <span id="otp-target-email"></span>
                                   </div>
                                   <div class="mb-3">
                                     <label for="email_otp_code" class="form-label">Verification Code</label>
-                                    <input type="text" class="form-control" id="email_otp_code" maxlength="6" placeholder="Enter 6-digit code">
+                                    <input type="text" class="form-control" id="email_otp_code" maxlength="6" placeholder="Enter OTP code">
                                   </div>
                                   <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-success" id="verifyEmailOtpBtn">Update Email</button>
@@ -256,7 +256,7 @@
                                 <div class="mb-3">
                                     <label for="new_password" class="form-label">New Password</label>
                                     <input type="password" class="form-control" id="new_password" name="new_password" minlength="6" required>
-                                    <div class="form-text">Password must be at least 6 characters long.</div>
+                                    <div class="form-text">Password must be at least 8 characters long.</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="confirm_password" class="form-label">Confirm New Password</label>
@@ -349,7 +349,7 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
     }
     
     if (newPassword.length < 6) {
-        alert('New password must be at least 6 characters long!');
+        alert('New password must be at least 8 characters long!');
         return;
     }
     
@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (otpCode.length !== 6) {
-                showMessage('Verification code must be 6 digits.', 'error');
+                showMessage('Incorrect code', 'error');
                 return;
             }
             
