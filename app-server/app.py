@@ -328,8 +328,6 @@ def logout():
         user = User.query.filter_by(userId=session['user_id']).first()
         log_to_splunk("Logout", "User logged out", username=user.username)
         session.pop('user_id', None)
-        flash('You have been logged out.', 'info')
-
     else:
         try:
             mod = Moderator.query.filter_by(modID=session['mod_id']).first()
