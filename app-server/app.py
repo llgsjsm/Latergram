@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import re
-import os
+import re, os, uuid
 from dotenv import load_dotenv 
 from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
@@ -9,25 +8,24 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
-import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 from flask_limiter import Limiter
+
+# Use the optimized singleton managers
+from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
 
 # Backend imports
 from backend.splunk_utils import get_real_ip, log_to_splunk
 from backend.captcha_utils import verify_recaptcha
 from backend.profanity_helper import check_profanity
 
-# Load environment variables
 load_dotenv()
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 
 # Enable debug mode for development (auto-reload on code changes)
 app.debug = True
 
-# MySQL Database Configuration
 DB_USER = os.environ.get('DB_USER', '') 
 DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
 DB_HOST = os.environ.get('DB_HOST', '')
@@ -50,9 +48,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db.init_app(app)
 bcrypt.init_app(app)
 
-# Use the optimized singleton managers
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
-
 auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
@@ -66,14 +61,9 @@ if not IS_TESTING:
             'storageBucket': BUCKET
         })
         bucket = storage.bucket()
-    else:
-        print("Firebase FILE_LOCATION or BUCKET not set — skipping Firebase init")
-else:
-    print("Skipping Firebase init: Test mode enabled")
 
-
-storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
 # Redis Rate limiting
+storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
@@ -230,9 +220,9 @@ def login():
                             if result['success']:
                                 session['mod_id'] = result['mod_id']
                                 session['mod_level'] = result['mod_level']
-                                log_to_splunk("Login", "Moderator logged in with OTP", username=moderator.username)
+                                log_to_splunk("Moderator", "Moderator logged in with OTP", username=moderator.username)
                             else:
-                                log_to_splunk("Login", "Failed valid moderator login attempt", username=email)
+                                log_to_splunk("Moderator", "Failed valid moderator login attempt", username=email)
                             return jsonify(result)
                         else:
                             log_to_splunk("Login", "Failed login attempt", username=email)
@@ -280,7 +270,6 @@ def register():
         if not request.is_json:
             return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
-
         data = request.get_json()
         username = data.get('username')
         email = data.get('email')
@@ -292,19 +281,15 @@ def register():
         if check_profanity(username):
             return jsonify({'success': False, 'error': 'Watch your profanity'}), 400
 
-        # Captcha JSON
         token = data.get('g-recaptcha-response', '')
         if not verify_recaptcha(token, request.remote_addr):
             return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
 
         init_result = auth_manager.initiate_registration(username, email, password)
-
         if not init_result.get('success'):
             return jsonify({'success': False, 'errors': init_result.get('errors', ['An unknown error occurred.'])}), 400
         
-        # Centralized call to generate and send OTP
         otp_result = auth_manager.generate_and_send_otp(email, otp_type='registration')
-
         if not otp_result.get('success'):
             return jsonify({'success': False, 'error': otp_result.get('error', 'Failed to send OTP.')})
 
@@ -312,19 +297,17 @@ def register():
             'username': username,
             'email': email,
             'password_hash': init_result['password_hash'],
-            'otp': otp_result['otp_code'], # Get the code from the result
+            'otp': otp_result['otp_code'], 
             'otp_expiry': (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
         }
         
         return jsonify({'success': True, 'email': email})
-
     return render_template('register.html')
 
 @app.route('/logout')
 def logout():
     if 'user_id' in session:
         log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
-
         user = User.query.filter_by(userId=session['user_id']).first()
         log_to_splunk("Logout", "User logged out", username=user.username)
         session.pop('user_id', None)
@@ -336,6 +319,7 @@ def logout():
         except KeyError:
             log_to_splunk("Logout", "Weird logout attempt")
             return redirect(url_for('login'))
+        
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
@@ -351,7 +335,7 @@ def create_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        visibility = request.form.get('visibility', 'followers')
+        # visibility = request.form.get('visibility', 'followers')
 
         if not title or not content:
             log_to_splunk("Create Post", "Post creation failed - missing title or content", username=db.session.get(User, session['user_id']).username)
@@ -361,7 +345,7 @@ def create_post():
             log_to_splunk("Create Post", "Post creation failed - profanity detected", username=db.session.get(User, session['user_id']).username)
             return jsonify({'success': False, 'error': 'Profanity detected in title or content.'}), 400
 
-        image_url = "https://fastly.picsum.photos/id/404/200/300.jpg?hmac=..."  # default
+        image_url = "https://fastly.picsum.photos/id/404/200/300.jpg?hmac=..."  #default 
 
         # Handle file upload
         image_file = request.files.get('image')
@@ -380,6 +364,7 @@ def create_post():
             text("INSERT INTO likes (user_userId, timestamp) VALUES (:user_id, NOW())"),
             {"user_id": session['user_id']}
         )
+
         db.session.flush()
         likes_id = result.lastrowid
 
@@ -394,15 +379,14 @@ def create_post():
         )
 
         db.session.add(new_post)
-
         db.session.flush()
+
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
-        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username,content=[title, content, image_url])
+        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username, content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('home'))
-
     return render_template('create_post.html')
 
 @app.route('/api/report_post/<int:post_id>', methods=['POST'])
@@ -466,7 +450,7 @@ def api_report_post(post_id):
 
     db.session.add(new_report)
     db.session.commit()
-
+    log_to_splunk("Report", "Post reported successfully", username=db.session.get(User, user_id).username, content=[post_id, reason, target_type_enum.value])
     return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
 
 @app.route('/like/<int:post_id>', methods=['POST'])
@@ -476,7 +460,6 @@ def like_post(post_id):
         return redirect(url_for('login'))
     
     result = post_manager.like_post(session['user_id'], post_id)
-    
     if result['success']:
         flash('Post liked successfully!', 'success')
     else:
@@ -484,7 +467,6 @@ def like_post(post_id):
             flash('You have already liked this post', 'info')
         else:
             flash(result.get('error', 'Failed to like post'), 'danger')
-    
     return redirect(url_for('home'))
 
 @app.route('/unlike/<int:post_id>', methods=['POST'])
@@ -494,7 +476,6 @@ def unlike_post(post_id):
         return redirect(url_for('login'))
     
     result = post_manager.unlike_post(session['user_id'], post_id)
-    
     if result['success']:
         flash('Post unliked successfully!', 'success')
     else:
@@ -502,7 +483,6 @@ def unlike_post(post_id):
             flash('You have not liked this post', 'info')
         else:
             flash(result.get('error', 'Failed to unlike post'), 'danger')
-    
     return redirect(url_for('home'))
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
@@ -529,7 +509,7 @@ def add_comment(post_id):
         )
         db.session.add(new_comment)
         db.session.flush()
-        # Create a new log entry
+
         log_action(session['user_id'], LogActionTypes.CREATE_COMMENT.value, new_comment.commentId, ReportTarget.COMMENT.value)
         log_to_splunk("Comment", "Commented on post", username=db.session.get(User, session['user_id']).username, content=[content, post_id])
         db.session.commit()
@@ -555,8 +535,6 @@ def edit_comment(comment_id):
     
     try:
         comment = Comment.query.get_or_404(comment_id)
-        
-        # Check if user owns the comment
         if comment.authorId != session['user_id']:
             return jsonify({'success': False, 'error': 'You can only edit your own comments'}), 403
         
@@ -638,7 +616,6 @@ def delete_post_route(post_id):
         return jsonify({'success': False, 'error': 'Please log in'}), 401
     
     try:
-        # Use the existing delete_post method from PostManager
         result = post_manager.delete_post(post_id, session['user_id'])
         print(f"Delete result: {result}")
         
@@ -1137,8 +1114,10 @@ def remove_profile_picture():
     except Exception as e:
         db.session.rollback()
         print(f"Error committing profile picture removal: {e}")
-        if 'NOT NULL' in str(e):
-            print("\n\nYour profilePicture column is NOT NULL. Run this SQL in MySQL Workbench to fix it:\nALTER TABLE user MODIFY profilePicture varchar(255) DEFAULT NULL;\n")
+
+        # if 'NOT NULL' in str(e):
+        #     print("\n\nYour profilePicture column is NOT NULL. Run this SQL in MySQL Workbench to fix it:\nALTER TABLE user MODIFY profilePicture varchar(255) DEFAULT NULL;\n")
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(success=False, message='Database error')
         flash('Error removing profile picture.', 'danger')
@@ -1300,8 +1279,12 @@ def moderation_action(action, report_id):
         return redirect(url_for('moderation'))
 
     if result and result.get('success'):
+        log_to_splunk("Moderation Action", f"Report {report_id} action: {action}",
+                      username=session.get('username'), content=[report_id, action])
         flash(result.get('message', 'Action completed.'), 'success')
     else:
+        log_to_splunk("Moderation Action", f"Report {report_id} action: {action} failed",
+                      username=session.get('username'), content=[report_id, action])
         flash(result.get('message', 'Action failed.'), 'danger')
     return redirect(url_for('moderation'))
 
