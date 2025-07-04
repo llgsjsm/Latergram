@@ -1,5 +1,5 @@
 <!-- OTP Verification Block -->
-<div class="mb-4 otp-text-field" style="display: none">
+<div class="mb-4 otp-text-field">
     <label for="otp-code" class="form-label">Enter the OTP sent to your email</label>
     <input type="text" class="form-control" id="otp-code" name="otp-code" placeholder="Enter OTP code"/>
     <input type="hidden" id="otp-email" name="otp-email" />
@@ -9,4 +9,7 @@
         <span style="margin: 0 10px">|</span>
         <a href="{{ url_for('login') }}" id="cancel-otp" style="color: var(--color-secondary-text)">Back to Login</a>
     </div>
+</div>
+<div class="d-grid mb-4 otp-btn-wrapper">
+    <button type="button" class="btn btn-login" id="verify-otp-btn">Verify Code</button>
 </div>

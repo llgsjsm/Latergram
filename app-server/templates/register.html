@@ -14,50 +14,113 @@
     </div>
 
     <div class="container form-container">
-        <form method="POST" action="{{ url_for('register') }}">
-            <div class="mb-4">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" placeholder="Your username" required>
-            </div>
-
-            <div class="mb-4">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="Your email" required>
-            </div>
-
-            <div class="mb-4">
-                <label for="password" class="form-label">Password</label>
-                <div id="password-input-group" class="input-group">
-                    <input type="password" class="form-control" id="password" name="password" placeholder="Your password" required>
-                    <span class="input-group-text" id="toggle-password" style="cursor: pointer;">
-                        <i class="fa-regular fa-eye" id="toggle-icon"></i>
-                    </span>
+        <div id="registration-container">
+            <form id="registration-form">
+                <div class="mb-4">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Your username" required>
                 </div>
-            </div>
-
-            <div class="d-grid mb-4">
-                <button type="submit" class="btn btn-login">Sign Up</button>
-            </div>
-
-            <p>Have an account?
-                <a href="{{ url_for('login') }}" style="color: var(--color-primary);">Login</a>
-            </p>
-        </form>
-        {% with messages = get_flashed_messages(with_categories=True) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-3">
-            {{ message }}<br>
+                <div class="mb-4">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Your email" required>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label">Password</label>
+                    <div id="password-input-group" class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Your password" required>
+                        <span class="input-group-text" id="toggle-password" style="cursor: pointer;">
+                            <i class="fa-regular fa-eye" id="toggle-icon"></i>
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Google reCAPTCHA (hidden-initially)-->
+                <div id="captcha-container" class="d-flex justify-content-center">
+                <div class="g-recaptcha" data-sitekey="6LdiSG8rAAAAAJKJYfIl48jO3lg-D9wmVpzSHlJX"  data-callback="onCaptchaVerified"></div>
+                </div>
+                
+                <div class="d-grid mb-4 my-4">
+                    <button type="submit" class="btn btn-login">Sign Up</button>
+                </div>
+                <p>Have an account?
+                    <a href="{{ url_for('login') }}" style="color: var(--color-primary);">Login</a>
+                </p>
+            </form>
+            <div id="register-message"></div>
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+
+        <div id="otp-container" style="display: none;">
+            {% include 'includes/otp.html' %}
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
-        crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.5_2_3.min.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/otp.js') }}"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+    <script>
+    
+    // Registration form AJAX submit
+    document.getElementById('registration-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const recaptchaResponse = grecaptcha.getResponse();
+        if (!recaptchaResponse) {
+            showMessage('Please complete the CAPTCHA.', 'error', 'register-message');
+            return;
+        }
+
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        fetch('{{ url_for("register") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password, "g-recaptcha-response": recaptchaResponse })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide registration form, show OTP block
+                document.getElementById('registration-container').style.display = 'none';
+                document.getElementById('otp-container').style.display = 'block';
+                // Set hidden fields for OTP
+                document.getElementById('otp-email').value = email;
+                document.getElementById('otp-type').value = 'register';
+                showMessage('OTP sent to your email', 'success', 'otp-container');
+            } else {
+                showMessage(data.error || (data.errors && data.errors.join('<br>')) || 'Registration failed', 'error', 'register-message');
+            }
+        })
+        .catch(() => showMessage('An error occurred', 'error', 'register-message'));
+    });
+
+    // Show message function
+    function showMessage(message, type, containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-danger'} mt-3`;
+            msgDiv.innerHTML = message;
+            
+            // Clear previous messages
+            const existingAlert = container.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            if (containerId === 'otp-container') {
+                container.prepend(msgDiv);
+            } else {
+                container.appendChild(msgDiv);
+            }
+            
+            setTimeout(() => { msgDiv.remove(); }, 5000);
+        }
+    }
+    </script>
 </body>
 
 </html>

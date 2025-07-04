@@ -1,3 +1,7 @@
+#main-content {
+  margin-right: 320px !important;
+}
+
 .card-body a {
   text-decoration: none;
   color: var(--color-primary);

@@ -1,12 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import requests
-import json
+import re
 import os
-from dotenv import load_dotenv  # Add this import
-from models import db, Post, Comment, User, Report
+from dotenv import load_dotenv 
+from models import db, Post, Comment, User, Report, Moderator
 from managers.authentication_manager import bcrypt
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import text, or_
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -14,6 +13,9 @@ import uuid
 from models.enums import ReportStatus, ReportTarget, LogActionTypes
 from flask_limiter import Limiter
 
+# Backend imports
+from backend.splunk_utils import get_real_ip, log_to_splunk
+from backend.captcha_utils import verify_recaptcha
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +33,6 @@ DB_HOST = os.environ.get('DB_HOST', '')
 DB_PORT = os.environ.get('DB_PORT', '')
 DB_NAME = os.environ.get('DB_NAME', '')
 BUCKET = os.environ.get('BUCKET', '')
-CAPTCHA_KEY = os.environ.get('CAPTCHA_KEY', '')
 FILE_LOCATION = os.environ.get('FILE_LOCATION','')
 IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
@@ -57,10 +58,6 @@ profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 moderator_manager = get_moderator_manager()
 
-# SPLUNK HEC Configuration
-SPLUNK_HEC_URL = os.environ.get('SPLUNK_HEC_URL', '') 
-SPLUNK_HEC_TOKEN = os.environ.get('SPLUNK_HEC_TOKEN', '') 
-
 if not IS_TESTING:
     if FILE_LOCATION and BUCKET:
         cred = credentials.Certificate(FILE_LOCATION)
@@ -73,47 +70,13 @@ if not IS_TESTING:
 else:
     print("Skipping Firebase init — test mode enabled")
 
-def get_real_ip():
-    forwarded_for = request.headers.get('X-Forwarded-For')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
-    return request.remote_addr
-
-# rate limiting
+# Redis Rate limiting
 limiter = Limiter(
     key_func=get_real_ip,
     app=app,
     default_limits=[],
     storage_uri="redis://10.20.0.5:6379"
 )
-
-def log_to_splunk(event_data):
-    client_ip = get_real_ip()
-    payload = {
-        "event": {
-            "message": event_data,
-            "path": request.path,
-            "method": request.method,
-            "ip": client_ip,
-            "user_agent": request.headers.get("User-Agent")
-        },
-        "sourcetype": "flask-web",
-        "host": client_ip
-    }
-
-    headers = {
-        "Authorization": f"Splunk {SPLUNK_HEC_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    try:
-        response = requests.post(SPLUNK_HEC_URL, headers=headers, data=json.dumps(payload), verify=False)
-        if response.status_code != 200:
-            print(f"Splunk HEC error: {response.status_code} - {response.text}")
-        else:
-            print(f"Sent log to Splunk: {event_data}")
-    except Exception as e:
-        print(f"Failed to send log to Splunk: {e}")
 
 def ensure_firebase_initialized():
     global bucket
@@ -128,22 +91,6 @@ def ensure_firebase_initialized():
         else:
             raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     bucket = storage.bucket()
-
-def verify_recaptcha(token, remote_ip):
-    if IS_TESTING:
-        print("Skipping reCAPTCHA verification in test mode")
-        return True
-    if not token:
-        return False
-    response = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data={
-            'secret': CAPTCHA_KEY,
-            'response': token,
-            'remoteip': remote_ip
-        }
-    ).json()
-    return response.get('success', False)
 
 def log_action(user_id: int, action: str, target_id: int, target_type: str):
         """
@@ -222,15 +169,17 @@ def home():
 
 @app.route('/')
 def hello_world():
-    # log_to_splunk("Visited /")
+    log_to_splunk("Landing","Browsed to landing page")
     return redirect(url_for('home'))
 
 @app.route('/reset_password_portal', methods=['GET', 'POST'])
 def reset_password_portal():
+    log_to_splunk("Reset Password", "Visited reset password portal")
     return render_template('reset_password.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
         # Check if it's a JSON request (AJAX)
         if request.is_json:
@@ -255,19 +204,19 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
-                            return jsonify(result)
+                            if not result['success']:
+                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
-                            
                             if result['success']:
                                 session['user_id'] = result['user']['user_id']
-                                return jsonify({'success': True, 'redirect': '/home'})
-                            
-                            return jsonify(result)
+                                log_to_splunk("Login", "User logged in", username=result['user']['username'])
+                            else:
+                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
+                        return jsonify(result)
                     else:
                         # Check if it's a moderator
-                        from models import Moderator
                         moderator = Moderator.query.filter(
                             or_(Moderator.username == email, Moderator.email == email)
                         ).first()
@@ -278,8 +227,12 @@ def login():
                             if result['success']:
                                 session['mod_id'] = result['mod_id']
                                 session['mod_level'] = result['mod_level']
+                                log_to_splunk("Login", "Moderator logged in with OTP", username=moderator.username)
+                            else:
+                                log_to_splunk("Login", "Failed valid moderator login attempt", username=email)
                             return jsonify(result)
                         else:
+                            log_to_splunk("Login", "Failed login attempt", username=email)
                             return jsonify({'success': False, 'error': 'Error logging in. Try again.'})
                 else:
                     return jsonify({'success': False, 'error': 'Please enter both email and password'})
@@ -302,117 +255,80 @@ def login():
                             session['mod_id'] = result['moderator']['mod_id']
                             session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
                             return redirect(url_for('moderation'))
                         else:
                             session['user_id'] = result['user']['user_id']
                             flash('Login successful!', 'success')
+                            log_to_splunk("Login", "User logged in", username=result['user']['username'])
                             return redirect(url_for('home'))
                     else:
+                        log_to_splunk("Login", "Failed login attempt", username=email)
                         flash(f'Login Unsuccessful. {result["error"]}', 'danger')
                 else:
                     flash('Please enter both email and password.', 'danger')
             return render_template('login.html')
     return render_template('login.html')
 
-@app.route('/verify-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def verify_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.complete_login_with_otp(email, otp_code)
-    
-    if result['success']:
-        session['user_id'] = result['user']['user_id']
-    
-    return jsonify(result)
-
-@app.route('/resend-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def resend_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.generate_and_send_otp(email, 'login')
-    return jsonify(result)
-
-@app.route('/forgot-password', methods=['POST'])
-@limiter.limit('1 per minute')
-def forgot_password():
-    data = request.get_json()
-    email = data.get('email', '')
-
-    # token = data.get('g-recaptcha-response', '')
-    # if not verify_recaptcha(token, request.remote_addr):
-    #     return jsonify({'success': False, 'error': 'Captcha verification failed.'})
-
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.initiate_password_reset(email)
-    print(result)
-    return jsonify(result)
-
-@app.route('/verify-reset-otp', methods=['POST'])
-@limiter.limit('10 per minute')
-def verify_reset_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-    
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.verify_otp(email, otp_code, 'password_reset')
-    print(result)
-    return jsonify(result)
-
-@app.route('/reset-password', methods=['POST'])
-def reset_password():
-    data = request.get_json()
-    email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
-    new_password = data.get('new_password', '')
-    
-    if not email or not otp_code or not new_password:
-        return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
-    
-    result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
-    result['redirect'] = url_for('login')
-    return jsonify(result)
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    log_to_splunk("Register", "Visited registration page")
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        result = auth_manager.register(username, email, password)
-        if result['success']:
-            flash('Your account has been created! You are now able to log in', 'success')
-            return redirect(url_for('login'))
-        else:
-            if 'errors' in result:
-                for error in result['errors']:
-                    flash(error, 'danger')
-            else:
-                flash(result['error'], 'danger')
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+    
+        # Captcha JSON
+        token = data.get('g-recaptcha-response', '')
+        if not verify_recaptcha(token, request.remote_addr):
+            return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
+
+        init_result = auth_manager.initiate_registration(username, email, password)
+
+        if not init_result.get('success'):
+            return jsonify({'success': False, 'errors': init_result.get('errors', ['An unknown error occurred.'])}), 400
+        
+        # Centralized call to generate and send OTP
+        otp_result = auth_manager.generate_and_send_otp(email, otp_type='registration')
+
+        if not otp_result.get('success'):
+            return jsonify({'success': False, 'error': otp_result.get('error', 'Failed to send OTP.')})
+
+        session['registration_data'] = {
+            'username': username,
+            'email': email,
+            'password_hash': init_result['password_hash'],
+            'otp': otp_result['otp_code'], # Get the code from the result
+            'otp_expiry': (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+        }
+        
+        return jsonify({'success': True, 'email': email})
+
     return render_template('register.html')
 
 @app.route('/logout')
 def logout():
     if 'user_id' in session:
-        session.pop('user_id', None)
         log_action(session['user_id'], LogActionTypes.LOGOUT.value, None, ReportTarget.USER.value)
+
+        user = User.query.filter_by(userId=session['user_id']).first()
+        log_to_splunk("Logout", "User logged out", username=user.username)
+        session.pop('user_id', None)
+        flash('You have been logged out.', 'info')
+
     else:
-        session.pop('mod_id', None)
+        try:
+            mod = Moderator.query.filter_by(modID=session['mod_id']).first()
+            log_to_splunk("Logout", "Moderator logged out", username=mod.username)
+            session.pop('mod_id', None)
+        except KeyError:
+            log_to_splunk("Logout", "Weird logout attempt")
+            return redirect(url_for('login'))
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
@@ -440,6 +356,9 @@ def create_post():
             blob.upload_from_file(image_file, content_type=image_file.content_type)
             blob.make_public()
             image_url = blob.public_url
+        else:
+            log_to_splunk("Create Post", "Post created failed", username=db.session.get(User, session['user_id']).username)
+            return jsonify({'success': False, 'error': 'Image upload failed or no image provided.'}), 400
 
         # Create likes record
         result = db.session.execute(
@@ -453,7 +372,7 @@ def create_post():
             authorId=session['user_id'],
             title=title,
             content=content,
-            timeOfPost=datetime.utcnow(),
+            timeOfPost=datetime.now(timezone.utc),
             like=0,
             likesId=likes_id,
             image=image_url
@@ -465,7 +384,7 @@ def create_post():
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_POST.value, new_post.postId, ReportTarget.POST.value)
         db.session.commit()
-
+        log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username,content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('home'))
 
@@ -524,7 +443,7 @@ def api_report_post(post_id):
     new_report = Report(
         reportedBy=user_id,
         reason=reason,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         targetType=target_type_enum.value,
         targetId=post_id,
         status=ReportStatus.PENDING.value
@@ -590,13 +509,14 @@ def add_comment(post_id):
             commentContent=content,
             authorId=session['user_id'],
             postId=post.postId,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             parentCommentId=parent_comment_id
         )
         db.session.add(new_comment)
         db.session.flush()
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.CREATE_COMMENT.value, new_comment.commentId, ReportTarget.COMMENT.value)
+        log_to_splunk("Comment", "Commented on post", username=db.session.get(User, session['user_id']).username, content=[content, post_id])
         db.session.commit()
         
         # Check if this is an AJAX request by looking for XMLHttpRequest header
@@ -632,6 +552,7 @@ def edit_comment(comment_id):
             return jsonify({'success': False, 'error': 'Comment cannot be empty'}), 400
         
         if len(new_content) > 500:
+            log_to_splunk("Comment", "Comment edit failed - too long", username=db.session.get(User, session['user_id']).username, content=[new_content[:64], comment_id])
             return jsonify({'success': False, 'error': 'Comment too long (max 500 characters)'}), 400
         
         # Update comment
@@ -640,8 +561,8 @@ def edit_comment(comment_id):
         
         # Create a new log entry
         log_action(session['user_id'], LogActionTypes.UPDATE_COMMENT.value, comment.commentId, ReportTarget.COMMENT.value)
+        log_to_splunk("Comment", "Comment edited", username=db.session.get(User, session['user_id']).username, content=[new_content, comment_id])
         db.session.commit()
-        
         return jsonify({'success': True, 'message': 'Comment updated successfully'})
         
     except Exception as e:
@@ -662,6 +583,7 @@ def delete_comment(comment_id):
         is_post_owner = post.authorId == session['user_id']
         
         if not (is_comment_owner or is_post_owner):
+            log_to_splunk("Comment", "Comment delete failed - not owner", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
             return jsonify({'success': False, 'error': 'You can only delete your own comments or comments on your posts'}), 403
         
         post_id = comment.postId
@@ -674,7 +596,7 @@ def delete_comment(comment_id):
         
         # Get updated comment count
         comment_count = Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
-        
+        log_to_splunk("Comment", "Comment deleted", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
         return jsonify({
             'success': True, 
             'message': 'Comment deleted successfully',
@@ -684,6 +606,7 @@ def delete_comment(comment_id):
         
     except Exception as e:
         print(f"Error deleting comment: {e}")
+        log_to_splunk("Comment", "Comment delete failed", username=db.session.get(User, session['user_id']).username, content=[comment_id, comment.commentContent])
         return jsonify({'success': False, 'error': 'Failed to delete comment'}), 500
 
 @app.route('/delete-post/<int:post_id>', methods=['POST'])
@@ -702,11 +625,14 @@ def delete_post_route(post_id):
         
         if result.get('success'):
             flash('Post deleted successfully', 'success')
+            log_to_splunk("Delete Post", "Post deleted successfully", username=db.session.get(User, session['user_id']).username, content=[post_id])
             return jsonify({'success': True, 'message': result.get('message', 'Post deleted successfully')})
         else:
             error_message = result.get('error', 'Failed to delete post')
             print(f"Delete failed: {error_message}")
             flash(error_message, 'danger')
+            log_to_splunk("Delete Post", "Post deleted successfully", username=db.session.get(User, session['user_id']).username, content=[post_id])
+
             return jsonify({'success': False, 'error': error_message}), 403
     except Exception as e:
         print(f"Exception in delete route: {e}")
@@ -806,6 +732,7 @@ def follow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.send_follow_request(session['user_id'], user_id)
+    log_to_splunk("Follow User", "User followed another user", username=db.session.get(User, session['user_id']).username, content=[db.session.get(User, user_id).username])
     return jsonify(result)
 
 @app.route('/api/unfollow/<int:user_id>', methods=['POST'])
@@ -814,6 +741,7 @@ def unfollow_user(user_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = profile_manager.unfollow_user(session['user_id'], user_id)
+    log_to_splunk("Unfollow User", "User unfollowed another user", username=db.session.get(User, session['user_id']).username, content=[db.session.get(User, user_id).username])
     return jsonify(result)
 
 @app.route('/api/follow-request/cancel/<int:target_user_id>', methods=['POST'])
@@ -860,6 +788,7 @@ def like_post_api(post_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = post_manager.like_post(session['user_id'], post_id)
+    log_to_splunk("Like Post", "Post liked", username=db.session.get(User, session['user_id']).username, content=[post_id])
     return jsonify(result)
 
 @app.route('/api/unlike/<int:post_id>', methods=['POST'])
@@ -868,6 +797,7 @@ def unlike_post_api(post_id):
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     result = post_manager.unlike_post(session['user_id'], post_id)
+    log_to_splunk("Unlike Post", "Post unliked", username=db.session.get(User, session['user_id']).username, content=[post_id])
     return jsonify(result)
 
 @app.route('/update-otp-setting', methods=['POST'])
@@ -886,7 +816,7 @@ def update_otp_setting():
         # Update the user's OTP preference
         user.otp_enabled = bool(otp_enabled)
         db.session.commit()
-        
+        log_to_splunk("Edit Profile", "Updated OTP setting", username=user.username)
         return jsonify({
             'success': True, 
             'message': f'OTP authentication {"enabled" if otp_enabled else "disabled"}'
@@ -932,8 +862,10 @@ def edit_profile():
         
         if result['success']:
             flash('Profile updated successfully!', 'success')
+            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
             return redirect(url_for('profile'))
         else:
+            log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
             flash(f'Error updating profile: {result["error"]}', 'danger')
     
     return render_template('edit_profile.html', user=user)
@@ -954,12 +886,20 @@ def change_password():
     if new_password != confirm_password:
         return jsonify({'success': False, 'error': 'New passwords do not match'}), 400
     
+    user = db.session.get(User, session['user_id'])
+
     # Change the password
     result = profile_manager.change_password(session['user_id'], current_password, new_password)
+    if (not result['success']):
+        log_to_splunk("Edit Profile", "Failed to change password", username=user.username)
+        return jsonify({'success': False, 'error': result['error']}), 400
+
     
     if result['success']:
+        log_to_splunk("Edit Profile", "Password changed successfully", username=user.username)
         return jsonify({'success': True, 'message': 'Password changed successfully'})
     else:
+        log_to_splunk("Edit Profile", "Failed to change password", username=user.username)
         return jsonify({'success': False, 'error': result['error']}), 400
 
 @app.route('/api/followers/<int:user_id>')
@@ -1092,20 +1032,24 @@ def delete_account():
     confirm_deletion = request.form.get('confirm_deletion')
     
     # Validate inputs
-    if not password:
-        return jsonify({'success': False, 'error': 'Password is required for account deletion'}), 400
+    if not password or not confirm_deletion or confirm_deletion.strip() != 'DELETE':
+        log_to_splunk("Delete Account", "Failed to delete account due to incorrect fields", username=session.get('user_id', 'Unknown'))
+        return jsonify({'success': False, 'error': 'All correct fields required for account deletion'}), 400
     
-    if confirm_deletion != 'DELETE':
+    # if confirm_deletion != 'DELETE':
         return jsonify({'success': False, 'error': 'Please type DELETE to confirm account deletion'}), 400
     
     # Delete the account
     result = profile_manager.delete_account(session['user_id'], password)
     
     if result['success']:
+        log_to_splunk("Delete Account", "Account deleted successfully", username=session.get['user_id', 'Unknown'])
+
         # Clear the session after successful deletion
         session.clear()
         return jsonify({'success': True, 'message': 'Account deleted successfully'})
     else:
+        log_to_splunk("Delete Account", "Failed to delete account", username=session.get('user_id', 'Unknown'))
         return jsonify({'success': False, 'error': result['error']}), 400
 
 @app.route('/api/remove-follower/<int:follower_user_id>', methods=['POST'])
@@ -1231,6 +1175,7 @@ def moderation():
 
     # Pagination parameters
     page = request.args.get('page', 1, type=int)
+    log_page = request.args.get('log_page', 1, type=int)
     per_page = 10
 
     try:
@@ -1239,6 +1184,9 @@ def moderation():
         # All reports for history table, paginated
         all_reports_query = moderator_manager.get_all_reports_query(session['mod_level'])
         paginated_reports = all_reports_query.paginate(page=page, per_page=per_page, error_out=False)
+        # Application user log for the log table
+        moderation_log = moderator_manager.get_moderation_log(page=log_page, per_page=per_page)
+
     except Exception as e:
         print(f"Error getting reports: {e}")
         reports = []
@@ -1247,7 +1195,8 @@ def moderation():
     return render_template(
         'moderation.html',
         reports=reports,
-        paginated_reports=paginated_reports
+        paginated_reports=paginated_reports,
+        moderation_log=moderation_log,
     )
 
 @app.route('/moderation/report/<int:report_id>')
@@ -1279,7 +1228,7 @@ def report_detail(report_id):
         report=report,
         referenced=referenced,
         referenced_type=referenced_type,
-        now=datetime.utcnow()
+        now=datetime.now(timezone.utc)
     )
 
 @app.route('/moderation/action/<action>/<int:report_id>', methods=['POST'])
@@ -1339,7 +1288,7 @@ def api_edit_post(post_id):
 
     post.title = title
     post.content = content
-    post.updatedAt = datetime.utcnow()
+    post.updatedAt = datetime.now(timezone.utc)
     # Create a new log entry
     log_action(session['user_id'], LogActionTypes.UPDATE_POST.value, post.postId, ReportTarget.POST.value)
     db.session.commit()
@@ -1365,12 +1314,15 @@ def send_email_update_otp():
 
     # Check if email is already in use
     existing = User.query.filter(User.email == new_email).first()
-    if existing:
-        return jsonify({'success': False, 'error': 'Email already in use'}), 409
+    
+    if not existing:
+        try:
+            auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
+        except Exception:
+            log_to_splunk("Edit Profile", "Failed to send OTP for email update", username=db.session.get(User, session['user_id']).username, content=[new_email])
+            pass
 
-    # Generate and send OTP to the new email
-    result = auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
-    return jsonify(result)
+    return jsonify({'success': True, 'message': 'OTP sent if email is valid'})
 
 @app.route('/api/verify-email-update-otp', methods=['POST'])
 def verify_email_update_otp():
@@ -1405,6 +1357,7 @@ def verify_email_update_otp():
     
     try:
         db.session.commit()
+        log_to_splunk("Edit Profile", "Email updated successfully", username=user.username, content=[old_email, new_email])
         return jsonify({
             'success': True, 
             'message': 'Email updated successfully', 
@@ -1413,6 +1366,7 @@ def verify_email_update_otp():
         })
     except Exception as e:
         db.session.rollback()
+        log_to_splunk("Edit Profile", "Failed to update email", username=user.username, content=[old_email, new_email])
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
 @app.route('/api/update-email', methods=['POST'])
@@ -1450,49 +1404,58 @@ def api_update_email():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
-@app.route('/verify-moderator-login-otp', methods=['POST'])
-def verify_moderator_login_otp():
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
-    otp_code = data.get('otp_code', '')
+    # Backend email validation -- remove if already has existing validation somewhere...
+    email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
+
+    if not email_regex.match(email):
+        log_to_splunk("Reset Password", "Invalid email input", username=email)
+        return jsonify({'success': False, 'error': 'Invalid email. Please enter a valid email address.'})
+
+    # Try Moderator first
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        auth_manager.initiate_moderator_password_reset(email)
+    else:
+        # Try regular User
+        user = User.query.filter_by(email=email).first()
+        if user:
+            auth_manager.initiate_password_reset(email)
+    log_to_splunk("Reset Password", "Password reset initiated", username=email)
+    return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
+    })
+
+@app.route('/resend-login-otp', methods=['POST'])
+def resend_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'})
     
-    if not email or not otp_code:
-        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
-    
-    result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
-    
+    # Try Moderator first
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.generate_and_send_moderator_otp(email)
+    else:
+        # Try regular User
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.generate_and_send_otp(email)
     if result['success']:
-        session['mod_id'] = result['moderator']['mod_id']
-        result['redirect'] = '/moderation'
-    
-    return jsonify(result)
+        log_to_splunk("Login", "OTP resent successfully", username=email)
+    else:
+        log_to_splunk("Login OTP", "Failed to resend OTP", username=email)
+    return jsonify({'success': True, 'message': 'If an account with that email exists, a reset link has been sent.'
+    })
 
-@app.route('/resend-moderator-login-otp', methods=['POST'])
-@limiter.limit('1 per minute')
-def resend_moderator_login_otp():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.generate_and_send_moderator_otp(email, 'login')
-    return jsonify(result)
-
-@app.route('/moderator-forgot-password', methods=['POST'])
-@limiter.limit('1 per minute')
-def moderator_forgot_password():
-    data = request.get_json()
-    email = data.get('email', '')
-    
-    if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
-    
-    result = auth_manager.initiate_moderator_password_reset(email)
-    return jsonify(result)
-
-@app.route('/verify-moderator-reset-otp', methods=['POST'])
-def verify_moderator_reset_otp():
+@app.route('/verify-reset-otp', methods=['POST'])
+def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
@@ -1500,11 +1463,22 @@ def verify_moderator_reset_otp():
     if not email or not otp_code:
         return jsonify({'success': False, 'error': 'Email and OTP code are required'})
     
-    result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.verify_moderator_otp(email, otp_code, 'password_reset')
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.verify_otp(email, otp_code, 'password_reset')
+
+    if result['success']:
+        log_to_splunk("Reset Password", "Succesful OTP verification for password reset", username=email)
+    else:
+        log_to_splunk("Reset Password", "Failed OTP verification for password reset", username=email)
     return jsonify(result)
 
-@app.route('/reset-moderator-password', methods=['POST'])
-def reset_moderator_password():
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
     data = request.get_json()
     email = data.get('email', '')
     otp_code = data.get('otp_code', '')
@@ -1513,8 +1487,103 @@ def reset_moderator_password():
     if not email or not otp_code or not new_password:
         return jsonify({'success': False, 'error': 'Email, OTP code, and new password are required'})
     
-    result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.reset_moderator_password_with_otp(email, otp_code, new_password)
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.reset_password_with_otp(email, otp_code, new_password)
+    
+    if result['success']:
+        log_to_splunk("Reset Password", "Password reset successful", username=email)
+    else:
+        log_to_splunk("Reset Password", "Password reset failed - " + result['error'], username=email)
     return jsonify(result)
+
+@app.route('/verify-login-otp', methods=['POST'])
+# @limiter.limit('1 per minute')
+def verify_login_otp():
+    data = request.get_json()
+    email = data.get('email', '')
+    otp_code = data.get('otp_code', '')
+
+    if not email or not otp_code:
+        return jsonify({'success': False, 'error': 'Email and OTP code are required'})
+    
+    user = Moderator.query.filter_by(email=email).first()
+    if user:
+        result = auth_manager.complete_moderator_login_with_otp(email, otp_code)
+    else:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            result = auth_manager.complete_login_with_otp(email, otp_code)
+
+    if result['success'] and result['login_type'] == 'user':
+        if (result['user']['user_id']):
+            session['user_id'] = result['user']['user_id']
+            result['redirect'] = '/home'
+            log_to_splunk("Login", "User logged in with OTP", username=result['user']['username'])
+    elif result['success'] and result['login_type'] == 'moderator':
+        if(result['moderator']['mod_id']):
+            session['mod_id'] = result['moderator']['mod_id']
+            session['mod_level'] = result['moderator']['mod_level']
+            result['redirect'] = '/moderation'
+            log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
+    else:     
+        log_to_splunk("Login", "Failed OTP verification", username=email)
+
+    return jsonify(result)
+
+@app.route('/verify-register-otp', methods=['POST'])
+def verify_register_otp():
+    data = request.get_json()
+    email = data.get('email')
+    otp_code = data.get('otp_code')
+    reg_data = session.get('registration_data')
+
+    # Input Tampering
+    if not reg_data or reg_data.get('email') != email:
+        log_to_splunk("Register", "Attempted registration with invalid inputs", username=email)
+        return jsonify({'success': False, 'error': 'Error registering with email address.'})
+
+    # OTP expiry
+    if datetime.fromisoformat(reg_data.get('otp_expiry')) < datetime.now(timezone.utc):
+        log_to_splunk("Register", "OTP expired during registration", username=email)
+        session.pop('registration_data', None)
+        return jsonify({'success': False, 'error': 'OTP Expired. Please try again.'}), 500
+
+    # OTP mismatch
+    if reg_data.get('otp') != otp_code:
+        log_to_splunk("Register", "Invalid OTP during registration", username=email)
+        return jsonify({'success': False, 'error': 'Invalid OTP. Please try again.'}), 500
+    
+    # Multi-account creation check
+    if User.query.filter(User.email == email).first() or Moderator.query.filter(Moderator.email == email).first():
+        log_to_splunk("Register", "Attempted creation of multi-accounts", username=email)
+        return jsonify({'success': False, 'error': 'Email already registered.'})
+
+    create_result = auth_manager.create_user(
+        username=reg_data['username'],
+        email=reg_data['email'],
+        password_hash=reg_data['password_hash']
+    )
+
+    if not create_result.get('success'):
+        log_to_splunk("Register", "Failed to create user", username=email)
+        session.pop('registration_data', None)
+        return jsonify({'success': False, 'error': create_result.get('errors', ['Failed to create user.'])})
+
+    session.pop('registration_data', None)
+    
+    user = User.query.filter_by(email=email).first()
+    if user:
+        session['user_id'] = user.userId
+        log_to_splunk("Register", "User registered an account", username=user.username)
+        return jsonify({'success': True, 'redirect': url_for('home')})
+    else:
+        log_to_splunk("Register", "Failed to register user after OTP verification", username=email)
+        return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
 
 @app.errorhandler(429)
 def ratelimit_handler(e):

@@ -276,3 +276,69 @@ body,
   max-height: 140px;
   overflow-y: auto;
 }
+
+@media (max-width: 991px) {
+  .profile-header-card {
+    flex-direction: column;
+    align-items: center;
+    padding: 1.2rem 1rem 1.5rem 1rem;
+    text-align: center;
+    position: relative;
+    background-color: transparent;
+  }
+
+  .profile-header-actions {
+    position: absolute;
+    right: 1rem;
+    margin-top: 0;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .profile-header-left {
+    align-items: left;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .profile-header-username {
+    font-size: 1.5rem;
+    margin-top: 1rem;
+    text-align: left;
+  }
+
+  .profile-header-bio {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .profile-header-privacy-status {
+    margin-bottom: 0.5rem;
+    text-align: left;
+  }
+
+  .profile-header-stats {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .profile-header-stats a {
+    margin-right: 0;
+  }
+  
+  .profile-header-actions .btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+}

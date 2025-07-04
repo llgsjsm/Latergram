@@ -2,6 +2,7 @@ from typing import Optional, List, Dict, Any
 from models import db, User
 from models.enums import VisibilityType, LogActionTypes, ReportTarget
 from sqlalchemy import text
+from backend.hibp_utils import check_password_breach
 
 class ProfileManager:
     def __init__(self, current_user: User = None):
@@ -679,11 +680,15 @@ class ProfileManager:
             if not bcrypt.check_password_hash(user.password, current_password):
                 return {'success': False, 'error': 'Current password is incorrect'}
             
-            # Validate new password (similar to registration)
-            if len(new_password) < 6:
-                return {'success': False, 'error': 'New password must be at least 6 characters long'}
-            elif len(new_password) > 255:
-                return {'success': False, 'error': 'New password must be less than 255 characters'}
+            # Validate new password (similar to registration) -- can modularize ngl
+            if len(new_password) < 8:
+                    return {'success': False, 'error': 'Password must be at least 8 characters long'}
+            elif len(new_password) > 64:
+                return {'success': False, 'error': 'Password must be less than 64 characters'}
+            
+            count = check_password_breach(new_password)
+            if count > 0:
+                return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
             
             # Hash the new password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')

@@ -174,25 +174,100 @@
                     <ul class="pagination justify-content-center">
                         {% if paginated_reports.has_prev %}
                         <li class="page-item">
-                            <a class="page-link bg-dark text-light" href="{{ url_for('moderation', page=paginated_reports.prev_num) }}">Previous</a>
+                            <a class="page-link bg-dark text-light" 
+                            href="{{ url_for('moderation', page=paginated_reports.prev_num, log_page=moderation_log.page) }}">Previous</a>                            ">Previous</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link  bg-dark text-light">Previous</span></li>
                         {% endif %}
                         {% for p in range(1, paginated_reports.pages + 1) %}
                         <li class="page-item {% if paginated_reports.page == p %}active{% endif %}">
-                            <a class="page-link bg-dark text-light" href="{{ url_for('moderation', page=p) }}">{{ p }}</a>
+                            <a class="page-link bg-dark text-light" 
+                            href="{{ url_for('moderation', page=p, log_page=moderation_log.page) }}">{{ p }}</a>
                         </li>
                         {% endfor %}
                         {% if paginated_reports.has_next %}
                         <li class="page-item">
-                            <a class="page-link bg-dark text-light" href="{{ url_for('moderation', page=paginated_reports.next_num) }}">Next</a>
+                            <a class="page-link bg-dark text-light" 
+                            href="{{ url_for('moderation', page=paginated_reports.next_num, log_page=moderation_log.page) }}">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-light">Next</span></li>
                         {% endif %}
                     </ul>
-                    
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="mb-2">
+        <h3>Application User Log</h3>
+        <button class="btn btn-outline-light btn-sm mb-2" type="button" id="toggle-log-btn">
+            <i class="fas fa-chevron-down"></i> Show/Hide
+        </button>
+        <div id="log-table-section">
+            <div class="table-responsive">
+                <table class="table table-dark table-bordered table-hover align-middle rounded">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Target Type</th>
+                            <th>Target ID</th>
+                            <th>Target Username</th>
+                            <th>Target Author Username</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if moderation_log and moderation_log["items"] %}
+                        {% for log in moderation_log["items"] %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.user_username }}</td>
+                            <td>{{ log.action }}</td>
+                            <td>{{ log.target_type }}</td>
+                            <td>{{ log.target_id }}</td>
+                            <td>{{ log.target_username or '' }}</td>
+                            <td>{{ log.target_author_username or '' }}</td>
+                            <td>{{ log.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="8">No log records found.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% if moderation_log %}
+                <!-- Pagination controls for moderation log -->
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if moderation_log.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark text-light"
+                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=moderation_log.prev_num) }}">Previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Previous</span></li>
+                        {% endif %}
+                        {% for p in range(1, moderation_log.pages + 1) %}
+                        <li class="page-item {% if moderation_log.page == p %}active{% endif %}">
+                            <a class="page-link bg-dark text-light" 
+                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=p) }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if moderation_log.has_next %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark text-light"
+                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=moderation_log.next_num) }}">Next</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Next</span></li>
+                        {% endif %}
+                    </ul>
                 </nav>
                 {% endif %}
             </div>
@@ -247,6 +322,15 @@
             historySection.style.display = (historySection.style.display === 'none') ? '' : 'none';
             historyBtn.querySelector('i').classList.toggle('fa-chevron-down');
             historyBtn.querySelector('i').classList.toggle('fa-chevron-right');
+        });
+
+        // Toggle log table section
+        const logSection = document.getElementById('log-table-section');
+        const logBtn = document.getElementById('toggle-log-btn');
+        logBtn.addEventListener('click', function () {
+            logSection.style.display = (logSection.style.display === 'none') ? '' : 'none';
+            logBtn.querySelector('i').classList.toggle('fa-chevron-down');
+            logBtn.querySelector('i').classList.toggle('fa-chevron-right');
         });
         // Attach event listeners to all action buttons in forms
         document.querySelectorAll('.btn-group form button[type="submit"]').forEach(function (btn) {

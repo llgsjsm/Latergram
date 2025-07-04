@@ -12,6 +12,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 import random
 import time
+from backend.hibp_utils import check_password_breach
 
 bcrypt = Bcrypt()
 
@@ -22,6 +23,10 @@ class AuthenticationManager:
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
         self.email_user = os.environ.get('EMAIL_USER', '')
         self.email_password = os.environ.get('EMAIL_PASSWORD', '')
+    
+    def _generate_otp(self) -> str:
+        """Generate a 6-digit OTP"""
+        return str(random.randint(100000, 999999)).zfill(6)
     
     def log_action(self, user_id: int, action: str, target_id: int):
         """
@@ -73,7 +78,7 @@ class AuthenticationManager:
                     'bio': user.bio,
                     'visibility': user.visibility
                     },
-                'message': 'Authentication successful'
+                'message': 'Login successful'
             }
         # if user not found, check in moderators table
         else:
@@ -106,31 +111,36 @@ class AuthenticationManager:
         # In a session-based approach, this would clear the session
         pass
 
-    def register(self, username: str, email: str, password: str) -> Dict[str, Any]:
-        """Create a new user with validation"""
+    def initiate_registration(self, username: str, email: str, password: str) -> Dict[str, Any]:
+        """Validate data and prepare for registration OTP"""
         # Validate input
         validation_result = self.validate_user_data(username, email, password)
         if not validation_result['valid']:
             return validation_result
         
-        # Check if username or email already exists - single query optimization
+        # Check if username or email already exists
         existing_user = User.query.filter(
-            or_(User.username == username, User.email == email)
+            or_(User.username == username)
         ).first()
-        
+
         if existing_user:
-            if existing_user.username == username:
-                return {'success': False, 'error': 'Username already exists'}
-            else:
-                return {'success': False, 'error': 'Email already exists'}
+            if existing_user.username.lower() == username.lower():
+                return {'success': False, 'errors': ['Username already exists']}
         
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        
+        return {
+            'success': True,
+            'password_hash': hashed_password
+        }
+
+    def create_user(self, username: str, email: str, password_hash: str) -> Dict[str, Any]:
+        """Creates a new user in the database."""
         try:
-            # Create user with profile information in the same table
-            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
             user = User(
                 username=username,
                 email=email,
-                password=hashed_password,
+                password=password_hash,
                 profilePicture='',
                 bio='',
                 visibility=VisibilityType.PUBLIC.value
@@ -145,7 +155,7 @@ class AuthenticationManager:
             }
         except Exception as e:
             db.session.rollback()
-            return {'success': False, 'error': f'Failed to create user: {str(e)}'}
+            return {'success': False, 'errors': [f'Failed to create user: {str(e)}']}
 
     def validate_session(self):
         # This would check if a user is logged in
@@ -173,10 +183,14 @@ class AuthenticationManager:
             errors.append('Please enter a valid email address')
         
         # Password validation
-        if not password or len(password) < 6:
-            errors.append('Password must be at least 6 characters long')
-        elif len(password) > 255:
-            errors.append('Password must be less than 255 characters')
+        if not password or len(password) < 8:
+            errors.append('Password must be at least 8 characters long')
+        elif len(password) > 64:
+            errors.append('Password must be less than 64 characters')
+            
+        count = check_password_breach(password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
         
         return {
             'valid': len(errors) == 0,
@@ -219,6 +233,20 @@ class AuthenticationManager:
                 Best regards,
                 LaterGram Team
                 """
+            elif otp_type == 'registration':
+                msg['Subject'] = 'LaterGram - Account Verification Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram account verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this code, please ignore this email.
+                
+                Best regards,
+                LaterGram Team
+                """
             else:  # password_reset
                 msg['Subject'] = 'LaterGram - Password Reset Code'
                 body = f"""
@@ -250,6 +278,13 @@ class AuthenticationManager:
     def generate_and_send_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
         """Generate and send OTP to user's email"""
         try:
+            if otp_type == 'registration':
+                otp_code = self._generate_otp()
+                if self.send_otp_email(email, otp_code, 'registration'):
+                    return {'success': True, 'otp_code': otp_code, 'message': 'OTP sent to your email.'}
+                else:
+                    return {'success': False, 'error': 'Failed to send OTP email.'}
+
             user = User.query.filter_by(email=email).first()
             delay = 5 # Dummy delay against timing attacks :)
             if user:
@@ -267,6 +302,8 @@ class AuthenticationManager:
                 time.sleep(delay)
         except Exception as e:
             db.session.rollback()
+            return {'success': False, 'error': f'An internal error occurred: {str(e)}'}
+
         return { 'success': True, 'message': 'An OTP has been sent.' }
     
     def generate_and_send_moderator_otp(self, email: str, otp_type: str = 'login') -> Dict[str, Any]:
@@ -527,17 +564,25 @@ class AuthenticationManager:
     
     def reset_password_with_otp(self, email: str, otp_code: str, new_password: str) -> Dict[str, Any]:
         """Reset password after OTP verification"""
-        user = User.query.filter_by(email=email).first()
+        user = Moderator.query.filter_by(email=email).first()
         if not user:
+            user = User.query.filter_by(email=email).first()
+        else:
             return {'success': False, 'error': 'User not found'}
         
         # Verify OTP is still valid for password reset
         if not user.is_otp_valid(otp_code, 'password_reset'):
             return {'success': False, 'error': 'Invalid or expired OTP'}
-        
+
         # Validate new password
-        if len(new_password) < 6:
-            return {'success': False, 'error': 'Password must be at least 6 characters long'}
+        if len(new_password) < 8:
+                return {'success': False, 'error': 'Password must be at least 8 characters long'}
+        elif len(new_password) > 64:
+            return {'success': False, 'error': 'Password must be less than 64 characters'}
+        
+        count = check_password_breach(new_password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
         
         try:
             # Update password
@@ -572,10 +617,16 @@ class AuthenticationManager:
         if not moderator.is_otp_valid(otp_code, 'password_reset'):
             return {'success': False, 'error': 'Invalid or expired OTP'}
         
-        # Validate new password
-        if len(new_password) < 6:
-            return {'success': False, 'error': 'Password must be at least 6 characters long'}
+        # Follow NIST -- 8 < x < 64 & check against breached
+        if len(new_password) < 8:
+                return {'success': False, 'error': 'Password must be at least 8 characters long'}
+        elif len(new_password) > 64:
+                return {'success': False, 'error': 'Password must be less than 64 characters'}
         
+        count = check_password_breach(new_password)
+        if count > 0:
+            return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
+
         try:
             # Update password
             hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
