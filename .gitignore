@@ -32,3 +32,4 @@ venv/
 *.secret
 *e.json
 *.json
+!words.json
