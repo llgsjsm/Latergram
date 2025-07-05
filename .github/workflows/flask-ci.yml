@@ -58,7 +58,7 @@ jobs:
     - name: Build Flask 
       run: docker-compose -f docker-compose.ci.yml up -d --build flask nginx mysqldb
 
-    - name: Wait for Flask to be healthy
+    - name: Wait for Web Stack to be healthy
       run: |
         docker ps | grep flask
         docker ps | grep nginx

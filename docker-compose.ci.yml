@@ -39,6 +39,13 @@ services:
     networks:
       laternet:
         ipv4_address: 10.20.0.4
+        
+  redis:
+    image: "redis:latest"
+    container_name: redis_server
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.5
 
 networks:
   laternet:
