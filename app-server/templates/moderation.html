@@ -104,7 +104,7 @@
                     </table>
                 </div>
             </div>
-    <div class="mb-2">
+    <div class="mb-2" id="report-history">
         <h3>Full Report History</h3>
         <button class="btn btn-outline-light btn-sm mb-2" type="button" id="toggle-history-btn">
             <i class="fas fa-chevron-down"></i> Show/Hide
@@ -171,25 +171,32 @@
                 {% if paginated_reports %}
                 <!-- Pagination controls -->
                 <nav>
+                    {% set max_pages = 10 %}
+                    {% set half = max_pages // 2 %}
+                    {% set start_page = paginated_reports.page - half if paginated_reports.page - half > 1 else 1 %}
+                    {% set end_page = start_page + max_pages - 1 if start_page + max_pages - 1 < paginated_reports.pages else
+                        paginated_reports.pages %} {% if end_page - start_page + 1 < max_pages and start_page> 1 %}
+                        {% set start_page = end_page - max_pages + 1 if end_page - max_pages + 1 > 1 else 1 %}
+                        {% endif %}
                     <ul class="pagination justify-content-center">
                         {% if paginated_reports.has_prev %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=paginated_reports.prev_num, log_page=moderation_log.page) }}">Previous</a>                            ">Previous</a>
+                            href="{{ url_for('moderation', page=paginated_reports.prev_num, log_page=application_log.page) }}#report-history">Previous</a>                            ">Previous</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link  bg-dark text-light">Previous</span></li>
                         {% endif %}
-                        {% for p in range(1, paginated_reports.pages + 1) %}
+                        {% for p in range(start_page, end_page + 1) %}
                         <li class="page-item {% if paginated_reports.page == p %}active{% endif %}">
-                            <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=p, log_page=moderation_log.page) }}">{{ p }}</a>
+                            <a class="page-link bg-dark text-light"
+                                href="{{ url_for('moderation', page=p, log_page=application_log.page) }}#report-history">{{ p }}</a>
                         </li>
                         {% endfor %}
                         {% if paginated_reports.has_next %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=paginated_reports.next_num, log_page=moderation_log.page) }}">Next</a>
+                            href="{{ url_for('moderation', page=paginated_reports.next_num, log_page=application_log.page) }}#report-history">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-light">Next</span></li>
@@ -200,7 +207,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-2">
+    <div class="mb-2" id="application-log">
         <h3>Application User Log</h3>
         <button class="btn btn-outline-light btn-sm mb-2" type="button" id="toggle-log-btn">
             <i class="fas fa-chevron-down"></i> Show/Hide
@@ -221,14 +228,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% if moderation_log and moderation_log["items"] %}
-                        {% for log in moderation_log["items"] %}
+                        {% if application_log and application_log["items"] %}
+                        {% for log in application_log["items"] %}
                         <tr>
                             <td>{{ log.id }}</td>
                             <td>{{ log.user_username }}</td>
                             <td>{{ log.action }}</td>
                             <td>{{ log.target_type }}</td>
-                            <td>{{ log.target_id }}</td>
+                            <td>{{ log.target_id or '' }}</td>
                             <td>{{ log.target_username or '' }}</td>
                             <td>{{ log.target_author_username or '' }}</td>
                             <td>{{ log.timestamp }}</td>
@@ -241,28 +248,35 @@
                         {% endif %}
                     </tbody>
                 </table>
-                {% if moderation_log %}
-                <!-- Pagination controls for moderation log -->
+                {% if application_log %}
+                <!-- Pagination controls for application log -->
                 <nav>
+                    {% set max_pages = 10 %}
+                    {% set half = max_pages // 2 %}
+                    {% set start_page = application_log.page - half if application_log.page - half > 1 else 1 %}
+                    {% set end_page = start_page + max_pages - 1 if start_page + max_pages - 1 < application_log.pages else
+                        application_log.pages %} {% if end_page - start_page + 1 < max_pages and start_page> 1 %}
+                        {% set start_page = end_page - max_pages + 1 if end_page - max_pages + 1 > 1 else 1 %}
+                        {% endif %}
                     <ul class="pagination justify-content-center">
-                        {% if moderation_log.has_prev %}
+                        {% if application_log.has_prev %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light"
-                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=moderation_log.prev_num) }}">Previous</a>
+                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=application_log.prev_num) }}#application-log">Previous</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Previous</span></li>
                         {% endif %}
-                        {% for p in range(1, moderation_log.pages + 1) %}
-                        <li class="page-item {% if moderation_log.page == p %}active{% endif %}">
-                            <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=p) }}">{{ p }}</a>
+                        {% for p in range(start_page, end_page + 1) %}
+                        <li class="page-item {% if application_log.page == p %}active{% endif %}">
+                            <a class="page-link bg-dark text-light"
+                                href="{{ url_for('moderation', page=paginated_reports.page, log_page=p) }}#application-log">{{ p }}</a>
                         </li>
                         {% endfor %}
-                        {% if moderation_log.has_next %}
+                        {% if application_log.has_next %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light"
-                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=moderation_log.next_num) }}">Next</a>
+                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=application_log.next_num) }}#application-log">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Next</span></li>

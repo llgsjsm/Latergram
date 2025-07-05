@@ -166,7 +166,7 @@ class ModeratorManager:
         # Logic to check moderator level
         pass 
 
-    def get_moderation_log(self, page=1, per_page=10):
+    def get_application_log(self, page=1, per_page=20):
         sql = """
         SELECT
             l.*,
