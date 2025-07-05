@@ -77,6 +77,8 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         .then((data) => {
             if (data.success) {
                 window.location.href = data.redirect;
+            } else {
+                showMessage(data.error, "error");
             }
         })
         .catch((error) => {
