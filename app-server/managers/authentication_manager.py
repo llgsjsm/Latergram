@@ -115,6 +115,7 @@ class AuthenticationManager:
         """Validate data and prepare for registration OTP"""
         # Validate input
         validation_result = self.validate_user_data(username, email, password)
+        print(f"Validation result: {validation_result}")
         if not validation_result['valid']:
             return validation_result
         
@@ -190,7 +191,7 @@ class AuthenticationManager:
             
         count = check_password_breach(password)
         if count > 0:
-            return {'success': False, 'error': f'New password has been found in data breaches. Please choose a different password.'}
+            errors.append('Password has been found in data breaches. Please choose a different password.')
         
         return {
             'valid': len(errors) == 0,
