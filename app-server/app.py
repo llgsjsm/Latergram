@@ -18,6 +18,7 @@ from managers import get_auth_manager, get_feed_manager, get_profile_manager, ge
 from backend.splunk_utils import get_real_ip, log_to_splunk
 from backend.captcha_utils import verify_recaptcha
 from backend.profanity_helper import check_profanity
+# from backend.opennsfw import is_image_safe
 
 load_dotenv()
 app = Flask(__name__)
@@ -358,6 +359,12 @@ def create_post():
         else:
             log_to_splunk("Create Post", "Post created failed", username=db.session.get(User, session['user_id']).username)
             return jsonify({'success': False, 'error': 'Image upload failed or no image provided.'}), 400
+
+        # Check if image is safe
+        # is_image_safe_result = is_image_safe(image_url)
+        # if not is_image_safe_result:
+        #     log_to_splunk("Create Post", "Post creation failed - unsafe image", username=db.session.get(User, session['user_id']).username)
+        #     return jsonify({'success': False, 'error': 'Image is not safe.'}), 400
 
         # Create likes record
         result = db.session.execute(
