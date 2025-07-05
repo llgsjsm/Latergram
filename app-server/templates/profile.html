@@ -273,16 +273,19 @@
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% endif %}
-                <button class="btn btn-primary btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
-                  <i class="fas fa-comment"></i>
-                  {% if comment_counts.get(post.postId, 0) > 0 %} {{
-                  comment_counts.get(post.postId, 0) }} Comments {% else %}
-                  Comment {% endif %}
+                <button class="btn btn-outline-comment btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
+                  <i class="fas fa-comment comment-icon"></i>
+                  {% if comment_counts.get(post.postId, 0) > 0 %} {{ comment_counts.get(post.postId, 0) }} Comments {% else %} Comment {% endif %}
                 </button>
                 {% if is_own_profile %}
                 <button class="btn btn-danger btn-sm ms-2" onclick="deletePost('{{ post.postId }}')"
                   title="Delete Post">
                   <i class="fas fa-trash"></i> Delete
+                </button>
+                {% else %}
+                <!-- Report Button for posts not owned by current user -->
+                <button class="btn btn-outline-warning btn-sm ms-2" onclick="openReportModal('{{ post.postId }}')">
+                  <i class="fas fa-flag report-icon"></i>
                 </button>
                 {% endif %}
               </div>
@@ -403,6 +406,8 @@
     </div>
   </div>
 </div>
+
+{% include 'includes/report_modal.html' %}
 
 <style>
   .post-thumbnail:hover .post-overlay {

@@ -40,15 +40,15 @@
                     <img
                       src="{{ request.profile_picture }}"
                       class="rounded-circle me-3"
-                      style="width: 40px; height: 40px; object-fit: cover"
+                      style="width: 42px; height: 42px; object-fit: cover"
                       alt="Profile Picture"
                     />
                     {% else %}
                     <span
                       class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
                       style="
-                        width: 40px;
-                        height: 40px;
+                        width: 42px;
+                        height: 42px;
                         background: #23263a;
                         color: #bfc7d5;
                         font-size: 1.3rem;
@@ -108,20 +108,20 @@
         {% endif %}
         <div class="card-body">
           <!-- Post Header -->
-          <div class="d-flex align-items-center mb-2">
+          <div class="d-flex align-items-center mb-2" style="gap: 4px;">
             {% if post.author %} {% if post.author.profilePicture %}
             <img
               src="{{ post.author.profilePicture }}"
               class="rounded-circle me-2"
-              style="width: 30px; height: 30px; object-fit: cover"
+              style="width: 40px; height: 40px; object-fit: cover"
               alt="Profile Picture"
             />
             {% else %}
             <span
               class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
               style="
-                width: 30px;
-                height: 30px;
+                width: 40px;
+                height: 40px;
                 background: #23263a;
                 color: #bfc7d5;
                 font-size: 1rem;
@@ -227,10 +227,10 @@
               </button>
               {% endif %}
               <button
-                class="btn btn-secondary btn-sm"
+                class="btn btn-outline-comment btn-sm"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
-                <i class="fas fa-comment"></i>
+                <i class="fas fa-comment comment-icon"></i>
                 <span id="comment-btn-text-{{ post.postId }}">
                   {{ comment_counts.get(post.postId, 0) }}
                 </span>
@@ -256,7 +256,7 @@
                 class="btn btn-outline-warning btn-sm"
                 onclick="openReportModal('{{ post.postId }}')"
               >
-                <i class="fas fa-flag"></i>
+                <i class="fas fa-flag report-icon"></i>
               </button>
               {% endif %}
             </div>
@@ -323,55 +323,7 @@
   </div>
 </div>
 
-<!-- Report Modal -->
-<div
-  class="modal fade"
-  id="reportModal"
-  tabindex="-1"
-  aria-labelledby="reportModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-white rounded-3">
-      <!-- Added bg-dark, text-white, rounded-3 -->
-      <div class="modal-header border-bottom-0">
-        <!-- Removed default border -->
-        <h5 class="modal-title" id="reportModalLabel">Report Post</h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <form id="reportForm">
-          <input type="hidden" id="reportPostId" name="postId" />
-          <div class="mb-3">
-            <label for="reportReason" class="form-label"
-              >Reason for reporting:</label
-            >
-            <textarea
-              class="form-control bg-secondary text-white border-secondary rounded"
-              <!-- Darker input for text area -->
-              id="reportReason"
-              rows="3"
-              name="reason"
-              required
-              maxlength="200"
-              placeholder="Please describe why you are reporting this post (max 200 characters)."
-            ></textarea
-            >
-          </div>
-          <button type="submit" class="btn btn-danger rounded-pill px-4">
-            Submit Report
-          </button>
-          <!-- Added rounded-pill and px-4 -->
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'includes/report_modal.html' %}
 
 <script>
   // Current user info for JavaScript
@@ -405,7 +357,9 @@
             data.comments.forEach((comment) => {
               const profileImg = comment.author.profilePicture
                 ? `<img src="${comment.author.profilePicture}" class="rounded-circle" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">`
-                : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 25px; height: 25px; background: #23263a; color: #bfc7d5; font-size: 0.8rem;"><i class="fas fa-user"></i></span>`;
+                : `<span class="comment-fallback-icon">
+                    <i class="fas fa-user"></i>
+                  </span>`;
 
               const isOwnComment =
                 comment.author.username === currentUser.username;
@@ -419,7 +373,7 @@
                 }">
                   <div class="d-flex align-items-center comment-header-row">
                     ${profileImg}
-                    <div class="fw-bold ms-2">${comment.author.username}</div>
+                    <div class="fw-bold">${comment.author.username}</div>
                     <div class="ms-auto d-flex">
                       ${
                         canEdit
@@ -672,6 +626,8 @@
       });
     });
   });
+
+
 
   // --- Edit Post Title/Caption Functionality (for own posts) ---
   let _postEditSaving = {};
@@ -966,91 +922,6 @@
       }
     }, 3000);
   }
-
-  // --- Report Modal Functions ---
-  function openReportModal(postId) {
-    const reportPostIdInput = document.getElementById("reportPostId");
-    const reportReasonTextarea = document.getElementById("reportReason");
-    const reportModalElement = document.getElementById("reportModal");
-
-    // Add null checks for elements before trying to access their properties
-    if (!reportPostIdInput) {
-      console.error("Error: 'reportPostId' element not found for reporting.");
-      showNotification(
-        "Error: Report form element missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-    if (!reportReasonTextarea) {
-      console.error("Error: 'reportReason' element not found for reporting.");
-      showNotification(
-        "Error: Report form element missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-    if (!reportModalElement) {
-      console.error("Error: 'reportModal' element not found.");
-      showNotification(
-        "Error: Report modal missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-
-    reportPostIdInput.value = postId;
-    reportReasonTextarea.value = ""; // Clear previous reason
-
-    const reportModal = new bootstrap.Modal(reportModalElement);
-    reportModal.show();
-  }
-
-  document
-    .getElementById("reportForm")
-    .addEventListener("submit", function (e) {
-      e.preventDefault();
-      const postId = document.getElementById("reportPostId").value;
-      const reason = document.getElementById("reportReason").value.trim();
-
-      if (!reason) {
-        showNotification("Please provide a reason for reporting.", "warning");
-        return;
-      }
-
-      fetch(`/api/report_post/${postId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reason: reason }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            const reportModal = bootstrap.Modal.getInstance(
-              document.getElementById("reportModal")
-            );
-            if (reportModal) reportModal.hide();
-            showNotification(
-              "Post reported successfully. Thank you for your feedback!",
-              "success"
-            );
-          } else {
-            showNotification(
-              "Failed to report post: " + (data.error || "Unknown error"),
-              "danger"
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Error reporting post:", error);
-          showNotification(
-            "Network error occurred while reporting post.",
-            "danger"
-          );
-        });
-    });
 </script>
 {% endblock %} {% block rightpanel %} {% if pending_requests %}
 <div class="card m-3 mt-4">

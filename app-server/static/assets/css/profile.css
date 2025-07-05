@@ -271,6 +271,12 @@ body,
   background-color: var(--color-danger-hover) !important;
 }
 
+.btn-outline-warning:hover, .btn-outline-warning:focus {
+  background-color: #ffc107 !important; /* Bootstrap's yellow */
+  color: #212529 !important;            /* Dark text for contrast */
+  border-color: #ffc107 !important;
+}
+
 .comments-list-modal,
 [id^="comments-list-modal-"] {
   max-height: 140px;

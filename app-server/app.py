@@ -446,19 +446,28 @@ def api_report_post(post_id):
     if existing_report:
         return jsonify({'success': False, 'error': 'You have already reported this target.'}), 409
 
-    new_report = Report(
-        reportedBy=user_id,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        targetType=target_type_enum.value,
-        targetId=post_id,
-        status=ReportStatus.PENDING.value
-    )
+    try:
+        print(f"Creating report: user_id={user_id}, post_id={post_id}, reason={reason}, target_type={target_type_enum.value}")
+        new_report = Report(
+            reportedBy=user_id,
+            reason=reason,
+            timestamp=datetime.now(timezone.utc),
+            targetType=target_type_enum.value,
+            targetId=post_id,
+            status=ReportStatus.PENDING.value
+        )
 
-    db.session.add(new_report)
-    db.session.commit()
-    log_to_splunk("Report", "Post reported successfully", username=db.session.get(User, user_id).username, content=[post_id, reason, target_type_enum.value])
-    return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
+        db.session.add(new_report)
+        db.session.commit()
+        print(f"Report created successfully with ID: {new_report.reportId}")
+        log_to_splunk("Report", "Post reported successfully", username=db.session.get(User, user_id).username, content=[post_id, reason, target_type_enum.value])
+        return jsonify({'success': True, 'message': f'{target_type_enum.value} reported successfully.'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating report: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
 
 @app.route('/like/<int:post_id>', methods=['POST'])
 def like_post(post_id):
