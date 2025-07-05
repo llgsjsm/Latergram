@@ -222,6 +222,7 @@
           method="get"
           action="{{ url_for('search') }}"
           style="display: none; margin-top: 2rem"
+          onsubmit="return false;"
         >
           <div class="input-group">
             <input
@@ -305,6 +306,29 @@
         searchInput.addEventListener("focus", function () {
           if (suggestionsDiv.innerHTML.trim() !== "")
             suggestionsDiv.style.display = "block";
+        });
+
+        // Handle clicks on search suggestions
+        suggestionsDiv.addEventListener("click", function (e) {
+          if (e.target.closest("a")) {
+            // Prevent the blur event from hiding suggestions immediately
+            e.preventDefault();
+            e.stopPropagation();
+            const link = e.target.closest("a");
+            const href = link.getAttribute("href");
+            
+            // Hide suggestions immediately
+            suggestionsDiv.style.display = "none";
+            hideSearchBar();
+            
+            // Navigate to the profile page
+            window.location.href = href;
+          }
+        });
+
+        // Prevent suggestions from being hidden when clicking inside suggestions
+        suggestionsDiv.addEventListener("mousedown", function (e) {
+          e.preventDefault();
         });
       }
 

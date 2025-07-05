@@ -1026,7 +1026,7 @@ def search():
         search_result = profile_manager.search_users(query)
         if search_result['success']:
             results = search_result['users']
-    return render_template('search.html', query=query, results=results)
+    return redirect(url_for('home'))
 
 @app.route('/api/search_users')
 def api_search_users():
