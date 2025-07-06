@@ -17,14 +17,18 @@ class ModeratorManager:
                 return {'success': False, 'message': 'Only user moderators may manage user reports.'}
             elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
                 return {'success': False, 'message': 'Only content moderators may manage content reports.'}
-            
-            if report.status == ReportStatus.PENDING.value:
-                report.status = ReportStatus.UNDER_REVIEW.value
-                report.reviewedBy = mod_id
-                db.session.commit()
-                return {'success': True, 'message': 'Report marked as under review'}
-            else:
-                return {'success': False, 'message': 'Report is not pending for review!'}
+            try:
+                if report.status == ReportStatus.PENDING.value:
+                    report.status = ReportStatus.UNDER_REVIEW.value
+                    report.reviewedBy = mod_id
+                    db.session.commit()
+                    return {'success': True, 'message': 'Report marked as under review'}
+                else:
+                    return {'success': False, 'message': 'Report is not pending for review!'}
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error marking report as under review: {e}")
+                return {'success': False, 'message': f'Failed to mark report as under review'}
         else:
             return {'success': False, 'message': 'Report not found'}
 
@@ -36,13 +40,17 @@ class ModeratorManager:
                 return {'success': False, 'message': 'Only user moderators may manage user reports.'}
             elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
                 return {'success': False, 'message': 'Only content moderators may manage content reports.'}
-            
-            if report.status == ReportStatus.UNDER_REVIEW.value:
-                report.status = ReportStatus.RESOLVED.value
-                db.session.commit()
-                return {'success': True, 'message': 'Report resolved'}
-            else:
-                return {'success': False, 'message': 'Report is not under review!'}
+            try:
+                if report.status == ReportStatus.UNDER_REVIEW.value:
+                    report.status = ReportStatus.RESOLVED.value
+                    db.session.commit()
+                    return {'success': True, 'message': 'Report resolved'}
+                else:
+                    return {'success': False, 'message': 'Report is not under review!'}
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error marking report as resolved: {e}")
+                return {'success': False, 'message': f'Failed to mark report as resolved'}
         else:
             return {'success': False, 'message': 'Report not found'}
 
@@ -54,13 +62,17 @@ class ModeratorManager:
                 return {'success': False, 'message': 'Only user moderators may manage user reports.'}
             elif mod_level == 1 and report.targetType != ReportTarget.USER.value:
                 return {'success': False, 'message': 'Only content moderators may manage content reports.'}
-            
-            if report.status == ReportStatus.UNDER_REVIEW.value:
-                report.status = ReportStatus.REJECTED.value
-                db.session.commit()
-                return {'success': True, 'message': 'Report rejected'}
-            else:
-                return {'success': False, 'message': 'Report is not under review!'}
+            try:
+                if report.status == ReportStatus.UNDER_REVIEW.value or report.status == ReportStatus.PENDING.value:
+                    report.status = ReportStatus.REJECTED.value
+                    db.session.commit()
+                    return {'success': True, 'message': 'Report rejected'}
+                else:
+                    return {'success': False, 'message': 'Report is not pending review or further action!'}
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error marking report as rejected: {e}")
+                return {'success': False, 'message': f'Failed to mark report as rejected'}
         else:
             return {'success': False, 'message': 'Report not found'}
 
@@ -70,6 +82,8 @@ class ModeratorManager:
         
         report = Report.query.get(report_id)
         if report:
+            if report.status != ReportStatus.UNDER_REVIEW.value:
+                return {'success': False, 'message': 'The associated report must be marked as under review!'}
             try:
                 post = Post.query.get(report.targetId)
                 if not post:
@@ -84,10 +98,9 @@ class ModeratorManager:
                     {"post_id": report.targetId}
                 )
             
-                # Delete the post
+                # Delete the post and auto-resolve the report
                 db.session.delete(post)
-
-                # Create a new log entry
+                report.status = ReportStatus.RESOLVED.value
 
                 db.session.commit()
                 return {'success': True, 'message': 'Post deleted successfully'}    
@@ -95,47 +108,66 @@ class ModeratorManager:
                 db.session.rollback()
                 print(f"Error deleting post: {e}")
                 return {'success': False, 'error': f'Failed to delete post: {str(e)}'}
-
+        else:
+            return {'success': False, 'message': 'The associated report was not found'}
+        
     def remove_reported_comment(self, report_id, mod_level):
         if mod_level != 2:  # Only content moderators can remove posts
             return {'success': False, 'message': 'Only content moderators may remove reported comments.'}
         
         report = Report.query.get(report_id)
         if report:
+            if report.status != ReportStatus.UNDER_REVIEW.value:
+                return {'success': False, 'message': 'The associated report must be marked as under review!'}
             try:
                 comment = Comment.query.get_or_404(report.targetId)
-                post_id = comment.postId
                 
-                # Delete the comment
+                # Delete the comment and auto-resolve the report
                 db.session.delete(comment)
-                # Create a new log entry
+                report.status = ReportStatus.RESOLVED.value
 
                 db.session.commit()
                 return {'success': True, 'message': 'Comment deleted successfully'}    
 
             except Exception as e:
+                db.session.rollback()
                 print(f"Error deleting comment: {e}")
                 return {'success': False, 'error': 'Failed to delete comment'}
+        else:
+            return {'success': False, 'message': 'The associated report was not found'}
 
-    def disable_user(self, user_id, disabled_days, mod_id, mod_level):
+    def disable_user(self, report_id, user_id, disabled_days, mod_id, mod_level):
         """
         Disable a user account for a specified number of days.
         Sets the disabledUntil field to now + days.
         """
         if mod_level != 1:  # Only user moderators can disable users
             return {'success': False, 'message': 'Only user moderators may disable users.'}
-        user = User.query.get(user_id)
-        # Check if disabled_days is a valid enum value
-        valid_days = [e.value for e in UserDisableDays]
-        if disabled_days not in valid_days:
-            return {'success': False, 'message': 'Invalid user disable duration.'}
-        if user:
-            user.disabledUntil = datetime.utcnow() + timedelta(days=disabled_days)
-            db.session.commit()
-            return {'success': True, 'message': f'User disabled for {disabled_days} day(s).'}
+        
+        report = Report.query.get(report_id)
+        if report:
+            if report.status != ReportStatus.UNDER_REVIEW.value:
+                return {'success': False, 'message': 'The associated report must be marked as under review!'}
+            user = User.query.get(user_id)
+            try:
+                # Check if disabled_days is a valid enum value
+                valid_days = [e.value for e in UserDisableDays]
+                if disabled_days not in valid_days:
+                    return {'success': False, 'message': 'Invalid user disable duration.'}
+                if user:
+                    user.disabledUntil = datetime.utcnow() + timedelta(days=disabled_days)
+                    report.status = ReportStatus.RESOLVED.value
+                    db.session.commit()
+                    return {'success': True, 'message': f'User disabled for {disabled_days} day(s).'}
+                else:
+                    return {'success': False, 'message': 'User not found.'}
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error disabling user: {e}")
+                return {'success': False, 'error': 'Failed to disable user'}
         else:
-            return {'success': False, 'message': 'User not found.'}
-
+            return {'success': False, 'message': 'The associated report was not found.'}
+        
     def get_report_queue(self, mod_level):
         if mod_level == 1: # user moderator
             return Report.query.filter_by(status=ReportStatus.PENDING.value, targetType=ReportTarget.USER.value).all()

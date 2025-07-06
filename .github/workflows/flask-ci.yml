@@ -43,8 +43,17 @@ jobs:
         DB_HOST=${{ secrets.DB_HOST }}
         DB_PORT=${{ secrets.DB_PORT }}
         DB_NAME=${{ secrets.DB_NAME }}
+        FILE_LOCATION=${{ secrets.FILE_LOCATION }} 
+        BUCKET=${{ secrets.BUCKET }}
         IS_TESTING=true
+        PLAYWRIGHT=true
         EOF
+
+    - name: Create Firebase Key
+      run: |
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
+        cat ${{ secrets.FILE_LOCATION }}
+        ls -l app-server/
 
     - name: Generate .env files
       run: |
@@ -95,6 +104,19 @@ jobs:
         done
         echo "MySQL did not become ready in time."
         exit 1
+
+    - name: Run Flask Unit Tests
+      run: |
+        echo "Running Flask unit tests..."
+        docker exec flask python -m unittest discover tests
+    
+    - name: Run Playwright Tests
+      run: |
+        echo "Running Playwright tests..."
+        docker exec flask pip install pytest playwright
+        docker exec flask playwright install-deps
+        docker exec flask python -m playwright install
+        docker exec flask pytest ui_tests/test_playwright_ui.py
 
     - name: Teardown
       if: always()

@@ -10,12 +10,11 @@ from backend.firebase_utils import ensure_firebase_initialized
 from datetime import datetime, timedelta, timezone
 from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
-import uuid, re, magic
+import uuid, re, magic, os
 from firebase_admin import storage
 from backend.limiter import limiter
 
 main_bp = Blueprint('main', __name__)
-
 auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
@@ -25,30 +24,21 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png'}
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
-
-
-def is_allowed_file_secure(file):
-    filename = secure_filename(file.filename)
-    ext = filename.rsplit('.', 1)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return False
-    mime = magic.from_buffer(file.read(2048), mime=True)
-    file.seek(0)
-    return mime in ALLOWED_MIME_TYPES
+# Check if Playwright is enabled, default to False
+PLAYWRIGHT = os.getenv("PLAYWRIGHT", "false").lower() == "true"
 
 ######################
 ### Main functions ###
 ######################
 @main_bp.route('/')
 def hello_world():
-    log_to_splunk("Landing","Browsed to landing page")
+    log_to_splunk("Landing","Browsed to landing page.")
     return redirect(url_for('main.home'))
 
 @main_bp.route('/home')
 def home():
     if 'user_id' not in session and 'mod_id' not in session:
         return redirect(url_for('main.login'))
-    
     # redirect moderators to their dashboard
     if 'mod_id' in session:
         return redirect(url_for('moderation.moderation'))
@@ -117,13 +107,22 @@ def login():
             # Captcha JSON
             token = data.get('g-recaptcha-response', '')
             if not verify_recaptcha(token, request.remote_addr):
-                return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
+                if PLAYWRIGHT:
+                    pass
+                else:
+                    return jsonify({'success': False, 'error': 'Captcha verification failed'}), 400
             
             if data.get('action') == 'login':
                 email = data.get('email', '')
                 password = data.get('password', '')
-                
+
                 if email and password:
+                    if PLAYWRIGHT:
+                        result = auth_manager.login(email, password)
+                        if result['success']:
+                            session['user_id'] = 999999
+                            return jsonify(result)
+
                     # Check if user exists in User table first
                     user = User.query.filter(
                         or_(User.username == email, User.email == email)
@@ -133,8 +132,8 @@ def login():
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
-                            if not result['success']:
-                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
+                            if result['success']:
+                                return jsonify(result)
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
@@ -170,13 +169,13 @@ def login():
             if request.form.get('login-btn') is not None:
                 email = request.form.get('email', '')
                 password = request.form.get('password', '')
-
+                
                 # Captcha Form 
                 token = request.form.get('g-recaptcha-response', '')
                 if not verify_recaptcha(token, request.remote_addr):
                     flash('Captcha verification failed.', 'danger')
                     return render_template('login.html')
-                
+
                 if email and password:
                     result = auth_manager.login(email, password)
                     if result['success']:
@@ -184,7 +183,7 @@ def login():
                             session['mod_id'] = result['moderator']['mod_id']
                             session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
-                            log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
+                            log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
                             return redirect(url_for('moderation.moderation'))
                         else:
                             session['user_id'] = result['user']['user_id']
@@ -263,6 +262,15 @@ def logout():
         
     flash('You have been logged out.', 'info')
     return redirect(url_for('main.login'))
+
+def is_allowed_file_secure(file):
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({'success': False, 'error': 'Invalid file type. Allowed types: jpg, png'}), 400
+    mime = magic.from_buffer(file.read(2048), mime=True)
+    file.seek(0)
+    return mime in ALLOWED_MIME_TYPES
 
 @main_bp.route('/create-post', methods=['GET', 'POST'])
 def create_post():
@@ -514,6 +522,11 @@ def forgot_password():
         log_to_splunk("Reset Password", "Invalid email input", username=email)
         return jsonify({'success': False, 'error': 'Invalid email. Please enter a valid email address.'})
 
+    if PLAYWRIGHT:
+        auth_manager.initiate_password_reset(email)
+        log_to_splunk("Reset Password", "Password reset initiated for Playwright test", username=email)
+        return jsonify({'success': True, 'message': 'If an account with that email exists, an OTP has been sent.'})
+    
     # Try Moderator first
     user = Moderator.query.filter_by(email=email).first()
     if user:

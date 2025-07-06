@@ -24,14 +24,12 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
-
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
 
     # Enable debug mode for development (auto-reload on code changes)
     app.debug = True
-
     DB_USER = os.environ.get('DB_USER', '') 
     DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
     DB_HOST = os.environ.get('DB_HOST', '')
@@ -53,7 +51,6 @@ def create_app(test_config=None):
 
     db.init_app(app)
     bcrypt.init_app(app)
-
     if not IS_TESTING:
         if FILE_LOCATION and BUCKET:
             try:
