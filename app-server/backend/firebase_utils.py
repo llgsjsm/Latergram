@@ -12,5 +12,5 @@ def ensure_firebase_initialized():
                 'storageBucket': bucket_name
             })
         else:
-            raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables.')
+            raise RuntimeError('Firebase FILE_LOCATION or BUCKET not set in environment variables')
     return storage.bucket()
