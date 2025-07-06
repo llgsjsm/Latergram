@@ -39,7 +39,7 @@ jobs:
 
     - name: Test SSH Connection to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} "echo '✅ SSH connection successful'"
+        ssh -o StrictHostKeyChecking=no admin-dev@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'"
 
 
     - name: Sync Only Flask App Files to EC2
