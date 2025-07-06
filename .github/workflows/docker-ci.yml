@@ -7,50 +7,119 @@ on:
       # - dev-release-*
   pull_request: 
     branches: [ main ]
+name: Application stack CI Pipeline to Main
+
+# This workflow runs on pull requests to the main branch
+# Web Stack testing. Pipeline for the main application stack including Flask, MySQL, and NGINX and includes other services on startup.
+
+# Unit testing & UI testing for the application stack.
+on:
+  push:
+    branches:
+      - dev-release-*
+  pull_request:
+    branches:
+      - dev-release-*
 
 jobs:
-  main-stack:
-    name: Test Main Stack
+  full-stack:
     runs-on: ubuntu-latest
+    name: Full Stack CI for Application
+    environment: development
 
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v3
+
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Install Docker Compose
       run: |
         sudo apt-get update
         sudo apt-get install -y docker-compose
 
-    - name: Build and Run Main Stack
-      run: docker-compose -f docker-compose.ci.yml up -d --build flask mysqldb nginx
-
-    - name: Wait for Services to be Ready
-      run: sleep 10
-
-    - name: Check Flask via NGINX
+    - name: Generate Flask .env files
       run: |
-        curl -s --fail http://localhost:80 || (echo "Flask app failed!" && exit 1)
+        mkdir -p app-server
+        cat <<EOF > app-server/.env
+        DB_USER=${{ secrets.DB_USER }}
+        DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+        DB_HOST=${{ secrets.DB_HOST }}
+        DB_PORT=${{ secrets.DB_PORT }}
+        DB_NAME=${{ secrets.DB_NAME }}
+        IS_TESTING=true
+        EOF
 
-    - name: Save Application Stack Logs
+    - name: Generate .env files
       run: |
-        docker logs flask > flask.log
-        docker logs nginx > nginx.log
+        cat <<EOF > .env
+        MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+        MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+        MYSQL_USER=${{ secrets.MYSQL_USER }}
+        MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+        EOF
 
-    - name: Upload Application Stack Log Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: application-stack-logs
-        path: |
-          flask.log
-          nginx.log
-        retention-days: 7
+    - name: Build Flask 
+      run: docker-compose -f docker-compose.ci.yml up -d --build flask nginx mysqldb redis
+
+    - name: Wait for Web Stack to be healthy
+      run: |
+        docker ps | grep flask
+        docker ps | grep nginx
+        docker ps | grep mysqldb
+        docker ps | grep redis
+
+    - name: Run Flask Test
+      run: |
+        echo "Waiting for Flask + NGINX to be up..."
+        for i in {1..30}; do
+          if curl -f http://localhost:80/ > /dev/null 2>&1; then
+            echo "Flask is up"
+            exit 0
+          fi
+          echo "Waiting... ($i)"
+          sleep 2
+        done
+        echo "Flask did not start in time"
+        exit 1
+
+    - name: Run SQL Test
+      run: |
+        echo "Waiting for MySQL to be ready..."
+        for i in {1..30}; do
+          if mysql -h "${{ secrets.DB_HOST }}" \
+                  -P "${{ secrets.DB_PORT }}" \
+                  -u "${{ secrets.MYSQL_USER }}" \
+                  -p"${{ secrets.MYSQL_PASSWORD }}" \
+                  -e "SELECT 1;" > /dev/null 2>&1; then
+            echo "MySQL is ready!"
+            exit 0
+          fi
+          echo "Waiting... ($i)"
+          sleep 2
+        done
+        echo "MySQL did not become ready in time."
+        exit 1
+
+    # - name: Upload Application Stack Log Artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: application-stack-logs
+    #     path: |
+    #       flask.log
+    #       nginx.log
+    #     retention-days: 7
 
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v
 
-  # snort3-test:
+    - name: Teardown Flask .env file
+      if: always()
+      run: rm -f app-server/.env
+
+  # full-stack-snort3:
   #   name: Snort3 Smoke Test
   #   runs-on: ubuntu-latest
 
@@ -58,11 +127,13 @@ jobs:
   #   - name: Checkout Repo
   #     uses: actions/checkout@v3
 
-  #   - name: Setup Docker
+  #   - name: Set up Buildx
   #     uses: docker/setup-buildx-action@v3
 
-  #   - name: Build custom image
-  #     run: docker build -t snort3-jq ./snort3-build
+  #   - name: Install Docker Compose
+  #     run: |
+  #       sudo apt-get update
+  #       sudo apt-get install -y docker-compose
     
   #   - name: Build Snort3 Container (without host network)
   #     run: |
