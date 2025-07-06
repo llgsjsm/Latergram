@@ -18,7 +18,7 @@ auth_manager = get_auth_manager()
 def api_report_post(post_id):
     if 'user_id' not in session:
         flash('Please log in to report posts', 'warning')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     user_id = session.get('user_id')
     if not user_id:
