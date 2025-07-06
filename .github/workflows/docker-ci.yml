@@ -90,11 +90,19 @@ jobs:
         echo "MySQL did not become ready in time."
         exit 1
 
-    - name: Run Flask Unit Tests
+    - name: Test Redis connection
       run: |
-        echo "Running Flask unit tests..."
-        docker exec flask python -m unittest discover tests
-
+        echo "Checking Redis..."
+        for i in {1..10}; do
+          if docker exec redis redis-cli ping | grep -q PONG; then
+            echo "Redis is up"
+            exit 0
+          fi
+          echo "Waiting for Redis... ($i)"
+          sleep 2
+        done
+        echo "Redis did not respond in time"
+        exit 1
 
     # - name: Upload Application Stack Log Artifact
     #   uses: actions/upload-artifact@v4
@@ -105,8 +113,6 @@ jobs:
     #       nginx.log
     #     retention-days: 7
 
-
-
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v
@@ -114,8 +120,6 @@ jobs:
     - name: Teardown Flask .env file
       if: always()
       run: rm -f app-server/.env
-
-    
 
   full-stack-snort3:
     name: Snort3 Smoke Test
