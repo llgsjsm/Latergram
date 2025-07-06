@@ -167,8 +167,7 @@
 }
 
 .comment-edit-actions-row {
-  margin: 6px 0 0 40px;
-  /* indent to align with content */
+  margin: 6px 0 0 0;
   gap: 0.5rem;
   display: flex;
   justify-content: space-between;

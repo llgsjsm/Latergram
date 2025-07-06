@@ -321,6 +321,7 @@ def logout():
             return redirect(url_for('login'))
         
     flash('You have been logged out.', 'info')
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/create-post', methods=['GET', 'POST'])
