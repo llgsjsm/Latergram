@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, Blueprint, redirect, url_for, render_template, session, flash
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
+from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager
 from sqlalchemy import text, or_
 from models import db, User, Moderator, Post, Comment, Report
 from backend.splunk_utils import log_to_splunk
@@ -8,11 +8,11 @@ from backend.profanity_helper import check_profanity
 from backend.logging_utils import log_action
 from backend.firebase_utils import ensure_firebase_initialized
 from datetime import datetime, timedelta, timezone
-from models.enums import ReportStatus, ReportTarget, LogActionTypes
+from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
 import uuid, re
-import firebase_admin
-from firebase_admin import credentials, storage
+from firebase_admin import storage
+from backend.limiter import limiter
 
 main_bp = Blueprint('main', __name__)
 
@@ -20,7 +20,6 @@ auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
 post_manager = get_post_manager()
-moderator_manager = get_moderator_manager()
 
 ######################
 ### Main functions ###
@@ -477,7 +476,7 @@ def reset_password():
     return jsonify(result)
 
 @main_bp.route('/forgot-password', methods=['POST'])
-# @limiter.limit('5 per minute')
+@limiter.limit('5 per minute')
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
@@ -553,7 +552,7 @@ def change_password():
 ### OTP helpers ###
 ######################
 @main_bp.route('/verify-login-otp', methods=['POST'])
-# @limiter.limit('5 per minute')
+@limiter.limit('5 per minute')
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -587,7 +586,7 @@ def verify_login_otp():
     return jsonify(result)
 
 @main_bp.route('/verify-register-otp', methods=['POST'])
-# @limiter.limit('5 per minute')
+@limiter.limit('5 per minute')
 def verify_register_otp():
     data = request.get_json()
     email = data.get('email')
@@ -638,7 +637,7 @@ def verify_register_otp():
         return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
     
 @main_bp.route('/verify-reset-otp', methods=['POST'])
-# @limiter.limit('5 per minute')
+@limiter.limit('5 per minute')
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -697,7 +696,7 @@ def update_otp_setting():
         return jsonify({'success': False, 'error': 'Failed to update OTP setting'}), 500
 
 @main_bp.route('/resend-login-otp', methods=['POST'])
-# @limiter.limit('5 per minute')
+@limiter.limit('5 per minute')
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')

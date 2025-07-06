@@ -1,8 +1,7 @@
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, session, flash
+from flask import Blueprint, request, jsonify, redirect, url_for, session
 from datetime import datetime, timezone
 from models import db, Post, Comment, User
 from managers.authentication_manager import LogActionTypes, ReportTarget
-
 from backend.splunk_utils import log_to_splunk
 from backend.logging_utils import log_action
 

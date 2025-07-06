@@ -1,7 +1,6 @@
-from flask import Flask, request, jsonify, Blueprint, render_template, redirect, url_for
+from flask import Blueprint, redirect, url_for
 from flask import session, flash
-from models import db, User
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
+from managers import get_post_manager
 
 post_manager = get_post_manager()
 

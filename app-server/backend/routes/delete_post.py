@@ -1,19 +1,11 @@
-from flask import Flask, request, jsonify, Blueprint, render_template, redirect, url_for, session, flash
-from models import db, Post, User, Report, Comment
-from datetime import datetime, timezone
-from models.enums import ReportStatus, ReportTarget, LogActionTypes
+from flask import jsonify, Blueprint, session, flash
+from models import db, User
 from backend.splunk_utils import log_to_splunk
-from backend.profanity_helper import check_profanity
-from backend.logging_utils import log_action
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
+from managers import get_post_manager
 
 delete_post_bp = Blueprint('delete_post', __name__)
 
-auth_manager = get_auth_manager()
-feed_manager = get_feed_manager()
-profile_manager = get_profile_manager()
 post_manager = get_post_manager()
-moderator_manager = get_moderator_manager()
 
 @delete_post_bp.route('/<int:post_id>', methods=['POST'])
 def delete_post_route(post_id):

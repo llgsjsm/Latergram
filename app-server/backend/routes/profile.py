@@ -1,16 +1,13 @@
-from flask import Flask, request, jsonify, Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for
 from flask import session, flash
-from models import db, User
-from managers import get_auth_manager, get_feed_manager, get_profile_manager, get_post_manager, get_moderator_manager
-
+from models import User
+from managers import get_feed_manager, get_profile_manager, get_post_manager
 
 profile_bp = Blueprint('profile', __name__)
 
-auth_manager = get_auth_manager()
+post_manager = get_post_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
-post_manager = get_post_manager()
-moderator_manager = get_moderator_manager()
 
 @profile_bp.route('/')
 @profile_bp.route('/<int:user_id>')

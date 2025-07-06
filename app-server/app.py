@@ -10,6 +10,7 @@ from backend.routes.delete_post import delete_post_bp
 from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
+from backend.limiter import create_limiter
 
 import re, os, uuid
 from dotenv import load_dotenv 
@@ -78,14 +79,12 @@ def create_app():
     app.register_blueprint(load_comment_bp, url_prefix='/load_comments')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
+
+
     # Redis Rate limiting (uncommented and fixed)
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
-    limiter = Limiter(
-        key_func=get_real_ip,
-        app=app,
-        default_limits=[],
-        storage_uri=storage_uri
-    )
+    limiter = create_limiter(storage_uri=storage_uri)
+    limiter.init_app(app)
     return app
 
 
