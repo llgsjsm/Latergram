@@ -247,6 +247,20 @@ class AuthenticationManager:
                 Best regards,
                 LaterGram Team
                 """
+            elif otp_type == 'password_change':
+                msg['Subject'] = 'LaterGram - Password Change Verification Code'
+                body = f"""
+                Hello,
+                
+                Your LaterGram password change verification code is: {otp_code}
+                
+                This code will expire in 10 minutes.
+                
+                If you didn't request this password change, please contact us immediately.
+                
+                Best regards,
+                LaterGram Team
+                """
             else:  # password_reset
                 msg['Subject'] = 'LaterGram - Password Reset Code'
                 body = f"""
@@ -703,10 +717,54 @@ class AuthenticationManager:
             
             db.session.commit()
             return {'success': False, 'error': 'Invalid or expired OTP'}
-        
         # OTP is valid, clear it and reset attempts
         current_user.clear_otp()
         current_user.login_attempts = 0
         db.session.commit()
         
         return {'success': True, 'user_id': current_user.userId, 'message': 'OTP verified successfully'}
+    
+    def verify_password_change_otp(self, user_id: int, otp_code: str, new_password: str) -> Dict[str, Any]:
+        """Verify OTP for password change and update password"""
+        # Find the user
+        user = User.query.filter_by(userId=user_id).first()
+        if not user:
+            return {'success': False, 'error': 'User not found'}
+        
+        # Check if OTP is valid for password change
+        if not user.is_otp_valid(otp_code, 'password_change'):
+            # Increment failed attempts
+            if not user.login_attempts:
+                user.login_attempts = 0
+            user.login_attempts += 1
+            
+            # Lock account after 5 failed attempts for 15 minutes
+            if user.login_attempts >= 5:
+                user.disabledUntil = datetime.utcnow() + timedelta(minutes=15)
+                user.clear_otp()
+                db.session.commit()
+                return {'success': False, 'error': 'Too many failed attempts. Account locked for 15 minutes.'}
+            
+            db.session.commit()
+            return {'success': False, 'error': 'Invalid or expired OTP'}
+        
+        # Validate new password
+        if len(new_password) < 8:
+            return {'success': False, 'error': 'Password must be at least 8 characters long'}
+        
+        # Check password breach
+        if check_password_breach(new_password):
+            return {'success': False, 'error': 'This password has been found in data breaches. Please choose a different password.'}
+        
+        try:
+            # OTP is valid, update password
+            user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            user.clear_otp()
+            user.login_attempts = 0
+            db.session.commit()
+            
+            return {'success': True, 'message': 'Password changed successfully'}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to update password: {str(e)}'}

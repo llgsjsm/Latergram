@@ -425,7 +425,7 @@ def api_update_email():
         db.session.rollback()
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
-@api_bp.route('/api/send-password-change-otp', methods=['POST'])
+@api_bp.route('/send-password-change-otp', methods=['POST'])
 @limiter.limit('5 per minute')
 def send_password_change_otp():
     """Send OTP for password change verification"""
