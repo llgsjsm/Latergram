@@ -116,7 +116,7 @@ jobs:
         docker exec flask pip install pytest playwright
         docker exec flask playwright install-deps
         docker exec flask python -m playwright install
-        docker exec flask pytest tests/test_playwright_ui.py
+        docker exec flask pytest ui_tests/test_playwright_ui.py
 
     - name: Teardown
       if: always()
