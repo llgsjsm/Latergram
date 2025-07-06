@@ -49,4 +49,4 @@ def add_comment(post_id):
                 'comment_count': Comment.query.filter_by(postId=post_id, parentCommentId=None).filter(~Comment.commentContent.like('__LIKE__%')).count()
             })
     
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))

@@ -12,7 +12,7 @@ moderator_manager = get_moderator_manager()
 def moderation():
     # moderator check
     if 'mod_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     # Pagination parameters
     page = request.args.get('page', 1, type=int)
@@ -44,12 +44,12 @@ def moderation():
 def report_detail(report_id):
     # moderator check
     if 'mod_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
     if report is None:
         flash('Report not found or you do not have permission to view it.', 'danger')
-        return redirect(url_for('moderation'))
+        return redirect(url_for('moderation.moderation'))
     referenced = None
     referenced_type = None
 
@@ -76,7 +76,7 @@ def report_detail(report_id):
 def moderation_action(action, report_id):
     # moderator check
     if 'mod_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     result = None
     if action == 'review':
@@ -97,7 +97,7 @@ def moderation_action(action, report_id):
         result = moderator_manager.remove_reported_comment(report_id, session['mod_level'])
     else:
         flash('Invalid action.', 'danger')
-        return redirect(url_for('moderation'))
+        return redirect(url_for('moderation.moderation'))
 
     if result and result.get('success'):
         log_to_splunk("Moderation Action", f"Report {report_id} action: {action}",
@@ -107,4 +107,4 @@ def moderation_action(action, report_id):
         log_to_splunk("Moderation Action", f"Report {report_id} action: {action} failed",
                       username=session.get('username'), content=[report_id, action])
         flash(result.get('message', 'Action failed.'), 'danger')
-    return redirect(url_for('moderation'))
+    return redirect(url_for('moderation.moderation'))

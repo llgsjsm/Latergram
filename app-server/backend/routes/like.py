@@ -10,7 +10,7 @@ like_bp = Blueprint('like', __name__)
 def like_post(post_id):
     if 'user_id' not in session:
         flash('Please log in to like posts', 'warning')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     result = post_manager.like_post(session['user_id'], post_id)
     if result['success']:
@@ -20,4 +20,4 @@ def like_post(post_id):
             flash('You have already liked this post', 'info')
         else:
             flash(result.get('error', 'Failed to like post'), 'danger')
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))

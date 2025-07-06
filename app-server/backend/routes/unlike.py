@@ -10,7 +10,7 @@ unlike_bp = Blueprint('unlike', __name__)
 def unlike_post(post_id):
     if 'user_id' not in session:
         flash('Please log in to unlike posts', 'warning')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     result = post_manager.unlike_post(session['user_id'], post_id)
     if result['success']:
@@ -20,4 +20,4 @@ def unlike_post(post_id):
             flash('You have not liked this post', 'info')
         else:
             flash(result.get('error', 'Failed to unlike post'), 'danger')
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))
