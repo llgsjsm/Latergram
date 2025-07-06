@@ -26,7 +26,7 @@ from backend.splunk_utils import get_real_ip
 # from backend.opennsfw import is_image_safe
 
 
-def create_app():
+def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)

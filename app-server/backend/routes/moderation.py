@@ -8,7 +8,7 @@ moderation_bp = Blueprint('moderation', __name__)
 moderator_manager = get_moderator_manager()
 
 # Moderator routes
-@moderation_bp.route('/moderation')
+@moderation_bp.route('/')
 def moderation():
     # moderator check
     if 'mod_id' not in session:
@@ -40,7 +40,7 @@ def moderation():
         application_log=application_log,
     )
 
-@moderation_bp.route('/moderation/report/<int:report_id>')
+@moderation_bp.route('/report/<int:report_id>')
 def report_detail(report_id):
     # moderator check
     if 'mod_id' not in session:
@@ -72,7 +72,7 @@ def report_detail(report_id):
         now=datetime.now(timezone.utc)
     )
 
-@moderation_bp.route('/moderation/action/<action>/<int:report_id>', methods=['POST'])
+@moderation_bp.route('/action/<action>/<int:report_id>', methods=['POST'])
 def moderation_action(action, report_id):
     # moderator check
     if 'mod_id' not in session:
