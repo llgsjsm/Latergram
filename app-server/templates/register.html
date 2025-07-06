@@ -89,6 +89,20 @@
                 // Set hidden fields for OTP
                 document.getElementById('otp-email').value = email;
                 document.getElementById('otp-type').value = 'register';
+                // Set OTP label to show the email
+                var otpLabel = document.getElementById('otp-label');
+                if (otpLabel) {
+                  var otpEmail = document.getElementById('otp-email').value;
+                  if (!otpEmail) {
+                    var emailInput = document.getElementById('email');
+                    if (emailInput) otpEmail = emailInput.value;
+                  }
+                  if (otpEmail) {
+                    otpLabel.textContent = `Enter the OTP sent to ${otpEmail}`;
+                  } else {
+                    otpLabel.textContent = 'Enter the OTP sent to your email';
+                  }
+                }
                 showMessage('OTP sent to your email', 'success', 'otp-container');
             } else {
                 showMessage(data.error || (data.errors && data.errors.join('<br>')) || 'Registration failed', 'error', 'register-message');

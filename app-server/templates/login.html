@@ -114,6 +114,18 @@
               document.querySelector(".otp-text-field").style.display = "block";
               document.querySelector(".otp-btn-wrapper").style.display = "block";
               document.querySelector("#verify-otp-btn").style.display = "block";
+              // Set OTP label to show the email
+              var otpEmail = document.getElementById("otp-email").value;
+              if (!otpEmail) {
+                // fallback: get from email input if available
+                var emailInput = document.getElementById("email");
+                if (emailInput) otpEmail = emailInput.value;
+              }
+              if (otpEmail) {
+                document.getElementById("otp-label").textContent = `Enter the OTP sent to ${otpEmail}`;
+              } else {
+                document.getElementById("otp-label").textContent = "Enter the OTP sent to your email";
+              }
           }
       }
     
