@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -7,6 +7,7 @@ from backend.routes.unlike import unlike_bp
 from backend.routes.api import api_bp
 from backend.routes.edit_comment import edit_comment_bp
 from backend.routes.delete_post import delete_post_bp
+from backend.routes.delete_comment import delete_comment_bp
 from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
@@ -76,11 +77,19 @@ def create_app():
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(edit_comment_bp, url_prefix='/edit_comment')
     app.register_blueprint(delete_post_bp, url_prefix='/delete-post')
+    app.register_blueprint(delete_comment_bp, url_prefix='/delete_comment')
     app.register_blueprint(load_comment_bp, url_prefix='/load_comments')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
-
-
+    
+    # Context processor to make current user available in all templates
+    @app.context_processor
+    def inject_user():
+        current_user = None
+        if 'user_id' in session:
+            current_user = User.query.filter_by(userId=session['user_id']).first()
+        return dict(current_user=current_user)
+    
     # Redis Rate limiting (uncommented and fixed)
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
     init_limiter(app, storage_uri=storage_uri)

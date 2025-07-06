@@ -44,7 +44,7 @@
         transition: margin-left 0.3s ease, margin-right 0.3s ease;
       }
 
-      {% if request.endpoint == 'home' %}
+      {% if request.endpoint == 'main.home' %}
       @media (min-width: 1200px) {
         #main-content {
           margin-right: 320px;
@@ -116,13 +116,30 @@
 
   <body>
     <!-- Top Navigation Bar -->
-    <nav class="navbar navbar-dark fixed-top px-3 d-lg-none d-flex align-items-center justify-content-center" style="height: 72px; z-index: 1100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: #151722 ;">
+    <nav
+      class="navbar navbar-dark fixed-top px-3 d-lg-none d-flex align-items-center justify-content-center"
+      style="
+        height: 72px;
+        z-index: 1100;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        background-color: #151722;
+      "
+    >
       <div class="d-flex align-items-center justify-content-center w-100">
         <!-- Mobile Navigation Toggle (already present, but moved inside navbar for alignment) -->
-        <button class="mobile-nav-toggle d-lg-none me-2" onclick="toggleMobileNav()" style="margin-bottom: 0;">
+        <button
+          class="mobile-nav-toggle d-lg-none me-2"
+          onclick="toggleMobileNav()"
+          style="margin-bottom: 0"
+        >
           <i class="fas fa-bars"></i>
         </button>
-        <a id="nav-brand-mobile" class="navbar-brand mb-0 h1" href="/" style="color: #fff; font-weight: 600; letter-spacing: 1px;">
+        <a
+          id="nav-brand-mobile"
+          class="navbar-brand mb-0 h1"
+          href="/"
+          style="color: #fff; font-weight: 600; letter-spacing: 1px"
+        >
           Later<span class="beau">G</span>ram
         </a>
       </div>
@@ -141,8 +158,8 @@
           <!-- Moderator sidebar items -->
           <li class="nav-item">
             <a
-              class="nav-link{% if request.endpoint == 'moderation' %} active{% endif %}"
-              href="{{ url_for('moderation') }}"
+              class="nav-link{% if request.endpoint == 'moderation.moderation' %} active{% endif %}"
+              href="{{ url_for('moderation.moderation') }}"
             >
               <i class="fas fa-gavel"></i> Moderation Dashboard
             </a>
@@ -150,7 +167,7 @@
           {% elif session.get('user_id') %}
           <li class="nav-item">
             <a
-              class="nav-link{% if request.endpoint == 'home' %} active{% endif %}"
+              class="nav-link{% if request.endpoint == 'main.home' %} active{% endif %}"
               href="{{ url_for('main.home') }}"
             >
               <i class="fas fa-house"></i> Home
@@ -158,7 +175,7 @@
           </li>
           <li class="nav-item" id="search-nav-item">
             <a
-              class="nav-link{% if request.endpoint == 'search' %} active{% endif %}"
+              class="nav-link{% if request.endpoint == 'main.search' %} active{% endif %}"
               href="#"
               onclick="showSearchBar(event)"
               ><i class="fas fa-magnifying-glass"></i> Search</a
@@ -166,24 +183,23 @@
           </li>
           <li class="nav-item">
             <a
-              class="nav-link{% if request.endpoint == 'create_post' %} active{% endif %}"
+              class="nav-link{% if request.endpoint == 'main.create_post' %} active{% endif %}"
               href="{{ url_for('main.create_post') }}"
               ><i class="fas fa-plus"></i> Create Post</a
             >
           </li>
           <li class="nav-item">
             <a
-              class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}"
+              class="nav-link{% if request.endpoint == 'profile.profile' %} active{% endif %}"
               href="{{ url_for('profile.profile') }}"
             >
               <span
                 id="main-nav-profile-pic"
                 style="vertical-align: middle; margin-right: 8px"
               >
-                {% set nav_user = current_user if current_user else user %} {%
-                if nav_user and nav_user.profilePicture %}
+                {% if current_user and current_user.profilePicture %}
                 <img
-                  src="{{ nav_user.profilePicture }}"
+                  src="{{ current_user.profilePicture }}"
                   class="rounded-circle"
                   style="width: 28px; height: 28px; object-fit: cover"
                 />
@@ -206,7 +222,8 @@
                 {% endif %}
               </span>
               <span style="margin-left: 4px"
-                >{{ nav_user.username if nav_user else 'Profile' }}</span
+                >{{ current_user.username if current_user else 'Profile'
+                }}</span
               >
             </a>
           </li>
@@ -248,7 +265,7 @@
       <div id="main-content" class="flex-grow-1">
         {% block content %}{% endblock %}
       </div>
-      {% if request.endpoint == 'home' %}
+      {% if request.endpoint == 'main.home' %}
       <div id="right-panel" class="d-none d-lg-block">
         {% block rightpanel %}{% endblock %}
       </div>
@@ -316,11 +333,11 @@
             e.stopPropagation();
             const link = e.target.closest("a");
             const href = link.getAttribute("href");
-            
+
             // Hide suggestions immediately
             suggestionsDiv.style.display = "none";
             hideSearchBar();
-            
+
             // Navigate to the profile page
             window.location.href = href;
           }

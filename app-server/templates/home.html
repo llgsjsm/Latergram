@@ -12,31 +12,39 @@
 
       <!-- Mobile Friend Requests Section - Only visible on smaller screens -->
       {% if pending_requests %}
-      
+
       <div class="d-lg-none mb-4">
         <div class="card">
-          <div class="card-header" 
-               data-bs-toggle="collapse" 
-               data-bs-target="#mobileFollowRequests" 
-               aria-expanded="false" 
-               aria-controls="mobileFollowRequests"
-               style="cursor: pointer;">
+          <div
+            class="card-header"
+            data-bs-toggle="collapse"
+            data-bs-target="#mobileFollowRequests"
+            aria-expanded="false"
+            aria-controls="mobileFollowRequests"
+            style="cursor: pointer"
+          >
             <div class="d-flex align-items-center justify-content-between">
               <h6 class="mb-0">
-                <i class="fas fa-user-plus me-2"></i>Follow Requests ({{ pending_requests|length }})
+                <i class="fas fa-user-plus me-2"></i>Follow Requests ({{
+                pending_requests|length }})
               </h6>
               <i class="fas fa-chevron-down" id="mobile-requests-chevron"></i>
             </div>
           </div>
           <div class="collapse" id="mobileFollowRequests">
             <div class="card-body">
-              {% for request in pending_requests %}
-              {{ request }}
-              <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
+              {% for request in pending_requests %} {{ request }}
+              <div
+                class="mb-3 request-item"
+                data-requester-id="{{ request.requester_id }}"
+              >
                 <div class="text-muted small mb-2">
-                  {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at else '' }}
+                  {{ request.requested_at.strftime('%b %d, %Y') if
+                  request.requested_at else '' }}
                 </div>
-                <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <div
+                  class="d-flex align-items-center justify-content-between flex-wrap"
+                >
                   <div class="d-flex align-items-center mb-2 mb-sm-0">
                     {% if request.profile_picture %}
                     <img
@@ -87,8 +95,9 @@
                   </div>
                 </div>
               </div>
-              {% if not loop.last %}<hr class="my-2">{% endif %}
-              {% endfor %}
+              {% if not loop.last %}
+              <hr class="my-2" />
+              {% endif %} {% endfor %}
             </div>
           </div>
         </div>
@@ -110,7 +119,7 @@
         {% endif %}
         <div class="card-body">
           <!-- Post Header -->
-          <div class="d-flex align-items-center mb-2" style="gap: 4px;">
+          <div class="d-flex align-items-center mb-2" style="gap: 4px">
             {% if post.author %} {% if post.author.profilePicture %}
             <img
               src="{{ post.author.profilePicture }}"
@@ -149,7 +158,8 @@
           </div>
 
           <!-- Post Content -->
-          {% if post.title %} {% if user and post.authorId == user.userId %}
+          {% if post.title %} {% if current_user and post.authorId ==
+          current_user.userId %}
           <h6
             class="card-title fw-bold"
             id="post-title-{{ post.postId }}"
@@ -180,7 +190,8 @@
           <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
             {# Added fw-bold here #} {{ post.title }}
           </h6>
-          {% endif %} {% endif %} {% if user and post.authorId == user.userId %}
+          {% endif %} {% endif %} {% if current_user and post.authorId ==
+          current_user.userId %}
           <p
             class="card-text"
             id="post-caption-{{ post.postId }}"
@@ -237,7 +248,7 @@
                   {{ comment_counts.get(post.postId, 0) }}
                 </span>
               </button>
-              {% if user and post.authorId == user.userId %}
+              {% if current_user and post.authorId == current_user.userId %}
               <button
                 id="save-post-{{ post.postId }}"
                 class="btn card-btn-primary btn-sm d-none"
@@ -252,7 +263,7 @@
               >
                 Cancel
               </button>
-              {% elif user %}
+              {% elif current_user %}
               <!-- Report Button for posts not owned by current user -->
               <button
                 class="btn btn-outline-warning btn-sm"
@@ -330,8 +341,8 @@
 <script>
   // Current user info for JavaScript
   const currentUser = {
-    id: "{{ user.userId if user else 'null' }}",
-    username: "{{ user.username if user else '' }}",
+    id: "{{ current_user.userId if current_user else 'null' }}",
+    username: "{{ current_user.username if current_user else '' }}",
   };
 
   // Simple comment form toggle
@@ -616,7 +627,6 @@
 
               showNotification("Comment added successfully", "success");
               window.location.reload();
-
             } else {
               throw new Error(data.error || "Failed to add comment");
             }
@@ -628,8 +638,6 @@
       });
     });
   });
-
-
 
   // --- Edit Post Title/Caption Functionality (for own posts) ---
   let _postEditSaving = {};
@@ -1053,19 +1061,21 @@
 
 <script>
   // Mobile friend requests collapse handler
-  document.addEventListener('DOMContentLoaded', function() {
-    const mobileRequestsCollapse = document.getElementById('mobileFollowRequests');
-    const chevronIcon = document.getElementById('mobile-requests-chevron');
-    
+  document.addEventListener("DOMContentLoaded", function () {
+    const mobileRequestsCollapse = document.getElementById(
+      "mobileFollowRequests"
+    );
+    const chevronIcon = document.getElementById("mobile-requests-chevron");
+
     if (mobileRequestsCollapse && chevronIcon) {
-      mobileRequestsCollapse.addEventListener('show.bs.collapse', function() {
-        chevronIcon.classList.remove('fa-chevron-down');
-        chevronIcon.classList.add('fa-chevron-up');
+      mobileRequestsCollapse.addEventListener("show.bs.collapse", function () {
+        chevronIcon.classList.remove("fa-chevron-down");
+        chevronIcon.classList.add("fa-chevron-up");
       });
-      
-      mobileRequestsCollapse.addEventListener('hide.bs.collapse', function() {
-        chevronIcon.classList.remove('fa-chevron-up');
-        chevronIcon.classList.add('fa-chevron-down');
+
+      mobileRequestsCollapse.addEventListener("hide.bs.collapse", function () {
+        chevronIcon.classList.remove("fa-chevron-up");
+        chevronIcon.classList.add("fa-chevron-down");
       });
     }
   });
@@ -1086,43 +1096,53 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          if (data.success) {              // Remove the request item from the UI
-              requestItem.style.transition = "opacity 0.3s";
-              requestItem.style.opacity = "0";
-              setTimeout(() => {
-                // Remove both mobile and desktop versions of this request
-                const allRequestItems = document.querySelectorAll(`[data-requester-id="${requesterId}"]`);
-                allRequestItems.forEach(item => item.remove());
+          if (data.success) {
+            // Remove the request item from the UI
+            requestItem.style.transition = "opacity 0.3s";
+            requestItem.style.opacity = "0";
+            setTimeout(() => {
+              // Remove both mobile and desktop versions of this request
+              const allRequestItems = document.querySelectorAll(
+                `[data-requester-id="${requesterId}"]`
+              );
+              allRequestItems.forEach((item) => item.remove());
 
-                // Check if there are any remaining requests
-                const remainingRequests = document.querySelectorAll(".request-item");
-                if (remainingRequests.length === 0) {
-                  // Hide both mobile and desktop follow requests sections
-                  const desktopRequestsCard = document.querySelector("#right-panel .card");
-                  const mobileRequestsCard = document.querySelector(".d-lg-none .card");
-                  
-                  if (desktopRequestsCard) {
-                    desktopRequestsCard.remove();
-                  }
-                  if (mobileRequestsCard) {
-                    mobileRequestsCard.remove();
-                  }
-                } else {
-                  // Update the count in both sections
-                  const desktopCountElement = document.querySelector("#right-panel .card-header h6");
-                  const mobileCountElement = document.querySelector(".d-lg-none .card-header h6");
-                  
-                  const newCountText = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
-                  
-                  if (desktopCountElement) {
-                    desktopCountElement.innerHTML = newCountText;
-                  }
-                  if (mobileCountElement) {
-                    mobileCountElement.innerHTML = newCountText;
-                  }
+              // Check if there are any remaining requests
+              const remainingRequests =
+                document.querySelectorAll(".request-item");
+              if (remainingRequests.length === 0) {
+                // Hide both mobile and desktop follow requests sections
+                const desktopRequestsCard =
+                  document.querySelector("#right-panel .card");
+                const mobileRequestsCard =
+                  document.querySelector(".d-lg-none .card");
+
+                if (desktopRequestsCard) {
+                  desktopRequestsCard.remove();
                 }
-                showNotification(data.message, "success");
-              }, 300);
+                if (mobileRequestsCard) {
+                  mobileRequestsCard.remove();
+                }
+              } else {
+                // Update the count in both sections
+                const desktopCountElement = document.querySelector(
+                  "#right-panel .card-header h6"
+                );
+                const mobileCountElement = document.querySelector(
+                  ".d-lg-none .card-header h6"
+                );
+
+                const newCountText = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
+
+                if (desktopCountElement) {
+                  desktopCountElement.innerHTML = newCountText;
+                }
+                if (mobileCountElement) {
+                  mobileCountElement.innerHTML = newCountText;
+                }
+              }
+              showNotification(data.message, "success");
+            }, 300);
           } else {
             showNotification(
               data.error || "Failed to process request",

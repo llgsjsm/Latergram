@@ -85,7 +85,10 @@ def home():
         liked_posts = {post.postId: False for post in posts} if posts else {}
         comment_counts = {post.postId: 0 for post in posts} if posts else {}
 
-    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts)
+    # Get current user for template context
+    current_user = User.query.filter_by(userId=session['user_id']).first()
+
+    return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
