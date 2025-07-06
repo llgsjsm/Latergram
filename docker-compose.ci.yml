@@ -1,22 +1,12 @@
-# CI override for Docker Compose
 services:
   flask:
     container_name: flask
-    build:
+    build: # Using custom Dockerfile, no need image: python:3.8-slim
       context: ./app-server
       dockerfile: Dockerfile
     working_dir: /app
     volumes:
       - ./app-server:/app
-    environment:
-      - DB_USER=root
-      - DB_PASSWORD=root
-      - DB_HOST=10.20.0.4
-      - DB_PORT=3306
-      - DB_NAME=testdb
-      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
-      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL}
-      - IS_TESTING=true
     networks:
       laternet:
         ipv4_address: 10.20.0.2
@@ -26,47 +16,36 @@ services:
     image: nginx
     restart: unless-stopped
     ports:
-      - "80:80"   # Certbot
+      - "80:80"
     volumes:
       - ./reverse-proxy/nginx-ci.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - flask
     networks:
-      laternet:
-        ipv4_address: 10.20.0.3
+        laternet:
+          ipv4_address: 10.20.0.3
 
   mysqldb:
     container_name: mysqldb
     image: mysql:8.0
     restart: always
+    depends_on:
+      - flask
     environment:
-      MYSQL_ROOT_PASSWORD: VerySecretRootPassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     networks:
       laternet:
         ipv4_address: 10.20.0.4
-
-  # splunk:
-  #   image: splunk/splunk
-  #   container_name: splunk
-  #   environment:
-  #     - SPLUNK_START_ARGS=${SPLUNK_START_ARGS}
-  #     - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-  #     - OPTIMISTIC_ABOUT_FILE_LOCKING=1
-  #   ports:
-  #     - "8888:8000"   # Splunk Web
-  #     - "8088:8088"   # HEC
-  #     - "9997:9997"   # UF forwarder
-  #     - "514:514/udp" # Syslog
-  #   # For CI - Need not include volume mount
-  #   # For CD - Inlcude the volumes to ensure persistence
-  #   # volumes:
-  #   #   - ./splunk/splunk-data:/opt/splunk/var
-  #   #   - ./splunk/splunk-etc:/opt/splunk/etc
-  #   restart: unless-stopped
-  #   networks:
-  #     laternet:
-  #       ipv4_address: 10.20.0.100
+        
+  redis:
+    image: "redis:latest"
+    container_name: redis_server
+    networks:
+      laternet:
+        ipv4_address: 10.20.0.5
 
 networks:
   laternet:

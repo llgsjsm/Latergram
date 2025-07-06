@@ -41,6 +41,24 @@ class ProfileManager:
         if user_id in self._user_profile_cache:
             del self._user_profile_cache[user_id]
 
+    def _is_public_visibility(self, visibility: str) -> bool:
+        """Check if visibility setting indicates a public profile"""
+        if not visibility:
+            return False
+        return visibility == VisibilityType.PUBLIC.value or visibility.lower() == 'public'
+    
+    def _is_private_visibility(self, visibility: str) -> bool:
+        """Check if visibility setting indicates a private profile"""
+        if not visibility:
+            return False
+        return visibility == VisibilityType.PRIVATE.value or visibility.lower() == 'private'
+    
+    def _is_followers_only_visibility(self, visibility: str) -> bool:
+        """Check if visibility setting indicates a followers-only profile"""
+        if not visibility:
+            return False
+        return visibility == VisibilityType.FOLLOWERS_ONLY.value or visibility.lower() == 'followersonly'
+
     def get_user_stats_cached(self, user_id: int) -> Dict[str, int]:
         """Get user stats with caching for better performance"""
         import time
@@ -122,8 +140,8 @@ class ProfileManager:
         
         try:
             # If target user is public, auto-accept the follow
-            # Handle both 'Public' and 'public' for backward compatibility
-            if result.target_visibility and result.target_visibility.lower() == 'public':
+            # Handle both enum values and string literals for backward compatibility
+            if result.target_visibility and (result.target_visibility == VisibilityType.PUBLIC.value or result.target_visibility.lower() == 'public'):
                 query = text("""
                     INSERT INTO followers (followerUserId, followedUserId, createdAt, status) 
                     VALUES (:requester_id, :target_id, NOW(), 'accepted')
@@ -153,7 +171,7 @@ class ProfileManager:
             return {
                 'success': True,
                 'message': message,
-                'status': 'accepted' if result.target_visibility and result.target_visibility.lower() == 'public' else 'pending'
+                'status': 'accepted' if result.target_visibility and (result.target_visibility == VisibilityType.PUBLIC.value or result.target_visibility.lower() == 'public') else 'pending'
             }
         except Exception as e:
             db.session.rollback()
@@ -564,10 +582,10 @@ class ProfileManager:
                 AND u.userId NOT IN (
                     SELECT followedUserId FROM followers WHERE followerUserId = :user_id
                 )
-                AND u.visibility = 'public'
+                AND u.visibility = :visibility
                 ORDER BY u.createdAt DESC
                 LIMIT :limit
-            """), {"user_id": user_id, "limit": limit}).fetchall()
+            """), {"user_id": user_id, "limit": limit, "visibility": VisibilityType.PUBLIC.value}).fetchall()
             
             suggestions = []
             for row in result:
@@ -642,15 +660,15 @@ class ProfileManager:
             return False
         
         # If profile is public, allow viewing
-        if profile_user.visibility == 'Public':
+        if profile_user.visibility == VisibilityType.PUBLIC.value:
             return True
         
         # If profile is private, deny viewing
-        if profile_user.visibility == 'Private':
+        if profile_user.visibility == VisibilityType.PRIVATE.value:
             return False
         
         # If profile is followers only, check if viewer follows the profile user
-        if profile_user.visibility == 'FollowersOnly':
+        if profile_user.visibility == VisibilityType.FOLLOWERS_ONLY.value:
             return self.is_following(viewer_user_id, profile_user_id)
         
         # Default to deny if visibility setting is unknown
@@ -824,15 +842,15 @@ class ProfileManager:
             return {'can_view': False, 'can_see_posts': False, 'error': 'User not found'}
         
         # If profile is public, allow viewing everything
-        if profile_user.visibility == 'Public':
+        if profile_user.visibility == VisibilityType.PUBLIC.value:
             return {'can_view': True, 'can_see_posts': True}
         
         # If profile is private, can view basic info but not posts
-        if profile_user.visibility == 'Private':
+        if profile_user.visibility == VisibilityType.PRIVATE.value:
             return {'can_view': True, 'can_see_posts': False, 'message': 'This account is private'}
         
         # If profile is followers only, check if viewer follows the profile user
-        if profile_user.visibility == 'FollowersOnly':
+        if profile_user.visibility == VisibilityType.FOLLOWERS_ONLY.value:
             is_following = self.is_following(viewer_user_id, profile_user_id)
             if is_following:
                 return {'can_view': True, 'can_see_posts': True}
@@ -915,9 +933,9 @@ class ProfileManager:
         try:
             # Update all users with lowercase 'public' to uppercase 'Public'
             query = text("""
-                UPDATE user SET visibility = 'Public' WHERE LOWER(visibility) = 'public'
+                UPDATE user SET visibility = :public_visibility WHERE LOWER(visibility) = 'public'
             """)
-            result = db.session.execute(query)
+            result = db.session.execute(query, {"public_visibility": VisibilityType.PUBLIC.value})
             db.session.commit()
             
             return {

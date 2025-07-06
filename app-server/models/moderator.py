@@ -1,10 +1,10 @@
-from .base_user import BaseUserMixin
+from .base_user import BaseUserModel
 from .database import db
 import datetime
 
-class Moderator(db.Model, BaseUserMixin):
+class Moderator(BaseUserModel):
     """
-    Moderator user class that inherits from BaseUserMixin.
+    Moderator user class that inherits from BaseUserModel.
     Represents moderators in the system with additional moderation capabilities.
     Uses the existing database table structure.
     """
@@ -12,58 +12,18 @@ class Moderator(db.Model, BaseUserMixin):
     
     modID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     modLevel = db.Column(db.Integer, nullable=False)
-    username = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    createdAt = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    # OTP fields
-    otp_code = db.Column(db.String(6), nullable=True)
-    otp_expires_at = db.Column(db.DateTime, nullable=True)
-    otp_type = db.Column(db.String(20), nullable=True)  # 'login' or 'password_reset'
-    login_attempts = db.Column(db.Integer, default=0)
-    last_otp_request = db.Column(db.DateTime, nullable=True)
-    otp_enabled = db.Column(db.Boolean, default=True)  # Moderator preference for OTP login (enabled by default)
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # Implementation of abstract methods from BaseUserMixin
+    # Implementation of abstract methods from BaseUserModel
     def get_id(self):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         return self.modID
     
     def set_id(self, user_id):
-        """Implementation of abstract method from BaseUserMixin"""
+        """Implementation of abstract method from BaseUserModel"""
         self.modID = user_id
-        
-    def get_username(self):
-        """Implementation of abstract method from BaseUserMixin"""
-        return self.username
-
-    def set_username(self, username):
-        """Implementation of abstract method from BaseUserMixin"""
-        self.username = username
-
-    def get_email(self):
-        """Implementation of abstract method from BaseUserMixin"""
-        return self.email
-
-    def set_email(self, email):
-        """Implementation of abstract method from BaseUserMixin"""
-        self.email = email
-
-    def get_password(self):
-        """Implementation of abstract method from BaseUserMixin"""
-        return self.password
-
-    def set_password(self, password):
-        """Implementation of abstract method from BaseUserMixin"""
-        self.password = password
-        
-    def get_created_at(self):
-        """Implementation of abstract method from BaseUserMixin"""
-        return self.createdAt
         
     # Moderator-specific methods
     def get_mod_id(self):

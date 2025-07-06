@@ -6,7 +6,7 @@
     <div class="col-md-6 offset-md-3">
       <h2 class="text-center mb-4">Create Post</h2>
 
-      <form id="createPostForm" method="POST" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
+      <form id="createPostForm" method="POST" action="{{ url_for('main.create_post') }}" enctype="multipart/form-data">
         <!-- Title -->
         <div class="mb-3">
           <label for="title" class="form-label">Title</label>
@@ -37,7 +37,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="submit" class="base-btn base-btn-primary">Post</button>
-          <a href="{{ url_for('home') }}" class="base-btn base-btn-secondary">Cancel</a>
+          <a href="{{ url_for('main.home') }}" class="base-btn base-btn-secondary">Cancel</a>
         </div>
       </form>
     </div>
@@ -73,6 +73,47 @@
       }
     });
   });
+
+document.addEventListener('DOMContentLoaded', function () {
+  const postForm = document.getElementById('createPostForm');
+  const imageInput = document.getElementById('image');
+
+  postForm.addEventListener('submit', function (e) {
+    e.preventDefault(); // always prevent the default form submit
+
+    // Validate image
+    if (!imageInput.files || imageInput.files.length === 0) {
+      showNotification("Please upload an image before creating a post.", "warning");
+      return; // Stop here if no image
+    }
+
+    const formData = new FormData(postForm);
+
+    fetch('/create-post', {
+      method: 'POST',
+      body: formData
+    })
+    .then(async response => {
+      if (!response.ok) {
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { error: "An unknown error occurred." };
+        }
+        showNotification(data.error || 'Something went wrong.', 'danger');
+        return;
+      }
+
+      // If successful, redirect to home
+      window.location.href = '/';
+    })
+    .catch(err => {
+      console.error(err);
+      showNotification("Unexpected error occurred.", "danger");
+    });
+  });
+});
 
   
 </script>

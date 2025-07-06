@@ -1,0 +1,149 @@
+<!-- Report Modal -->
+<div
+  class="modal fade"
+  id="reportModal"
+  tabindex="-1"
+  aria-labelledby="reportModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white rounded-3">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title" id="reportModalLabel">Report Post</h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="reportForm">
+          <input type="hidden" id="reportPostId" name="postId" />
+          <div class="mb-3">
+            <label for="reportReason" class="form-label"
+              >Reason for reporting:</label
+            >
+            <textarea
+              class="form-control bg-secondary text-white border-secondary rounded"
+              id="reportReason"
+              rows="3"
+              name="reason"
+              required
+              maxlength="200"
+              placeholder="Please describe why you are reporting this post (max 200 characters)."
+            ></textarea
+            >
+          </div>
+          <button type="submit" class="btn btn-danger rounded-pill px-4">
+            Submit Report
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Report Modal Functions ---
+  function openReportModal(postId) {
+    const reportPostIdInput = document.getElementById("reportPostId");
+    const reportReasonTextarea = document.getElementById("reportReason");
+    const reportModalElement = document.getElementById("reportModal");
+
+    // Add null checks for elements before trying to access their properties
+    if (!reportPostIdInput) {
+      console.error("Error: 'reportPostId' element not found for reporting.");
+      showNotification(
+        "Error: Report form element missing. Please refresh.",
+        "danger"
+      );
+      return;
+    }
+    if (!reportReasonTextarea) {
+      console.error("Error: 'reportReason' element not found for reporting.");
+      showNotification(
+        "Error: Report form element missing. Please refresh.",
+        "danger"
+      );
+      return;
+    }
+    if (!reportModalElement) {
+      console.error("Error: 'reportModal' element not found.");
+      showNotification(
+        "Error: Report modal missing. Please refresh.",
+        "danger"
+      );
+      return;
+    }
+
+    reportPostIdInput.value = postId;
+    reportReasonTextarea.value = ""; // Clear previous reason
+
+    const reportModal = new bootstrap.Modal(reportModalElement);
+    reportModal.show();
+  }
+
+  // Add report form event listener when DOM is loaded
+  document.addEventListener("DOMContentLoaded", function () {
+    const reportForm = document.getElementById("reportForm");
+    if (reportForm) {
+      reportForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const postId = document.getElementById("reportPostId").value;
+        const reason = document.getElementById("reportReason").value.trim();
+
+        if (!reason) {
+          showNotification("Please provide a reason for reporting.", "warning");
+          return;
+        }
+
+        const reportData = { 
+          reason: reason,
+          targetType: "Post"  // Add the required targetType field
+        };
+        console.log("Sending report data:", reportData);
+
+        fetch(`/api/report_post/${postId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(reportData),
+        })
+          .then((response) => {
+            console.log("Report response status:", response.status);
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Report response data:", data);
+            if (data.success) {
+              const reportModal = bootstrap.Modal.getInstance(
+                document.getElementById("reportModal")
+              );
+              if (reportModal) reportModal.hide();
+              showNotification(
+                "Post reported successfully. Thank you for your feedback!",
+                "success"
+              );
+            } else {
+              showNotification(
+                "Failed to report post: " + (data.error || "Unknown error"),
+                "danger"
+              );
+            }
+          })
+          .catch((error) => {
+            console.error("Error reporting post:", error);
+            showNotification(
+              "Network error occurred while reporting post.",
+              "danger"
+            );
+          });
+      });
+    }
+  });
+
+  // Expose globally so it works with inline onclick handlers
+  window.openReportModal = openReportModal;
+</script> 

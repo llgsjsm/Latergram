@@ -56,7 +56,7 @@
     </div>
     <div class="profile-header-actions">
       {% if is_own_profile %}
-      <a href="{{ url_for('edit_profile') }}" class="btn" title="Edit Profile">
+      <a href="{{ url_for('main.edit_profile') }}" class="btn" title="Edit Profile">
         <!-- <i class="fas fa-pen"></i> -->
         <i class="fas fa-cog"></i>
       </a>
@@ -65,7 +65,7 @@
       </button> -->
       <ul class="dropdown-menu">
         <li>
-          <a class="dropdown-item" href="{{ url_for('edit_profile') }}">Settings</a>
+          <a class="dropdown-item" href="{{ url_for('main.edit_profile') }}">Settings</a>
         </li>
         <li>
           <a class="dropdown-item" href="#" onclick="alert('Feature coming soon!')">Privacy</a>
@@ -74,7 +74,7 @@
           <hr class="dropdown-divider" />
         </li>
         <li>
-          <a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a>
+          <a class="dropdown-item" href="{{ url_for('main.logout') }}">Logout</a>
         </li>
       </ul>
       {% else %} {% if follow_status and follow_status.is_following %}
@@ -273,16 +273,19 @@
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% endif %}
-                <button class="btn btn-primary btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
-                  <i class="fas fa-comment"></i>
-                  {% if comment_counts.get(post.postId, 0) > 0 %} {{
-                  comment_counts.get(post.postId, 0) }} Comments {% else %}
-                  Comment {% endif %}
+                <button class="btn btn-outline-comment btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
+                  <i class="fas fa-comment comment-icon"></i>
+                  {% if comment_counts.get(post.postId, 0) > 0 %} {{ comment_counts.get(post.postId, 0) }} Comments {% else %} Comment {% endif %}
                 </button>
                 {% if is_own_profile %}
                 <button class="btn btn-danger btn-sm ms-2" onclick="deletePost('{{ post.postId }}')"
                   title="Delete Post">
                   <i class="fas fa-trash"></i> Delete
+                </button>
+                {% else %}
+                <!-- Report Button for posts not owned by current user -->
+                <button class="btn btn-outline-warning btn-sm ms-2" onclick="openReportModal('{{ post.postId }}')">
+                  <i class="fas fa-flag report-icon"></i>
                 </button>
                 {% endif %}
               </div>
@@ -297,7 +300,7 @@
               style="display: none; color: var(--color-white) !important;">
               <!-- Comment Form -->
               <div class="mb-3">
-                <form action="{{ url_for('add_comment', post_id=post.postId) }}" method="POST" class="comment-form"
+                <form action="{{ url_for('comment.add_comment', post_id=post.postId) }}" method="POST" class="comment-form"
                   data-post-id="{{ post.postId }}">
                   <div class="input-group">
                     <input type="text" class="form-control" name="comment" placeholder="Add a comment..." required />
@@ -338,7 +341,7 @@
     <h4>No Posts Yet</h4>
     {% if is_own_profile %}
     <p>Share your first photo to get started</p>
-    <a href="{{ url_for('create_post') }}" class="btn btn-primary">
+    <a href="{{ url_for('main.create_post') }}" class="btn btn-primary">
       <i class="fas fa-plus"></i> Create Your First Post
     </a>
     {% else %}
@@ -403,6 +406,8 @@
     </div>
   </div>
 </div>
+
+{% include 'includes/report_modal.html' %}
 
 <style>
   .post-thumbnail:hover .post-overlay {

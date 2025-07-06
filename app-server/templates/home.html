@@ -12,43 +12,53 @@
 
       <!-- Mobile Friend Requests Section - Only visible on smaller screens -->
       {% if pending_requests %}
+
       <div class="d-lg-none mb-4">
         <div class="card">
-          <div class="card-header" 
-               data-bs-toggle="collapse" 
-               data-bs-target="#mobileFollowRequests" 
-               aria-expanded="false" 
-               aria-controls="mobileFollowRequests"
-               style="cursor: pointer;">
+          <div
+            class="card-header"
+            data-bs-toggle="collapse"
+            data-bs-target="#mobileFollowRequests"
+            aria-expanded="false"
+            aria-controls="mobileFollowRequests"
+            style="cursor: pointer"
+          >
             <div class="d-flex align-items-center justify-content-between">
               <h6 class="mb-0">
-                <i class="fas fa-user-plus me-2"></i>Follow Requests ({{ pending_requests|length }})
+                <i class="fas fa-user-plus me-2"></i>Follow Requests ({{
+                pending_requests|length }})
               </h6>
               <i class="fas fa-chevron-down" id="mobile-requests-chevron"></i>
             </div>
           </div>
           <div class="collapse" id="mobileFollowRequests">
             <div class="card-body">
-              {% for request in pending_requests %}
-              <div class="mb-3 request-item" data-requester-id="{{ request.requester_id }}">
+              {% for request in pending_requests %} {{ request }}
+              <div
+                class="mb-3 request-item"
+                data-requester-id="{{ request.requester_id }}"
+              >
                 <div class="text-muted small mb-2">
-                  {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at else '' }}
+                  {{ request.requested_at.strftime('%b %d, %Y') if
+                  request.requested_at else '' }}
                 </div>
-                <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <div
+                  class="d-flex align-items-center justify-content-between flex-wrap"
+                >
                   <div class="d-flex align-items-center mb-2 mb-sm-0">
                     {% if request.profile_picture %}
                     <img
                       src="{{ request.profile_picture }}"
                       class="rounded-circle me-3"
-                      style="width: 40px; height: 40px; object-fit: cover"
+                      style="width: 42px; height: 42px; object-fit: cover"
                       alt="Profile Picture"
                     />
                     {% else %}
                     <span
                       class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
                       style="
-                        width: 40px;
-                        height: 40px;
+                        width: 42px;
+                        height: 42px;
                         background: #23263a;
                         color: #bfc7d5;
                         font-size: 1.3rem;
@@ -60,7 +70,7 @@
                     {% endif %}
                     <div>
                       <a
-                        href="{{ url_for('profile', user_id=request.requester_id) }}"
+                        href="{{ url_for('profile.profile', user_id=request.requester_id) }}"
                         class="text-decoration-none"
                       >
                         <strong>{{ request.username }}</strong>
@@ -85,8 +95,9 @@
                   </div>
                 </div>
               </div>
-              {% if not loop.last %}<hr class="my-2">{% endif %}
-              {% endfor %}
+              {% if not loop.last %}
+              <hr class="my-2" />
+              {% endif %} {% endfor %}
             </div>
           </div>
         </div>
@@ -108,20 +119,20 @@
         {% endif %}
         <div class="card-body">
           <!-- Post Header -->
-          <div class="d-flex align-items-center mb-2">
+          <div class="d-flex align-items-center mb-2" style="gap: 4px">
             {% if post.author %} {% if post.author.profilePicture %}
             <img
               src="{{ post.author.profilePicture }}"
               class="rounded-circle me-2"
-              style="width: 30px; height: 30px; object-fit: cover"
+              style="width: 40px; height: 40px; object-fit: cover"
               alt="Profile Picture"
             />
             {% else %}
             <span
               class="d-inline-flex align-items-center justify-content-center rounded-circle me-2"
               style="
-                width: 30px;
-                height: 30px;
+                width: 40px;
+                height: 40px;
                 background: #23263a;
                 color: #bfc7d5;
                 font-size: 1rem;
@@ -133,7 +144,7 @@
             {% endif %}
             <div>
               <a
-                href="{{ url_for('profile', user_id=post.authorId) }}"
+                href="{{ url_for('profile.profile', user_id=post.authorId) }}"
                 class="text-decoration-none fw-bold"
               >
                 {{ post.author.username }}
@@ -147,7 +158,8 @@
           </div>
 
           <!-- Post Content -->
-          {% if post.title %} {% if user and post.authorId == user.userId %}
+          {% if post.title %} {% if current_user and post.authorId ==
+          current_user.userId %}
           <h6
             class="card-title fw-bold"
             id="post-title-{{ post.postId }}"
@@ -178,7 +190,8 @@
           <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
             {# Added fw-bold here #} {{ post.title }}
           </h6>
-          {% endif %} {% endif %} {% if user and post.authorId == user.userId %}
+          {% endif %} {% endif %} {% if current_user and post.authorId ==
+          current_user.userId %}
           <p
             class="card-text"
             id="post-caption-{{ post.postId }}"
@@ -227,15 +240,15 @@
               </button>
               {% endif %}
               <button
-                class="btn btn-secondary btn-sm"
+                class="btn btn-outline-comment btn-sm"
                 onclick="toggleCommentForm('{{ post.postId }}')"
               >
-                <i class="fas fa-comment"></i>
+                <i class="fas fa-comment comment-icon"></i>
                 <span id="comment-btn-text-{{ post.postId }}">
                   {{ comment_counts.get(post.postId, 0) }}
                 </span>
               </button>
-              {% if user and post.authorId == user.userId %}
+              {% if current_user and post.authorId == current_user.userId %}
               <button
                 id="save-post-{{ post.postId }}"
                 class="btn card-btn-primary btn-sm d-none"
@@ -250,13 +263,13 @@
               >
                 Cancel
               </button>
-              {% elif user %}
+              {% elif current_user %}
               <!-- Report Button for posts not owned by current user -->
               <button
                 class="btn btn-outline-warning btn-sm"
                 onclick="openReportModal('{{ post.postId }}')"
               >
-                <i class="fas fa-flag"></i>
+                <i class="fas fa-flag report-icon"></i>
               </button>
               {% endif %}
             </div>
@@ -292,7 +305,7 @@
             style="display: none"
           >
             <form
-              action="{{ url_for('add_comment', post_id=post.postId) }}"
+              action="{{ url_for('comment.add_comment', post_id=post.postId) }}"
               method="POST"
             >
               <div class="input-group">
@@ -314,7 +327,7 @@
         <i class="fas fa-camera fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No posts yet</h5>
         <p class="text-muted">Be the first to share something!</p>
-        <a href="{{ url_for('create_post') }}" class="btn btn-primary"
+        <a href="{{ url_for('main.create_post') }}" class="btn btn-primary"
           >Create Your First Post</a
         >
       </div>
@@ -323,68 +336,13 @@
   </div>
 </div>
 
-<!-- Report Modal -->
-<div
-  class="modal fade"
-  id="reportModal"
-  tabindex="-1"
-  aria-labelledby="reportModalLabel"
-  aria-hidden="true"
->
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-white rounded-3">
-      <!-- Added bg-dark, text-white, rounded-3 -->
-      <div class="modal-header border-bottom-0">
-        <!-- Removed default border -->
-        <h5 class="modal-title" id="reportModalLabel">Report Post</h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <div class="modal-body">
-        <form id="reportForm">
-          <input type="hidden" id="reportPostId" name="postId" />
-          <div class="mb-3">
-            <label for="reportReason" class="form-label"
-              >Reason for reporting:</label
-            >
-            <textarea
-              class="form-control bg-secondary text-white border-secondary rounded"
-              <!--
-              Darker
-              input
-              for
-              text
-              area
-              --
-            >
-              id="reportReason"
-              rows="3"
-              name="reason"
-              required
-              maxlength="200"
-              placeholder="Please describe why you are reporting this post (max 200 characters)."
-            ></textarea
-            >
-          </div>
-          <button type="submit" class="btn btn-danger rounded-pill px-4">
-            Submit Report
-          </button>
-          <!-- Added rounded-pill and px-4 -->
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'includes/report_modal.html' %}
 
 <script>
   // Current user info for JavaScript
   const currentUser = {
-    id: "{{ user.userId if user else 'null' }}",
-    username: "{{ user.username if user else '' }}",
+    id: "{{ current_user.userId if current_user else 'null' }}",
+    username: "{{ current_user.username if current_user else '' }}",
   };
 
   // Simple comment form toggle
@@ -412,7 +370,9 @@
             data.comments.forEach((comment) => {
               const profileImg = comment.author.profilePicture
                 ? `<img src="${comment.author.profilePicture}" class="rounded-circle" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">`
-                : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 25px; height: 25px; background: #23263a; color: #bfc7d5; font-size: 0.8rem;"><i class="fas fa-user"></i></span>`;
+                : `<span class="comment-fallback-icon">
+                    <i class="fas fa-user"></i>
+                  </span>`;
 
               const isOwnComment =
                 comment.author.username === currentUser.username;
@@ -426,7 +386,7 @@
                 }">
                   <div class="d-flex align-items-center comment-header-row">
                     ${profileImg}
-                    <div class="fw-bold ms-2">${comment.author.username}</div>
+                    <div class="fw-bold">${comment.author.username}</div>
                     <div class="ms-auto d-flex">
                       ${
                         canEdit
@@ -667,7 +627,6 @@
 
               showNotification("Comment added successfully", "success");
               window.location.reload();
-
             } else {
               throw new Error(data.error || "Failed to add comment");
             }
@@ -973,91 +932,6 @@
       }
     }, 3000);
   }
-
-  // --- Report Modal Functions ---
-  function openReportModal(postId) {
-    const reportPostIdInput = document.getElementById("reportPostId");
-    const reportReasonTextarea = document.getElementById("reportReason");
-    const reportModalElement = document.getElementById("reportModal");
-
-    // Add null checks for elements before trying to access their properties
-    if (!reportPostIdInput) {
-      console.error("Error: 'reportPostId' element not found for reporting.");
-      showNotification(
-        "Error: Report form element missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-    if (!reportReasonTextarea) {
-      console.error("Error: 'reportReason' element not found for reporting.");
-      showNotification(
-        "Error: Report form element missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-    if (!reportModalElement) {
-      console.error("Error: 'reportModal' element not found.");
-      showNotification(
-        "Error: Report modal missing. Please refresh.",
-        "danger"
-      );
-      return;
-    }
-
-    reportPostIdInput.value = postId;
-    reportReasonTextarea.value = ""; // Clear previous reason
-
-    const reportModal = new bootstrap.Modal(reportModalElement);
-    reportModal.show();
-  }
-
-  document
-    .getElementById("reportForm")
-    .addEventListener("submit", function (e) {
-      e.preventDefault();
-      const postId = document.getElementById("reportPostId").value;
-      const reason = document.getElementById("reportReason").value.trim();
-
-      if (!reason) {
-        showNotification("Please provide a reason for reporting.", "warning");
-        return;
-      }
-
-      fetch(`/api/report_post/${postId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reason: reason }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            const reportModal = bootstrap.Modal.getInstance(
-              document.getElementById("reportModal")
-            );
-            if (reportModal) reportModal.hide();
-            showNotification(
-              "Post reported successfully. Thank you for your feedback!",
-              "success"
-            );
-          } else {
-            showNotification(
-              "Failed to report post: " + (data.error || "Unknown error"),
-              "danger"
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Error reporting post:", error);
-          showNotification(
-            "Network error occurred while reporting post.",
-            "danger"
-          );
-        });
-    });
 </script>
 {% endblock %} {% block rightpanel %} {% if pending_requests %}
 <div class="card m-3 mt-4">
@@ -1103,7 +977,7 @@
           {% endif %}
           <div>
             <a
-              href="{{ url_for('profile', user_id=request.requester_id) }}"
+              href="{{ url_for('profile.profile', user_id=request.requester_id) }}"
               class="text-decoration-none"
             >
               <strong>{{ request.username }}</strong>
@@ -1163,7 +1037,7 @@
       {% endif %}
       <div class="flex-grow-1">
         <a
-          href="{{ url_for('profile', user_id=user.userId) }}"
+          href="{{ url_for('profile.profile', user_id=user.userId) }}"
           class="text-decoration-none"
         >
           <strong>{{ user.username }}</strong>
@@ -1175,7 +1049,7 @@
         {% endif %}
       </div>
       <a
-        href="{{ url_for('profile', user_id=user.userId) }}"
+        href="{{ url_for('profile.profile', user_id=user.userId) }}"
         class="btn card-btn-primary btn-sm"
         >View</a
       >
@@ -1187,19 +1061,21 @@
 
 <script>
   // Mobile friend requests collapse handler
-  document.addEventListener('DOMContentLoaded', function() {
-    const mobileRequestsCollapse = document.getElementById('mobileFollowRequests');
-    const chevronIcon = document.getElementById('mobile-requests-chevron');
-    
+  document.addEventListener("DOMContentLoaded", function () {
+    const mobileRequestsCollapse = document.getElementById(
+      "mobileFollowRequests"
+    );
+    const chevronIcon = document.getElementById("mobile-requests-chevron");
+
     if (mobileRequestsCollapse && chevronIcon) {
-      mobileRequestsCollapse.addEventListener('show.bs.collapse', function() {
-        chevronIcon.classList.remove('fa-chevron-down');
-        chevronIcon.classList.add('fa-chevron-up');
+      mobileRequestsCollapse.addEventListener("show.bs.collapse", function () {
+        chevronIcon.classList.remove("fa-chevron-down");
+        chevronIcon.classList.add("fa-chevron-up");
       });
-      
-      mobileRequestsCollapse.addEventListener('hide.bs.collapse', function() {
-        chevronIcon.classList.remove('fa-chevron-up');
-        chevronIcon.classList.add('fa-chevron-down');
+
+      mobileRequestsCollapse.addEventListener("hide.bs.collapse", function () {
+        chevronIcon.classList.remove("fa-chevron-up");
+        chevronIcon.classList.add("fa-chevron-down");
       });
     }
   });
@@ -1220,43 +1096,53 @@
       })
         .then((response) => response.json())
         .then((data) => {
-          if (data.success) {              // Remove the request item from the UI
-              requestItem.style.transition = "opacity 0.3s";
-              requestItem.style.opacity = "0";
-              setTimeout(() => {
-                // Remove both mobile and desktop versions of this request
-                const allRequestItems = document.querySelectorAll(`[data-requester-id="${requesterId}"]`);
-                allRequestItems.forEach(item => item.remove());
+          if (data.success) {
+            // Remove the request item from the UI
+            requestItem.style.transition = "opacity 0.3s";
+            requestItem.style.opacity = "0";
+            setTimeout(() => {
+              // Remove both mobile and desktop versions of this request
+              const allRequestItems = document.querySelectorAll(
+                `[data-requester-id="${requesterId}"]`
+              );
+              allRequestItems.forEach((item) => item.remove());
 
-                // Check if there are any remaining requests
-                const remainingRequests = document.querySelectorAll(".request-item");
-                if (remainingRequests.length === 0) {
-                  // Hide both mobile and desktop follow requests sections
-                  const desktopRequestsCard = document.querySelector("#right-panel .card");
-                  const mobileRequestsCard = document.querySelector(".d-lg-none .card");
-                  
-                  if (desktopRequestsCard) {
-                    desktopRequestsCard.remove();
-                  }
-                  if (mobileRequestsCard) {
-                    mobileRequestsCard.remove();
-                  }
-                } else {
-                  // Update the count in both sections
-                  const desktopCountElement = document.querySelector("#right-panel .card-header h6");
-                  const mobileCountElement = document.querySelector(".d-lg-none .card-header h6");
-                  
-                  const newCountText = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
-                  
-                  if (desktopCountElement) {
-                    desktopCountElement.innerHTML = newCountText;
-                  }
-                  if (mobileCountElement) {
-                    mobileCountElement.innerHTML = newCountText;
-                  }
+              // Check if there are any remaining requests
+              const remainingRequests =
+                document.querySelectorAll(".request-item");
+              if (remainingRequests.length === 0) {
+                // Hide both mobile and desktop follow requests sections
+                const desktopRequestsCard =
+                  document.querySelector("#right-panel .card");
+                const mobileRequestsCard =
+                  document.querySelector(".d-lg-none .card");
+
+                if (desktopRequestsCard) {
+                  desktopRequestsCard.remove();
                 }
-                showNotification(data.message, "success");
-              }, 300);
+                if (mobileRequestsCard) {
+                  mobileRequestsCard.remove();
+                }
+              } else {
+                // Update the count in both sections
+                const desktopCountElement = document.querySelector(
+                  "#right-panel .card-header h6"
+                );
+                const mobileCountElement = document.querySelector(
+                  ".d-lg-none .card-header h6"
+                );
+
+                const newCountText = `<i class="fas fa-user-plus me-2"></i>Follow Requests (${remainingRequests.length})`;
+
+                if (desktopCountElement) {
+                  desktopCountElement.innerHTML = newCountText;
+                }
+                if (mobileCountElement) {
+                  mobileCountElement.innerHTML = newCountText;
+                }
+              }
+              showNotification(data.message, "success");
+            }, 300);
           } else {
             showNotification(
               data.error || "Failed to process request",

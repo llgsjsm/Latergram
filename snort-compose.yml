@@ -1,4 +1,3 @@
-
 services:
   snort:
     image: snort3-jq
@@ -10,9 +9,6 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    environment:
-      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL}
-      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
     volumes:
       - ./snort3:/etc/snort
       - ./snort3-log:/root

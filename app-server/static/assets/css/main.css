@@ -352,8 +352,68 @@ h4.card-header,
   margin: auto;
 }
 
-/* Responsive sidebar */
+/* Outlined comment button style */
+.btn-outline-comment {
+  color: var(--color-secondary-text);
+  border: 1px solid var(--color-secondary-text);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-outline-comment:hover, .btn-outline-comment:focus {
+  background: #999faa;
+  border-color: #999faa;
+}
+.btn-outline-comment i {
+  color: inherit;
+}
+
+/* Outlined comment icon */
+.btn-outline-comment .comment-icon {
+  color: var(--color-secondary-text);
+  -webkit-text-stroke: 1px var(--color-secondary-text);
+  font-weight: 900;
+}
+.btn-outline-comment:hover .comment-icon,
+.btn-outline-comment:focus .comment-icon {
+  color: #fff;
+  -webkit-text-stroke: 1px #fff;
+}
+
+/* Outlined report icon */
+.btn-outline-warning .report-icon {
+  color: #ffc107;
+  -webkit-text-stroke: 1px #ffc107;
+  font-weight: 900;
+}
+
+.btn-outline-warning:hover .report-icon,
+.btn-outline-warning:focus .report-icon {
+  color: #fff;
+  -webkit-text-stroke: 1px #fff;
+}
+
+.btn-outline-warning:hover,
+.btn-outline-warning:focus {
+  background-color: #e6ae06;
+}
+
+
+.comment-fallback-icon {
+  width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background: #23263a;
+  color: #bfc7d5;
+  font-size: 0.8rem;
+  border-radius: 50%;
+  border: 2px solid #343a40;
+}
+
 @media (max-width: 991px) {
+  /* Responsive sidebar */
   #main-nav {
     position: fixed;
     left: -250px;
@@ -362,7 +422,6 @@ h4.card-header,
     transition: left 0.3s ease;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
     padding-top: 3rem !important;
-    /* Extra padding to avoid toggle button */
   }
 
   #main-nav.show {
@@ -398,10 +457,8 @@ h4.card-header,
   .mobile-nav-toggle:active {
     transform: scale(0.95);
   }
-}
 
-/* Overlay for mobile nav */
-@media (max-width: 991px) {
+  /* Overlay for mobile nav */
   .nav-overlay {
     position: fixed;
     top: 0;
@@ -416,10 +473,8 @@ h4.card-header,
   .nav-overlay.show {
     display: block;
   }
-}
 
-/* Mobile search bar improvements */
-@media (max-width: 991px) {
+  /* Mobile search bar improvements */
   #user-search-form {
     position: sticky;
     top: 10px;
@@ -465,10 +520,8 @@ h4.card-header,
     font-size: 22px;
     /* Slightly smaller on mobile */
   }
-}
-
-/* Additional padding to prevent mobile toggle from blocking content */
-@media (max-width: 991px) {
+  
+  /* Additional padding to prevent mobile toggle from blocking content */
   .mobile-nav-toggle {
     margin-bottom: 10px;
   }

@@ -1,4 +1,8 @@
-# Debugging command: tail -f /dev/null
+# Admin notes:
+# 1 networks (IPv4) not required, but implemented for future use, docker can reference by their service names or IP
+# 2. Always run docker in root mode
+# 3. Idling command to keep the container running
+#    command: tail -f /dev/null
 
 services:
   flask:
@@ -46,25 +50,12 @@ services:
       laternet:
         ipv4_address: 10.20.0.4
 
-  splunk:
-    image: splunk/splunk
-    container_name: splunk
-    environment:
-      - SPLUNK_START_ARGS=${SPLUNK_START_ARGS}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - OPTIMISTIC_ABOUT_FILE_LOCKING=1
-    ports:
-      - "8888:8000"   # Splunk Web
-      - "8088:8088"   # HEC
-      - "9997:9997"   # UF forwarder
-      - "514:514/udp" # Syslog
-    volumes:
-      - ./splunk/splunk-data:/opt/splunk/var
-      - ./splunk/splunk-etc:/opt/splunk/etc
-    restart: unless-stopped
+  redis:
+    image: "redis:latest"
+    container_name: redis_server
     networks:
       laternet:
-        ipv4_address: 10.20.0.100
+        ipv4_address: 10.20.0.5
 
 networks:
   laternet:
