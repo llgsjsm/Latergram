@@ -112,6 +112,7 @@ jobs:
     - name: Run Playwright Tests
       run: |
         echo "Running Playwright tests..."
+        docker exec flask pip install pytest playwright
         docker exec flask python -m playwright install
         docker exec flask pytest tests/test_playwright_ui.py
 

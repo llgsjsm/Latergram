@@ -15,7 +15,6 @@ from firebase_admin import storage
 from backend.limiter import limiter
 
 main_bp = Blueprint('main', __name__)
-
 auth_manager = get_auth_manager()
 feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
