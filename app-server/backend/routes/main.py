@@ -39,7 +39,6 @@ def hello_world():
 def home():
     if 'user_id' not in session and 'mod_id' not in session:
         return redirect(url_for('main.login'))
-    
     # redirect moderators to their dashboard
     if 'mod_id' in session:
         return redirect(url_for('moderation.moderation'))

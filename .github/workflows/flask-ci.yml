@@ -37,7 +37,7 @@ jobs:
     - name: Create Firebase Key
       run: |
         mkdir -p app-server/backend
-        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > app-server/backend/firebase_key.json
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
 
     - name: Generate Flask .env files
       run: |
@@ -52,6 +52,10 @@ jobs:
         BUCKET=${{ secrets.BUCKET }}
         IS_TESTING=True
         EOF
+
+    - name: Create Firebase Key
+      run: |
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
 
     - name: Generate .env files
       run: |
