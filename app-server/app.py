@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -13,23 +13,21 @@ from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
 from backend.limiter import init_limiter
 
-import re, os, uuid
+import os
 from dotenv import load_dotenv 
-from models import db, Post, Comment, User, Report, Moderator
+from models import db
 from managers.authentication_manager import bcrypt
 import firebase_admin
-from firebase_admin import credentials, storage
-from flask_limiter import Limiter
-
-# Backend imports
-from backend.splunk_utils import get_real_ip
-# from backend.opennsfw import is_image_safe
-
+from firebase_admin import credentials, storage, _DEFAULT_APP_NAME
 
 def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
+
+    if test_config:
+        app.config.update(test_config)
+        IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
 
     # Enable debug mode for development (auto-reload on code changes)
     app.debug = True
@@ -56,14 +54,14 @@ def create_app(test_config=None):
     db.init_app(app)
     bcrypt.init_app(app)
 
-    # Initialize Firebase only if not testing
     if not IS_TESTING:
         if FILE_LOCATION and BUCKET:
             try:
-                cred = credentials.Certificate(FILE_LOCATION)
-                firebase_admin.initialize_app(cred, {
-                    'storageBucket': BUCKET
-                })
+                if _DEFAULT_APP_NAME not in firebase_admin._apps:
+                    cred = credentials.Certificate(FILE_LOCATION)
+                    firebase_admin.initialize_app(cred, {
+                        'storageBucket': BUCKET
+                    })
                 bucket = storage.bucket()
             except Exception as e:
                 print(f"Error initializing Firebase: {e}")
@@ -82,19 +80,10 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
     
-    # Context processor to make current user available in all templates
-    @app.context_processor
-    def inject_user():
-        current_user = None
-        if 'user_id' in session:
-            current_user = User.query.filter_by(userId=session['user_id']).first()
-        return dict(current_user=current_user)
-    
     # Redis Rate limiting (uncommented and fixed)
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
     init_limiter(app, storage_uri=storage_uri)
     return app
-
 
 # Create the app instance
 app = create_app()
