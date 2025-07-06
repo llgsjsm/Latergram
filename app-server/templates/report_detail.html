@@ -42,26 +42,26 @@
             <p><strong>Actions:</strong></p>
             <div class="btn-group" role="group">
                 {% if report.status == 'Pending' %}
-                <form method="post" action="{{ url_for('moderation_action', action='review', report_id=report.reportId) }}"
+                <form method="post" action="{{ url_for('moderation.moderation_action', action='review', report_id=report.reportId) }}"
                     style="display:inline; margin-right: 8px;">
                     <button type="submit" class="btn btn-sm btn-primary" title="Review">
                         <i class="fas fa-eye"></i> Review
                     </button>
                 </form>
-                <form method="post" action="{{ url_for('moderation_action', action='reject', report_id=report.reportId) }}"
+                <form method="post" action="{{ url_for('moderation.moderation_action', action='reject', report_id=report.reportId) }}"
                     style="display:inline; margin-right: 8px;">
                     <button type="submit" class="btn btn-sm btn-warning" title="Reject">
                         <i class="fas fa-times"></i> Reject
                     </button>
                 </form>
                 {% elif report.status == 'UnderReview' %}
-                <form method="post" action="{{ url_for('moderation_action', action='resolve', report_id=report.reportId) }}"
+                <form method="post" action="{{ url_for('moderation.moderation_action', action='resolve', report_id=report.reportId) }}"
                     style="display:inline; margin-right: 8px;">
                     <button type="submit" class="btn btn-sm btn-success" title="Resolve">
                         <i class="fas fa-check"></i> Resolve
                     </button>
                 </form>
-                <form method="post" action="{{ url_for('moderation_action', action='reject', report_id=report.reportId) }}"
+                <form method="post" action="{{ url_for('moderation.moderation_action', action='reject', report_id=report.reportId) }}"
                     style="display:inline; margin-right: 8px;">
                     <button type="submit" class="btn btn-sm btn-warning" title="Reject">
                         <i class="fas fa-times"></i> Reject
@@ -89,7 +89,7 @@
             {% endif %}
             {% if referenced.content %}
             <p>{{ referenced.content }}</p>
-            <form method="post" action="{{ url_for('moderation_action', action='delete_post', report_id=report.reportId) }}"
+            <form method="post" action="{{ url_for('moderation.moderation_action', action='delete_post', report_id=report.reportId) }}"
                 class="d-inline-block ms-2">
                 <button type="submit" class="btn btn-sm btn-danger" title="Delete Post">
                     <i class="fas fa-trash"></i> Delete Post
@@ -112,7 +112,7 @@
                 {% endif %}
             </p>
             <p>{{ referenced.commentContent }}</p>
-            <form method="post" action="{{ url_for('moderation_action', action='delete_comment', report_id=report.reportId) }}"
+            <form method="post" action="{{ url_for('moderation.moderation_action', action='delete_comment', report_id=report.reportId) }}"
                 class="d-inline-block ms-2">
                 <button type="submit" class="btn btn-sm btn-danger" title="Delete Comment">
                     <i class="fas fa-trash"></i> Delete Comment
@@ -131,7 +131,7 @@
             {% if referenced.disabledUntil and referenced.disabledUntil > now %}
             <p><strong>Disabled until: </strong> {{ referenced.disabledUntil }}</p>
             {% endif %}
-            <form method="post" action="{{ url_for('moderation_action', action='disable_user', report_id=report.reportId) }}"
+            <form method="post" action="{{ url_for('moderation.moderation_action', action='disable_user', report_id=report.reportId) }}"
                 class="d-flex align-items-center gap-2 mt-2">
                 <label for="disable_days" class="me-2 mb-0"><strong>Disable user for:</strong></label>
                 <select name="disable_days" id="disable_days" class="form-select form-select-sm w-auto me-2">
@@ -147,7 +147,7 @@
     <div class="alert alert-warning">The target {{ referenced_type }} was not found. It may have been deleted.</div>
     {% endif %}
 
-    <a href="{{ url_for('moderation') }}" class="btn btn-secondary mt-3">Back to Moderation</a>
+    <a href="{{ url_for('moderation.moderation') }}" class="btn btn-secondary mt-3">Back to Moderation</a>
     <!-- Confirmation Modal -->
     <div class="modal fade" id="actionConfirmModal" tabindex="-1" aria-labelledby="actionConfirmModalLabel"
         aria-hidden="true">

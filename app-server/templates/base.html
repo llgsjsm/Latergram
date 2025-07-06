@@ -151,7 +151,7 @@
           <li class="nav-item">
             <a
               class="nav-link{% if request.endpoint == 'home' %} active{% endif %}"
-              href="{{ url_for('home') }}"
+              href="{{ url_for('main.home') }}"
             >
               <i class="fas fa-house"></i> Home
             </a>
@@ -167,14 +167,14 @@
           <li class="nav-item">
             <a
               class="nav-link{% if request.endpoint == 'create_post' %} active{% endif %}"
-              href="{{ url_for('create_post') }}"
+              href="{{ url_for('main.create_post') }}"
               ><i class="fas fa-plus"></i> Create Post</a
             >
           </li>
           <li class="nav-item">
             <a
               class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}"
-              href="{{ url_for('profile') }}"
+              href="{{ url_for('profile.profile') }}"
             >
               <span
                 id="main-nav-profile-pic"
@@ -212,7 +212,7 @@
           </li>
           {% endif %}
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}"
+            <a class="nav-link" href="{{ url_for('main.logout') }}"
               ><i class="fas fa-arrow-right-from-bracket"></i> Logout</a
             >
           </li>
@@ -220,7 +220,7 @@
         <form
           id="user-search-form"
           method="get"
-          action="{{ url_for('search') }}"
+          action="{{ url_for('main.search') }}"
           style="display: none; margin-top: 2rem"
           onsubmit="return false;"
         >

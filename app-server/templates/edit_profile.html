@@ -200,7 +200,7 @@
                         
                         <!-- Buttons -->
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('profile') }}" class="base-btn base-btn-secondary">
+                            <a href="{{ url_for('profile.profile') }}" class="base-btn base-btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Back to Profile
                             </a>
                             <button type="submit" class="base-btn base-btn-primary">
@@ -385,7 +385,7 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
     }
     
     // Submit the form
-    fetch('{{ url_for("change_password") }}', {
+    fetch('{{ url_for("main.change_password") }}', {
         method: 'POST',
         body: formData
     })
@@ -491,7 +491,7 @@ document.getElementById('deleteAccountForm').addEventListener('submit', function
     formData.append('confirm_deletion', confirmDeletion);
     
     // Submit the form
-    fetch('{{ url_for("delete_account") }}', {
+    fetch('{{ url_for("main.delete_account") }}', {
         method: 'POST',
         body: formData
     })
@@ -500,7 +500,7 @@ document.getElementById('deleteAccountForm').addEventListener('submit', function
         if (data.success) {
             alert('Account deleted successfully. You will be redirected to the login page.');
             // Redirect to login page after successful deletion
-            window.location.href = '{{ url_for("login") }}';
+            window.location.href = '{{ url_for("main.login") }}';
         } else {
             alert('Error: ' + data.error);
         }
@@ -665,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const removeBtn = document.getElementById('removeProfilePicBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', function() {
-            fetch('{{ url_for("remove_profile_picture") }}', {
+            fetch('{{ url_for("main.remove_profile_picture") }}', {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',

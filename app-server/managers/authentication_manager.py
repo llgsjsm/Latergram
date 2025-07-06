@@ -115,7 +115,6 @@ class AuthenticationManager:
         """Validate data and prepare for registration OTP"""
         # Validate input
         validation_result = self.validate_user_data(username, email, password)
-        print(f"Validation result: {validation_result}")
         if not validation_result['valid']:
             return validation_result
         

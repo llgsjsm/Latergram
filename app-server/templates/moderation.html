@@ -27,7 +27,7 @@
                             {% for report in reports %}
                             <tr>
                                 <td>
-                                    <a class="text-decoration-none fw-bold"  href="{{ url_for('report_detail', report_id=report.reportId) }}">
+                                    <a class="text-decoration-none fw-bold"  href="{{ url_for('moderation.report_detail', report_id=report.reportId) }}">
                                         {{ report.reportId }}
                                     </a>
                                 </td>
@@ -62,26 +62,26 @@
                                 <td>
                                     <div class="btn-group" role="group">
                                         {% if report.status == 'Pending' %}
-                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation_action', action='review', report_id=report.reportId) }}"
+                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation.moderation_action', action='review', report_id=report.reportId) }}"
                                             style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-primary" title="Review">
                                                 <i class="fas fa-eye"></i> Review
                                             </button>
                                         </form>
-                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation_action', action='reject', report_id=report.reportId) }}"
+                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation.moderation_action', action='reject', report_id=report.reportId) }}"
                                             style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-warning" title="Reject">
                                                 <i class="fas fa-times"></i> Reject
                                             </button>
                                         </form>
                                         {% elif report.status == 'UnderReview' %}
-                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation_action', action='resolve', report_id=report.reportId) }}"
+                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation.moderation_action', action='resolve', report_id=report.reportId) }}"
                                             style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-success" title="Resolve">
                                                 <i class="fas fa-check"></i> Resolve
                                             </button>
                                         </form>
-                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation_action', action='reject', report_id=report.reportId) }}"
+                                        <form method="post" style="display:inline; margin-right: 8px;" action="{{ url_for('moderation.moderation_action', action='reject', report_id=report.reportId) }}"
                                             style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-warning" title="Reject">
                                                 <i class="fas fa-times"></i> Reject
@@ -128,7 +128,7 @@
                         <tr>
                             <td>
                                 <a class="text-decoration-none fw-bold"
-                                    href="{{ url_for('report_detail', report_id=report.reportId) }}">
+                                    href="{{ url_for('moderation.report_detail', report_id=report.reportId) }}">
                                     {{ report.reportId }}
                                 </a>
                             </td>
@@ -182,7 +182,7 @@
                         {% if paginated_reports.has_prev %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=paginated_reports.prev_num, log_page=application_log.page) }}#report-history">Previous</a>                            ">Previous</a>
+                            href="{{ url_for('moderation.moderation', page=paginated_reports.prev_num, log_page=application_log.page) }}#report-history">Previous</a>                            ">Previous</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link  bg-dark text-light">Previous</span></li>
@@ -190,13 +190,13 @@
                         {% for p in range(start_page, end_page + 1) %}
                         <li class="page-item {% if paginated_reports.page == p %}active{% endif %}">
                             <a class="page-link bg-dark text-light"
-                                href="{{ url_for('moderation', page=p, log_page=application_log.page) }}#report-history">{{ p }}</a>
+                                href="{{ url_for('moderation.moderation', page=p, log_page=application_log.page) }}#report-history">{{ p }}</a>
                         </li>
                         {% endfor %}
                         {% if paginated_reports.has_next %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light" 
-                            href="{{ url_for('moderation', page=paginated_reports.next_num, log_page=application_log.page) }}#report-history">Next</a>
+                            href="{{ url_for('moderation.moderation', page=paginated_reports.next_num, log_page=application_log.page) }}#report-history">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-light">Next</span></li>
@@ -262,7 +262,7 @@
                         {% if application_log.has_prev %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light"
-                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=application_log.prev_num) }}#application-log">Previous</a>
+                            href="{{ url_for('moderation.moderation', page=paginated_reports.page, log_page=application_log.prev_num) }}#application-log">Previous</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Previous</span></li>
@@ -270,13 +270,13 @@
                         {% for p in range(start_page, end_page + 1) %}
                         <li class="page-item {% if application_log.page == p %}active{% endif %}">
                             <a class="page-link bg-dark text-light"
-                                href="{{ url_for('moderation', page=paginated_reports.page, log_page=p) }}#application-log">{{ p }}</a>
+                                href="{{ url_for('moderation.moderation', page=paginated_reports.page, log_page=p) }}#application-log">{{ p }}</a>
                         </li>
                         {% endfor %}
                         {% if application_log.has_next %}
                         <li class="page-item">
                             <a class="page-link bg-dark text-light"
-                            href="{{ url_for('moderation', page=paginated_reports.page, log_page=application_log.next_num) }}#application-log">Next</a>
+                            href="{{ url_for('moderation.moderation', page=paginated_reports.page, log_page=application_log.next_num) }}#application-log">Next</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link bg-dark text-secondary">Next</span></li>

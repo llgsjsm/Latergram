@@ -13,7 +13,7 @@
 
     <!-- Login Form -->
     <div class="container form-container">
-      <form method="POST" action="{{ url_for('login') }}">
+      <form method="POST" action="{{ url_for('main.login') }}">
         <!-- Email Field -->
         <div class="mb-4 login-text-field">
           <label for="email" class="form-label">Email</label>
@@ -30,7 +30,7 @@
             </span>
           </div>
 
-          <a href="{{ url_for('reset_password_portal') }}" id="forget-password" style="color: var(--color-secondary-text); margin-top: 10px; display: block;">Forget Password?</a>
+          <a href="{{ url_for('main.reset_password_portal') }}" id="forget-password" style="color: var(--color-secondary-text); margin-top: 10px; display: block;">Forget Password?</a>
         </div>
 
         {% include 'includes/otp.html' %}
@@ -52,7 +52,7 @@
         <!-- Sign Up Link -->
         <p id="signup-link">
           Don't have an account?
-          <a href="{{ url_for('register') }}" style="color: var(--color-primary)">Sign Up</a>
+          <a href="{{ url_for('main.register') }}" style="color: var(--color-primary)">Sign Up</a>
         </p>
       </form>
       

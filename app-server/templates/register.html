@@ -43,7 +43,7 @@
                     <button type="submit" class="btn btn-login">Sign Up</button>
                 </div>
                 <p>Have an account?
-                    <a href="{{ url_for('login') }}" style="color: var(--color-primary);">Login</a>
+                    <a href="{{ url_for('main.login') }}" style="color: var(--color-primary);">Login</a>
                 </p>
             </form>
             <div id="register-message"></div>
@@ -75,7 +75,7 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
-        fetch('{{ url_for("register") }}', {
+        fetch('{{ url_for("main.register") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password, "g-recaptcha-response": recaptchaResponse })
