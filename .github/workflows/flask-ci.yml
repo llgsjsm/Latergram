@@ -45,8 +45,8 @@ jobs:
         DB_NAME=${{ secrets.DB_NAME }}
         FILE_LOCATION=${{ secrets.FILE_LOCATION }} 
         BUCKET=${{ secrets.BUCKET }}
-        IS_TESTING=True
-        PLAYWRIGHT=True
+        IS_TESTING=true
+        PLAYWRIGHT=true
         EOF
 
     - name: Create Firebase Key

@@ -15,13 +15,16 @@ def page(browser):
     yield page
     context.close()
 
-
 def test_login_success(page):
     page.goto("http://localhost:8080/login")
     page.fill('input[name="email"]', 'playwright@latergram.com')
     page.fill('input[name="password"]', 'latergram-is-playwright')
     page.click('button[type=\"submit\"]')
+    print("Current URL:", page.url)
+    print("Page title:", page.title())
+    print("Body text:", page.inner_text("body"))
     page.wait_for_url("**/home")
+    print(page.content())
     assert "/home" in page.url
     expect(page.locator("text=Welcome")).to_be_visible()
 
@@ -30,7 +33,11 @@ def test_login_failure(page):
     page.fill('input[name="email"]', 'fakeuser@example.com')
     page.fill('input[name="password"]', 'wrongpass')
     page.click('button[type=\"submit\"]')
+    print("Current URL:", page.url)
+    print("Page title:", page.title())
+    print("Body text:", page.inner_text("body"))
     page.wait_for_url("**/login")
+    print(page.content())
     assert "/login" in page.url
     expect(page.locator("text=Error logging in. Try again.")).to_be_visible()
 
