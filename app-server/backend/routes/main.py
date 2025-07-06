@@ -26,16 +26,6 @@ ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png'}
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
-
-def is_allowed_file_secure(file):
-    filename = secure_filename(file.filename)
-    ext = filename.rsplit('.', 1)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return False
-    mime = magic.from_buffer(file.read(2048), mime=True)
-    file.seek(0)
-    return mime in ALLOWED_MIME_TYPES
-
 ######################
 ### Main functions ###
 ######################
@@ -263,6 +253,15 @@ def logout():
         
     flash('You have been logged out.', 'info')
     return redirect(url_for('main.login'))
+
+def is_allowed_file_secure(file):
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({'success': False, 'error': 'Invalid file type. Allowed types: jpg, png'}), 400
+    mime = magic.from_buffer(file.read(2048), mime=True)
+    file.seek(0)
+    return mime in ALLOWED_MIME_TYPES
 
 @main_bp.route('/create-post', methods=['GET', 'POST'])
 def create_post():
