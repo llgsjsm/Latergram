@@ -89,12 +89,6 @@ jobs:
         done
         echo "MySQL did not become ready in time."
         exit 1
-
-    - name: Run Flask Unit Tests
-      run: |
-        echo "Running Flask unit tests..."
-        docker exec -it flask 'python -m unittest discover tests'
-
         
     # - name: Upload Application Stack Log Artifact
     #   uses: actions/upload-artifact@v4

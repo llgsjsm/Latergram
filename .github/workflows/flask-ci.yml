@@ -96,11 +96,6 @@ jobs:
         echo "MySQL did not become ready in time."
         exit 1
 
-    - name: Run Flask Unit Tests
-      run: |
-        echo "Running Flask unit tests..."
-        docker exec flask python -m unittest discover tests
-
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v

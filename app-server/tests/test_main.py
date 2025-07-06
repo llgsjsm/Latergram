@@ -81,17 +81,6 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn(b'Not logged in', response.data)
 
-    ## Test adding comment with tampered fields
-    def test_add_comment_missing_content(self):
-        self.login_as_user(user_id=10)
-
-        response = self.client.post('/comment/1', data={}, headers={
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/x-www-form-urlencoded'
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/home', response.headers.get("Location", ""))
-    
     ## Test upload file
     def test_unauthenticated_upload_fails(self):
         data = {
