@@ -34,11 +34,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y docker-compose
 
-    - name: Create Firebase Key
-      run: |
-        mkdir -p app-server/backend
-        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
-
     - name: Generate Flask .env files
       run: |
         mkdir -p app-server
@@ -48,7 +43,7 @@ jobs:
         DB_HOST=${{ secrets.DB_HOST }}
         DB_PORT=${{ secrets.DB_PORT }}
         DB_NAME=${{ secrets.DB_NAME }}
-        FILE_LOCATION=${{ secrets.FILE_LOCATION }}
+        FILE_LOCATION=${{ secrets.FILE_LOCATION }} 
         BUCKET=${{ secrets.BUCKET }}
         IS_TESTING=True
         EOF
@@ -56,6 +51,7 @@ jobs:
     - name: Create Firebase Key
       run: |
         echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
+        ls -l app-server/
 
     - name: Generate .env files
       run: |

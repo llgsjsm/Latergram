@@ -41,6 +41,7 @@ def create_app(test_config=None):
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
     # Database connection pool optimizations
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_size': 10,
