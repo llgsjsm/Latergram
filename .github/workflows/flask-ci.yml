@@ -46,6 +46,7 @@ jobs:
         FILE_LOCATION=${{ secrets.FILE_LOCATION }} 
         BUCKET=${{ secrets.BUCKET }}
         IS_TESTING=True
+        PLAYWRIGHT=True
         EOF
 
     - name: Create Firebase Key
@@ -113,6 +114,7 @@ jobs:
       run: |
         echo "Running Playwright tests..."
         docker exec flask pip install pytest playwright
+        docker exec flask playwright install-deps
         docker exec flask python -m playwright install
         docker exec flask pytest tests/test_playwright_ui.py
 

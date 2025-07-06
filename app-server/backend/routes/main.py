@@ -24,6 +24,7 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png'}
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+# Check if Playwright is enabled, default to False
 PLAYWRIGHT = os.getenv("PLAYWRIGHT", "false").lower() == "true"
 
 ######################
