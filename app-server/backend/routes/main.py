@@ -10,7 +10,7 @@ from backend.firebase_utils import ensure_firebase_initialized
 from datetime import datetime, timedelta, timezone
 from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
-import uuid, re
+import uuid, re, magic
 from firebase_admin import storage
 from backend.limiter import limiter
 
@@ -21,16 +21,20 @@ feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
-ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
-ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png', 'image/gif'}
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png'}
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 
 
-def is_allowed_file(file):
+def is_allowed_file_secure(file):
     filename = secure_filename(file.filename)
     ext = filename.rsplit('.', 1)[-1].lower()
-    return ext in ALLOWED_EXTENSIONS and file.content_type in ALLOWED_MIME_TYPES
+    if ext not in ALLOWED_EXTENSIONS:
+        return False
+    mime = magic.from_buffer(file.read(2048), mime=True)
+    file.seek(0)
+    return mime in ALLOWED_MIME_TYPES
 
 ######################
 ### Main functions ###
@@ -294,7 +298,7 @@ def create_post():
                 return jsonify({'success': False, 'error': f'Image is too large. Max size is {MAX_IMAGE_SIZE_MB}MB'}), 400
             image_file.seek(0)
 
-            if not is_allowed_file(image_file):
+            if not is_allowed_file_secure(image_file):
                 log_to_splunk("Create Post", "Post creation failed - invalid image type", username=db.session.get(User, session['user_id']).username)
                 return jsonify({'success': False, 'error': 'Invalid image format. Allowed: jpg, png'}), 400
             
