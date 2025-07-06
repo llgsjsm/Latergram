@@ -101,8 +101,9 @@ jobs:
     - name: Run Flask Unit Tests
       run: |
         echo "Running Flask unit tests..."
-        docker exec -it flask python -m unittest discover tests
-        
+        docker exec flask python -m unittest discover tests
+
+
     - name: Teardown
       if: always()
       run: docker-compose -f docker-compose.ci.yml down -v

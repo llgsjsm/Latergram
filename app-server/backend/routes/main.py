@@ -32,7 +32,7 @@ PLAYWRIGHT = os.getenv("PLAYWRIGHT", "false").lower() == "true"
 ######################
 @main_bp.route('/')
 def hello_world():
-    log_to_splunk("Landing","Browsed to landing page")
+    log_to_splunk("Landing","Browsed to landing page.")
     return redirect(url_for('main.home'))
 
 @main_bp.route('/home')
