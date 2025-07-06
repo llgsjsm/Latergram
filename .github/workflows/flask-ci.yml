@@ -33,7 +33,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y docker-compose
-
+  
     - name: Generate Flask .env files
       run: |
         mkdir -p app-server
@@ -100,6 +100,13 @@ jobs:
       run: |
         echo "Running Flask unit tests..."
         docker exec flask python -m unittest discover tests
+      
+    - name: Run Playwright Tests
+      run: |
+        echo "Running Playwright tests..."
+        docker exec flask         pip install pytest playwright
+        docker exec flask         playwright install
+        docker exec flask         pytest tests/test_playwright_ui.py --headless --browser=chromium --base-url=http://localhost:8080
 
     - name: Teardown
       if: always()
