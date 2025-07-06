@@ -174,7 +174,7 @@ def login():
                             session['mod_id'] = result['moderator']['mod_id']
                             session['mod_level'] = result['moderator']['mod_level']
                             flash('Login successful!', 'success')
-                            log_to_splunk("Login", "Moderator logged in", username=result['user']['username'])
+                            log_to_splunk("Login", "Moderator logged in", username=result['moderator']['username'])
                             return redirect(url_for('moderation.moderation'))
                         else:
                             session['user_id'] = result['user']['user_id']

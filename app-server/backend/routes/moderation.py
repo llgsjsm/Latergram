@@ -69,7 +69,7 @@ def report_detail(report_id):
         report=report,
         referenced=referenced,
         referenced_type=referenced_type,
-        now=datetime.now(timezone.utc)
+        now=datetime.utcnow()
     )
 
 @moderation_bp.route('/action/<action>/<int:report_id>', methods=['POST'])
@@ -90,7 +90,7 @@ def moderation_action(action, report_id):
         # Get the referenced user from the report
         report = moderator_manager.get_report_by_id(report_id, session['mod_level'])
         if report and report.targetType == "User":
-            result = moderator_manager.disable_user(report.targetId, days, session['mod_id'], session['mod_level'])
+            result = moderator_manager.disable_user(report_id, report.targetId, days, session['mod_id'], session['mod_level'])
     elif action == 'delete_post':
         result = moderator_manager.remove_reported_post(report_id, session['mod_level'])
     elif action == 'delete_comment':
