@@ -10,7 +10,7 @@ from backend.routes.delete_post import delete_post_bp
 from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
-from backend.limiter import create_limiter
+from backend.limiter import init_limiter
 
 import re, os, uuid
 from dotenv import load_dotenv 
@@ -83,8 +83,7 @@ def create_app():
 
     # Redis Rate limiting (uncommented and fixed)
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
-    limiter = create_limiter(storage_uri=storage_uri)
-    limiter.init_app(app)
+    init_limiter(app, storage_uri=storage_uri)
     return app
 
 
