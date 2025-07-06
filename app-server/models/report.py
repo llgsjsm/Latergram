@@ -1,5 +1,4 @@
 from .database import db
-from .enums import ReportStatus
 import datetime
 
 class Report(db.Model):

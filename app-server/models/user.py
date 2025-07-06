@@ -1,6 +1,5 @@
 from .base_user import BaseUserModel
 from .database import db
-from .enums import Role, VisibilityType
 import datetime
 
 class User(BaseUserModel):
