@@ -21,6 +21,17 @@ feed_manager = get_feed_manager()
 profile_manager = get_profile_manager()
 post_manager = get_post_manager()
 
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
+ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png', 'image/gif'}
+MAX_IMAGE_SIZE_MB = 5
+MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+
+def is_allowed_file(file):
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower()
+    return ext in ALLOWED_EXTENSIONS and file.content_type in ALLOWED_MIME_TYPES
+
 ######################
 ### Main functions ###
 ######################
@@ -91,6 +102,7 @@ def home():
     return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
 
 @main_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit('7 per minute')
 def login():
     log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
@@ -275,6 +287,17 @@ def create_post():
         # Handle file upload
         image_file = request.files.get('image')
         if image_file and image_file.filename != '':
+            image_file.seek(0, 2)  # move to end
+            if image_file.tell() > MAX_IMAGE_SIZE_MB * 1024 * 1024:
+                image_file.seek(0)
+                log_to_splunk("Create Post", "Post creation failed - image too large", username=db.session.get(User, session['user_id']).username)
+                return jsonify({'success': False, 'error': f'Image is too large. Max size is {MAX_IMAGE_SIZE_MB}MB'}), 400
+            image_file.seek(0)
+
+            if not is_allowed_file(image_file):
+                log_to_splunk("Create Post", "Post creation failed - invalid image type", username=db.session.get(User, session['user_id']).username)
+                return jsonify({'success': False, 'error': 'Invalid image format. Allowed: jpg, png'}), 400
+            
             filename = secure_filename(image_file.filename)
             blob = storage.bucket().blob(f'posts/{uuid.uuid4()}_{filename}')
             blob.upload_from_file(image_file, content_type=image_file.content_type)
@@ -283,12 +306,6 @@ def create_post():
         else:
             log_to_splunk("Create Post", "Post created failed", username=db.session.get(User, session['user_id']).username)
             return jsonify({'success': False, 'error': 'Image upload failed or no image provided.'}), 400
-
-        # Check if image is safe
-        # is_image_safe_result = is_image_safe(image_url)
-        # if not is_image_safe_result:
-        #     log_to_splunk("Create Post", "Post creation failed - unsafe image", username=db.session.get(User, session['user_id']).username)
-        #     return jsonify({'success': False, 'error': 'Image is not safe.'}), 400
 
         # Create likes record
         result = db.session.execute(
