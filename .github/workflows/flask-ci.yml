@@ -51,6 +51,7 @@ jobs:
     - name: Create Firebase Key
       run: |
         echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
+        cat ${{ secrets.FILE_LOCATION }}
         ls -l app-server/
 
     - name: Generate .env files
@@ -107,7 +108,6 @@ jobs:
       run: |
         echo "Running Flask unit tests..."
         docker exec flask python -m unittest discover tests
-
 
     - name: Teardown
       if: always()
