@@ -5,7 +5,7 @@ from .moderator import Moderator
 from .post import Post
 from .comment import Comment
 from .report import Report
-from .enums import ReportStatus, VisibilityType
+from .enums import ReportStatus, VisibilityType, ReportTarget, UserDisableDays, LogActionTypes
 
 __all__ = [
     "db",
@@ -16,5 +16,8 @@ __all__ = [
     "Comment",
     "Report",
     "ReportStatus",
-    "VisibilityType"
+    "VisibilityType",
+    "ReportTarget",
+    "UserDisableDays",
+    "LogActionTypes"
 ] 
