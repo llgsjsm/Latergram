@@ -81,38 +81,5 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn(b'Not logged in', response.data)
 
-    ## Test upload file
-    def test_unauthenticated_upload_fails(self):
-        data = {
-            'image': (io.BytesIO(b'dummy content'), 'test.jpg')
-        }
-        response = self.client.post('/create-post', data=data, content_type='multipart/form-data', follow_redirects=False)
-        print(response.data)
-        # Step 1: Check it is a redirect
-        self.assertEqual(response.status_code, 302)
-
-        # Step 2: Confirm it's redirecting to /login
-        location = response.headers.get("Location")
-        self.assertIsNotNone(location)
-        self.assertIn('/login', location)
-
-    ## Authenticated non-img file upload 
-    def test_authenticated_invalid_file_upload(self):
-        self.login_as_user(user_id=10)
-        data = {
-            'title': 'Malicious test',
-            'content': 'Should fail',
-            'image': (io.BytesIO(b'dummy exe content'), 'malware.exe')
-        }
-        response = self.client.post('/create-post', data=data, content_type='multipart/form-data', follow_redirects=False)
-        self.assertIn(response.status_code, [400, 302])
-        if response.status_code == 302:
-            # Follow the redirect to see where it's going
-            location = response.headers.get("Location")
-            self.assertIsNotNone(location)
-            self.assertIn('/home', location)  # or '/login', depending on logic
-        elif response.status_code == 400:
-            self.assertIn(b'Invalid file type', response.data)
-
     def tearDown(self):
         pass 

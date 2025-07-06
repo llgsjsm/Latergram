@@ -51,7 +51,6 @@ def create_app(test_config=None):
 
     db.init_app(app)
     bcrypt.init_app(app)
-
     if not IS_TESTING:
         if FILE_LOCATION and BUCKET:
             try:

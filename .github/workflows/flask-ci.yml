@@ -108,6 +108,12 @@ jobs:
       run: |
         echo "Running Flask unit tests..."
         docker exec flask python -m unittest discover tests
+    
+    - name: Run Playwright Tests
+      run: |
+        echo "Running Playwright tests..."
+        docker exec flask python -m playwright install
+        docker exec flask pytest tests/test_playwright_ui.py
 
     - name: Teardown
       if: always()
