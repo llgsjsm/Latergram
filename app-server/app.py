@@ -172,6 +172,7 @@ def reset_password_portal():
     return render_template('reset_password.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit('5 per minute')
 def login():
     log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
