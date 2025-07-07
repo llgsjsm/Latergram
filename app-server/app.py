@@ -29,8 +29,6 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
-    csrf.init_app(app)
-
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
