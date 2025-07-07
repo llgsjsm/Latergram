@@ -33,7 +33,7 @@
           </div>
           <div class="collapse" id="mobileFollowRequests">
             <div class="card-body">
-              {% for request in pending_requests %} {{ request }}
+              {% for request in pending_requests %}
               <div
                 class="mb-3 request-item"
                 data-requester-id="{{ request.requester_id }}"
@@ -45,7 +45,7 @@
                 <div
                   class="d-flex align-items-center justify-content-between flex-wrap"
                 >
-                  <div class="d-flex align-items-center mb-2 mb-sm-0">
+                  <div class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1">
                     {% if request.profile_picture %}
                     <img
                       src="{{ request.profile_picture }}"
@@ -68,16 +68,21 @@
                       <i class="fas fa-user"></i>
                     </span>
                     {% endif %}
-                    <div>
+                    <div class="flex-grow-1">
                       <a
                         href="{{ url_for('profile.profile', user_id=request.requester_id) }}"
                         class="text-decoration-none"
                       >
                         <strong>{{ request.username }}</strong>
                       </a>
+                      {% if request.bio %}
+                      <div class="text-muted small">
+                        {{ request.bio[:40] }}{% if request.bio|length > 40 %}...{% endif %}
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
-                  <div class="d-flex gap-2">
+                  <div class="d-flex gap-2 flex-shrink-0">
                     <button
                       class="btn btn-primary btn-sm request-btn"
                       data-action="accept"
