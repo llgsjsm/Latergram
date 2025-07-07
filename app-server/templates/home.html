@@ -430,7 +430,7 @@
 </div>
 
 {% include 'includes/report_modal.html' %}
-
+<script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
   // Current user info for JavaScript
   const currentUser = {
@@ -615,7 +615,7 @@
         const url =
           action === "like" ? `/api/like/${postId}` : `/api/unlike/${postId}`;
 
-        fetch(url, {
+        csrfFetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -673,7 +673,7 @@
 
         if (!content) return;
 
-        fetch(formAction, {
+        csrfFetch(formAction, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -824,7 +824,7 @@
     const title = titleInput ? titleInput.value.trim() : "";
     const content = captionInput ? captionInput.value.trim() : "";
 
-    fetch(`/api/edit-post/${postId}`, {
+    csrfFetch(`/api/edit-post/${postId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content }),
@@ -866,7 +866,7 @@
       return;
     }
 
-    fetch(`/edit_comment/${commentId}`, {
+    csrfFetch(`/edit_comment/${commentId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -909,7 +909,7 @@
   // Function to delete comment
   function deleteComment(commentId, postId) {
     if (confirm("Are you sure you want to delete this comment?")) {
-      fetch(`/delete_comment/${commentId}`, {
+      csrfFetch(`/delete_comment/${commentId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1200,7 +1200,7 @@
       const requesterId = this.dataset.requesterId;
       const requestItem = this.closest(".request-item");
 
-      fetch(`/api/follow-request/respond/${requesterId}`, {
+      csrfFetch(`/api/follow-request/respond/${requesterId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

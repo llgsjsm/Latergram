@@ -6,7 +6,7 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
 
     if (otpType === "password_reset") {
         // Moderator password reset OTP verification
-        fetch("/verify-reset-otp", {
+        csrfFetch("/verify-reset-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -32,7 +32,7 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         });
     } else if (otpType === "register") {
         // Registration OTP verification
-        fetch("/verify-register-otp", {
+        csrfFetch("/verify-register-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -63,7 +63,7 @@ document.getElementById("verify-otp-btn").addEventListener("click", function () 
         });
     } else {
         // Try user login OTP verification first
-        fetch("/verify-login-otp", {
+        csrfFetch("/verify-login-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -95,7 +95,7 @@ document.getElementById("resend-otp").addEventListener("click", function (e) {
     const otpType = document.getElementById("otp-type").value;
 
     if (otpType === "password_reset") {
-        fetch("/forgot-password", {
+        csrfFetch("/forgot-password", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -117,7 +117,7 @@ document.getElementById("resend-otp").addEventListener("click", function (e) {
             showMessage("An error occurred", "error");
         });
     } else {
-        fetch("/resend-login-otp", {
+        csrfFetch("/resend-login-otp", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

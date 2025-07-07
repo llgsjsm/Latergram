@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template, request, jsonify, flash
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -17,13 +17,20 @@ import os
 from dotenv import load_dotenv 
 from models import db
 from managers.authentication_manager import bcrypt
+
 import firebase_admin
 from firebase_admin import credentials, storage, _DEFAULT_APP_NAME
+from flask_wtf import CSRFProtect
+from flask_wtf.csrf import CSRFError
+
+csrf = CSRFProtect()
 
 def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
+    csrf.init_app(app)
+
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
@@ -82,8 +89,21 @@ def create_app(test_config=None):
     init_limiter(app, storage_uri=storage_uri)
     return app
 
+
 # Create the app instance
 app = create_app()
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    # HTML
+    if request.accept_mimetypes.accept_html:
+        flash('Security token mismatch. Please refresh and try again.', 'danger')
+        return render_template('login.html'), 400
+
+    # JSON/AJAX 
+    return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
+
+
 
 if __name__ == '__main__':
     with app.app_context():

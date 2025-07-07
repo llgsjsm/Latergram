@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 import uuid, re, magic, os
 from firebase_admin import storage
 from backend.limiter import limiter
+from flask_wtf.csrf import generate_csrf
 
 main_bp = Blueprint('main', __name__)
 auth_manager = get_auth_manager()
@@ -94,6 +95,12 @@ def home():
     current_user = User.query.filter_by(userId=session['user_id']).first()
 
     return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
+
+@main_bp.route('/get-csrf-token', methods=['GET'])
+def get_csrf_token():
+    token = generate_csrf()
+    return jsonify({'csrf_token': token})
+
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit('7 per minute')
