@@ -3,7 +3,7 @@ from managers import get_auth_manager, get_feed_manager, get_profile_manager, ge
 from sqlalchemy import text, or_
 from models import db, User, Moderator, Post, Comment, Report
 from backend.splunk_utils import log_to_splunk
-from backend.captcha_utils import verify_recaptcha
+from backend.captcha_utils import IS_TESTING, verify_recaptcha
 from backend.profanity_helper import check_profanity
 from backend.logging_utils import log_action
 from backend.firebase_utils import ensure_firebase_initialized
@@ -281,7 +281,9 @@ def is_allowed_file_secure(file):
 
 @main_bp.route('/create-post', methods=['GET', 'POST'])
 def create_post():
-    ensure_firebase_initialized()
+    if not IS_TESTING:
+        ensure_firebase_initialized()
+    
     # moderators cannot create posts
     if 'mod_id' in session:
         return redirect(url_for('moderation.moderator'))
