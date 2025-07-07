@@ -45,7 +45,9 @@
                 <div
                   class="d-flex align-items-center justify-content-between flex-wrap"
                 >
-                  <div class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1">
+                  <div
+                    class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1"
+                  >
                     {% if request.profile_picture %}
                     <img
                       src="{{ request.profile_picture }}"
@@ -77,7 +79,8 @@
                       </a>
                       {% if request.bio %}
                       <div class="text-muted small">
-                        {{ request.bio[:40] }}{% if request.bio|length > 40 %}...{% endif %}
+                        {{ request.bio[:40] }}{% if request.bio|length > 40
+                        %}...{% endif %}
                       </div>
                       {% endif %}
                     </div>
@@ -97,6 +100,91 @@
                     >
                       Decline
                     </button>
+                  </div>
+                </div>
+              </div>
+              {% if not loop.last %}
+              <hr class="my-2" />
+              {% endif %} {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Mobile People You Might Know Section - Only visible on smaller screens -->
+      {% if suggested_users %}
+      <div class="d-lg-none mb-4">
+        <div class="card">
+          <div
+            class="card-header"
+            data-bs-toggle="collapse"
+            data-bs-target="#mobileSuggestedUsers"
+            aria-expanded="false"
+            aria-controls="mobileSuggestedUsers"
+            style="cursor: pointer"
+          >
+            <div class="d-flex align-items-center justify-content-between">
+              <h6 class="mb-0">
+                <i class="fas fa-users me-2"></i>People you might know
+              </h6>
+              <i class="fas fa-chevron-down" id="mobile-suggested-chevron"></i>
+            </div>
+          </div>
+          <div class="collapse" id="mobileSuggestedUsers">
+            <div class="card-body">
+              {% for user in suggested_users[:3] %}
+              <div class="mb-3">
+                <div
+                  class="d-flex align-items-center justify-content-between flex-wrap"
+                >
+                  <div
+                    class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1"
+                  >
+                    {% if user.profilePicture %}
+                    <img
+                      src="{{ user.profilePicture }}"
+                      class="rounded-circle me-3"
+                      style="width: 42px; height: 42px; object-fit: cover"
+                      alt="Profile Picture"
+                    />
+                    {% else %}
+                    <span
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
+                      style="
+                        width: 42px;
+                        height: 42px;
+                        background: #23263a;
+                        color: #bfc7d5;
+                        font-size: 1.3rem;
+                        border: 2px solid #343a40;
+                      "
+                    >
+                      <i class="fas fa-user"></i>
+                    </span>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                      <a
+                        href="{{ url_for('profile.profile', user_id=user.userId) }}"
+                        class="text-decoration-none"
+                      >
+                        <strong>{{ user.username }}</strong>
+                      </a>
+                      {% if user.bio %}
+                      <div class="text-muted small">
+                        {{ user.bio[:40] }}{% if user.bio|length > 40 %}...{%
+                        endif %}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="flex-shrink-0">
+                    <a
+                      href="{{ url_for('profile.profile', user_id=user.userId) }}"
+                      class="btn btn-outline-primary btn-sm"
+                    >
+                      View
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1081,6 +1169,26 @@
       mobileRequestsCollapse.addEventListener("hide.bs.collapse", function () {
         chevronIcon.classList.remove("fa-chevron-up");
         chevronIcon.classList.add("fa-chevron-down");
+      });
+    }
+
+    // Mobile suggested users collapse handler
+    const mobileSuggestedCollapse = document.getElementById(
+      "mobileSuggestedUsers"
+    );
+    const suggestedChevronIcon = document.getElementById(
+      "mobile-suggested-chevron"
+    );
+
+    if (mobileSuggestedCollapse && suggestedChevronIcon) {
+      mobileSuggestedCollapse.addEventListener("show.bs.collapse", function () {
+        suggestedChevronIcon.classList.remove("fa-chevron-down");
+        suggestedChevronIcon.classList.add("fa-chevron-up");
+      });
+
+      mobileSuggestedCollapse.addEventListener("hide.bs.collapse", function () {
+        suggestedChevronIcon.classList.remove("fa-chevron-up");
+        suggestedChevronIcon.classList.add("fa-chevron-down");
       });
     }
   });
