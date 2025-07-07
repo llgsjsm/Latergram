@@ -1,12 +1,32 @@
+// async function csrfFetch(url, options = {}) {
+//   const res = await fetch('/get-csrf-token');
+//   const token = (await res.json()).csrf_token;
+
+//   options.headers = {
+//     ...options.headers,
+//     'Content-Type': 'application/json',
+//     'X-CSRFToken': token,
+//   };
+
+//   return fetch(url, options);
+// }
+
 async function csrfFetch(url, options = {}) {
   const res = await fetch('/get-csrf-token');
   const token = (await res.json()).csrf_token;
 
-  options.headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
+  const headers = {
     'X-CSRFToken': token,
+    ...options.headers
   };
 
-  return fetch(url, options);
+  // Only add Content-Type if body is JSON, not FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
 }

@@ -44,8 +44,8 @@ def create_app(test_config=None):
     FILE_LOCATION = os.environ.get('FILE_LOCATION','')
     # Default to false if not set. Set IS_TESTING to true for testing environments
     IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
-    if not IS_TESTING:
-        csrf.init_app(app)
+    # if not IS_TESTING:
+    #     csrf.init_app(app)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -60,6 +60,7 @@ def create_app(test_config=None):
     db.init_app(app)
     bcrypt.init_app(app)
     if not IS_TESTING:
+        csrf.init_app(app)
         if FILE_LOCATION and BUCKET:
             try:
                 if _DEFAULT_APP_NAME not in firebase_admin._apps:

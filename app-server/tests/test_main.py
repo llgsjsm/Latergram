@@ -1,10 +1,12 @@
 import unittest, io
+from urllib import response
 from app import create_app
+from unittest.mock import patch, MagicMock
 
 class MainRouteTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app({
-            'TESTING': True,
+            'IS_TESTING': True,
         })
         self.client = self.app.test_client()
 
@@ -47,7 +49,7 @@ class MainRouteTestCase(unittest.TestCase):
         response = self.client.get('/login')
         self.assertIn(response.status_code, [200, 404])
 
-    ## Force deletion of other posts with logging in
+    ## Force deletion of other posts with authentication
     def test_user_cannot_delete_others_post(self):
         self.login_as_user(user_id=8)
         response = self.client.post('/delete-post/5', json={}) 
@@ -55,7 +57,7 @@ class MainRouteTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 403)
         self.assertIn(response.status_code, [403, 404, 500])
 
-    ## Force browsing without logging in
+    ## Force browsing without authentication
     def test_force_browsing_moderator(self):
         response = self.client.get('/moderation/', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
@@ -75,11 +77,46 @@ class MainRouteTestCase(unittest.TestCase):
         else:
             self.assertEqual(response.status_code, 403, "Expected 403 Forbidden for non-moderator access")
 
-    ## Test adding a comment without logging in
+    ## Test adding a comment without authentication
     def test_add_comment_requires_login(self):
         response = self.client.post('/comment/1', data={'comment': 'Test comment'})
         self.assertEqual(response.status_code, 401)
         self.assertIn(b'Not logged in', response.data)
+        
+    @patch("backend.routes.main.storage")
+    @patch("backend.routes.main.db")
+    @patch("backend.routes.main.check_profanity", return_value=False)
+    @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
+    def test_create_post_unauthenticated(self, mock_db, mock_storage):
+        # ✅ Mock user lookup
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_db.session.get.return_value = mock_user
+
+        # ✅ Mock Firebase blob
+        mock_blob = MagicMock()
+        mock_blob.public_url = "https://mocked-url.com/image.jpg"
+        mock_storage.bucket.return_value.blob.return_value = mock_blob
+
+        # ✅ Mock insert into likes table
+        mock_result = MagicMock()
+        mock_result.lastrowid = 123
+        mock_db.session.execute.return_value = mock_result
+
+        # ✅ Simulate valid image upload
+        data = {
+            "title": "Unit Test Title",
+            "content": "This is test content",
+            "image": (io.BytesIO(b"fake image data"), "test.png", "image/jpeg")
+        }
+
+        response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=True)
+
+        print("Response:", response.status_code, response.data.decode())  # For verification
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Post created successfully", response.data)
+
+
 
     def tearDown(self):
         pass 

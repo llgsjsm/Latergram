@@ -274,7 +274,7 @@ def is_allowed_file_secure(file):
     filename = secure_filename(file.filename)
     ext = filename.rsplit('.', 1)[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        return jsonify({'success': False, 'error': 'Invalid file type. Allowed types: jpg, png'}), 400
+        return False
     mime = magic.from_buffer(file.read(2048), mime=True)
     file.seek(0)
     return mime in ALLOWED_MIME_TYPES
@@ -291,7 +291,6 @@ def create_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        # visibility = request.form.get('visibility', 'followers')
 
         if not title or not content:
             log_to_splunk("Create Post", "Post creation failed - missing title or content", username=db.session.get(User, session['user_id']).username)
