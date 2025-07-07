@@ -12,6 +12,7 @@ from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
 from backend.limiter import init_limiter
+from backend.firebase_utils import ensure_firebase_initialized
 
 import os
 from dotenv import load_dotenv 
@@ -71,6 +72,8 @@ def create_app(test_config=None):
                 bucket = storage.bucket()
             except Exception as e:
                 print(f"Error initializing Firebase: {e}")
+    else:
+        ensure_firebase_initialized()
 
     # Register blueprints
     app.register_blueprint(main_bp)    
