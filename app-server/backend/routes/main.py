@@ -3,7 +3,7 @@ from managers import get_auth_manager, get_feed_manager, get_profile_manager, ge
 from sqlalchemy import text, or_
 from models import db, User, Moderator, Post, Comment, Report
 from backend.splunk_utils import log_to_splunk
-from backend.captcha_utils import verify_recaptcha
+from backend.captcha_utils import IS_TESTING, verify_recaptcha
 from backend.profanity_helper import check_profanity
 from backend.logging_utils import log_action
 from backend.firebase_utils import ensure_firebase_initialized
@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 import uuid, re, magic, os
 from firebase_admin import storage
 from backend.limiter import limiter
+from flask_wtf.csrf import generate_csrf
 
 main_bp = Blueprint('main', __name__)
 auth_manager = get_auth_manager()
@@ -94,6 +95,12 @@ def home():
     current_user = User.query.filter_by(userId=session['user_id']).first()
 
     return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
+
+@main_bp.route('/get-csrf-token', methods=['GET'])
+def get_csrf_token():
+    token = generate_csrf()
+    return jsonify({'csrf_token': token})
+
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit('7 per minute')
@@ -267,14 +274,16 @@ def is_allowed_file_secure(file):
     filename = secure_filename(file.filename)
     ext = filename.rsplit('.', 1)[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        return jsonify({'success': False, 'error': 'Invalid file type. Allowed types: jpg, png'}), 400
+        return False
     mime = magic.from_buffer(file.read(2048), mime=True)
     file.seek(0)
     return mime in ALLOWED_MIME_TYPES
 
 @main_bp.route('/create-post', methods=['GET', 'POST'])
 def create_post():
-    ensure_firebase_initialized()
+    if not IS_TESTING:
+        ensure_firebase_initialized()
+    
     # moderators cannot create posts
     if 'mod_id' in session:
         return redirect(url_for('moderation.moderator'))
@@ -284,7 +293,6 @@ def create_post():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        # visibility = request.form.get('visibility', 'followers')
 
         if not title or not content:
             log_to_splunk("Create Post", "Post creation failed - missing title or content", username=db.session.get(User, session['user_id']).username)

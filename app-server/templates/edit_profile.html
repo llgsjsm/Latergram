@@ -326,6 +326,7 @@
 </div>
 
 <!-- Scripts -->
+<script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
 // Bio character counter
 document.getElementById('bio').addEventListener('input', function() {
@@ -385,7 +386,7 @@ document.getElementById('changePasswordForm').addEventListener('submit', functio
     }
     
     // Submit the form
-    fetch('{{ url_for("main.change_password") }}', {
+    csrfFetch('{{ url_for("main.change_password") }}', {
         method: 'POST',
         body: formData
     })
@@ -418,8 +419,8 @@ if (sendPasswordOtpBtn) {
         const originalText = this.innerHTML;
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         this.disabled = true;
-        
-        fetch('/api/send-password-change-otp', {
+
+        csrfFetch('/api/send-password-change-otp', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -491,7 +492,7 @@ document.getElementById('deleteAccountForm').addEventListener('submit', function
     formData.append('confirm_deletion', confirmDeletion);
     
     // Submit the form
-    fetch('{{ url_for("main.delete_account") }}', {
+    csrfFetch('{{ url_for("main.delete_account") }}', {
         method: 'POST',
         body: formData
     })
@@ -621,8 +622,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tempText.className = 'text-muted ms-2';
             tempText.textContent = 'Updating...';
             originalLabel.parentNode.appendChild(tempText);
-            
-            fetch('/update-otp-setting', {
+
+            csrfFetch('/update-otp-setting', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -665,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const removeBtn = document.getElementById('removeProfilePicBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', function() {
-            fetch('{{ url_for("main.remove_profile_picture") }}', {
+            csrfFetch('{{ url_for("main.remove_profile_picture") }}', {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -731,8 +732,8 @@ document.addEventListener('DOMContentLoaded', function() {
             sendEmailOtpBtn.disabled = true;
             const originalText = sendEmailOtpBtn.innerHTML;
             sendEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            
-            fetch('/api/send-email-update-otp', {
+
+            csrfFetch('/api/send-email-update-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -781,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalText = verifyEmailOtpBtn.innerHTML;
             verifyEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
             
-            fetch('/api/verify-email-update-otp', {
+            csrfFetch('/api/verify-email-update-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -845,8 +846,8 @@ document.addEventListener('DOMContentLoaded', function() {
             resendEmailOtpBtn.disabled = true;
             const originalText = resendEmailOtpBtn.innerHTML;
             resendEmailOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-            
-            fetch('/api/send-email-update-otp', {
+
+            csrfFetch('/api/send-email-update-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

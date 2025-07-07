@@ -58,6 +58,7 @@
     <script src="{{ url_for('static', filename='assets/js/auth.js') }}"></script>
     <script src="{{ url_for('static', filename='assets/js/otp.js') }}"></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 
     <script>
     
@@ -75,7 +76,7 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
-        fetch('{{ url_for("main.register") }}', {
+        csrfFetch('{{ url_for("main.register") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password, "g-recaptcha-response": recaptchaResponse })

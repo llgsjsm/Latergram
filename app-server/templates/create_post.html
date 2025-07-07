@@ -43,6 +43,7 @@
     </div>
   </div>
 </div>
+<script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
   function showNotification(message, type = "success") {
     const notification = document.createElement("div");
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const formData = new FormData(postForm);
 
-    fetch('/create-post', {
+    csrfFetch('/create-post', {
       method: 'POST',
       body: formData
     })

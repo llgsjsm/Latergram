@@ -43,7 +43,7 @@
     </div>
   </div>
 </div>
-
+<script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
   // --- Report Modal Functions ---
   function openReportModal(postId) {
@@ -104,7 +104,7 @@
         };
         console.log("Sending report data:", reportData);
 
-        fetch(`/api/report_post/${postId}`, {
+        csrfFetch(`/api/report_post/${postId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
