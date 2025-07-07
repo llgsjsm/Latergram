@@ -44,7 +44,10 @@ def create_app(test_config=None):
     DB_NAME = os.environ.get('DB_NAME', '')
     BUCKET = os.environ.get('BUCKET', '')
     FILE_LOCATION = os.environ.get('FILE_LOCATION','')
+    # Default to false if not set. Set IS_TESTING to true for testing environments
     IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
+    if not IS_TESTING:
+        csrf.init_app(app)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
