@@ -65,7 +65,8 @@
                     <h4 class="mb-0">Account</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="profileForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="csrf-token-input">
                         <div class="row mb-4" style="gap: 0;display: flex;align-items: flex-start;">
                             <div class="col-md-6">
                                 <div id="user-picture">
@@ -86,7 +87,7 @@
                                     </span>
                                     <div style="display: flex;flex-direction: column;">
                                         <span id="profile-pic-filename"></span>
-                                        <input type="file" id="profile-picture-input" name="profile_picture" accept="image/*" class="form-control mt-2" style="max-width: 250px; margin: 0 auto; display: none;" onchange="document.getElementById('profile-pic-filename').textContent = this.files.length ? this.files[0].name : '';">
+                                        <input type="file" id="profile-picture-input" name="profile_picture" accept="image/*" class="form-control mt-2" style="max-width: 250px; margin: 0 auto; display: none;" onchange="previewProfilePicture(this)">
                                         <small class="text-muted">Upload a new profile picture</small>
                                         {% if user.profilePicture %}
                                         <button type="button" class="btn btn-outline-danger btn-sm mt-2" id="removeProfilePicBtn" style="width: fit-content;">Remove Profile Picture</button>
@@ -328,6 +329,102 @@
 <!-- Scripts -->
 <script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
+// Profile picture preview function
+function previewProfilePicture(input) {
+    const file = input.files[0];
+    const filenameDisplay = document.getElementById('profile-pic-filename');
+    const previewContainer = document.getElementById('profile-pic-preview');
+    
+    if (file) {
+        // Update filename display with truncation for long names
+        let displayName = file.name;
+        if (displayName.length > 30) {
+            const extension = displayName.substring(displayName.lastIndexOf('.'));
+            const nameWithoutExt = displayName.substring(0, displayName.lastIndexOf('.'));
+            displayName = nameWithoutExt.substring(0, 25) + '...' + extension;
+        }
+        filenameDisplay.textContent = displayName;
+        filenameDisplay.style.fontSize = '0.9rem';
+        filenameDisplay.style.color = '#28a745';
+        filenameDisplay.title = file.name; // Show full name on hover
+        
+        // Check file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            filenameDisplay.textContent = '';
+            return;
+        }
+        
+        // Check file type
+        if (!file.type.match('image.*')) {
+            alert('Please select a valid image file');
+            input.value = '';
+            filenameDisplay.textContent = '';
+            return;
+        }
+        
+        // Create file reader for preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Find the current profile picture image
+            let profileImg = previewContainer.querySelector('.profile-pic-img');
+            
+            if (profileImg.tagName === 'IMG') {
+                // If it's already an img element, just update the src
+                profileImg.src = e.target.result;
+            } else {
+                // If it's a span (placeholder), replace with img
+                const newImg = document.createElement('img');
+                newImg.src = e.target.result;
+                newImg.alt = 'Profile Picture Preview';
+                newImg.className = 'rounded-circle mb-3 profile-pic-img';
+                newImg.style.cssText = 'width: 120px; height: 120px; object-fit: cover;';
+                
+                // Replace the span with the new img
+                profileImg.parentNode.replaceChild(newImg, profileImg);
+            }
+            
+            // Refresh CSRF token to prevent token mismatch errors
+            refreshCSRFToken();
+            
+            // Show a success message
+            showMessage('Profile picture preview updated! Don\'t forget to save changes.', 'success');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        filenameDisplay.textContent = '';
+    }
+}
+
+// Function to refresh CSRF token
+function refreshCSRFToken() {
+    // Fetch a fresh CSRF token
+    fetch('/api/get-csrf-token', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.csrf_token) {
+            // Update the hidden CSRF token field
+            const csrfInput = document.getElementById('csrf-token-input');
+            if (csrfInput) {
+                csrfInput.value = data.csrf_token;
+            }
+            
+            // Update any other CSRF token fields in the page
+            const allCsrfInputs = document.querySelectorAll('input[name="csrf_token"]');
+            allCsrfInputs.forEach(input => {
+                input.value = data.csrf_token;
+            });
+        }
+    })
+    .catch(error => {
+        console.log('Note: Could not refresh CSRF token automatically. If you encounter a security token mismatch, please refresh the page.');
+    });
+}
+
 // Bio character counter
 document.getElementById('bio').addEventListener('input', function() {
     const bioCount = document.getElementById('bio-count');
@@ -594,6 +691,28 @@ function showMessage(message, type) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Add form submission handler for better error handling
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                // Show loading state
+                const originalText = submitButton.innerHTML;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                submitButton.disabled = true;
+                
+                // Re-enable button after a delay in case of errors
+                setTimeout(() => {
+                    if (submitButton.disabled) {
+                        submitButton.innerHTML = originalText;
+                        submitButton.disabled = false;
+                    }
+                }, 10000); // 10 seconds timeout
+            }
+        });
+    }
+
     // OTP Toggle Handler
     const otpToggle = document.getElementById('otpToggle');
     if (otpToggle) {
@@ -677,10 +796,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the preview to default icon
+                    // Update the preview to default icon with hover functionality
                     document.querySelector('#profile-pic-preview').innerHTML =
-                        `<span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`;
+                        `<span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 profile-pic-img" style="width: 120px; height: 120px; background: #23263a; color: #bfc7d5; font-size: 2.5rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>
+                         <span class="change-pic-icon">
+                            <i class="fas fa-camera"></i>
+                         </span>`;
                     removeBtn.style.display = 'none';
+                    // Clear the file input and filename
+                    document.getElementById('profile-picture-input').value = '';
+                    document.getElementById('profile-pic-filename').textContent = '';
+                    showMessage('Profile picture removed successfully!', 'success');
                     // Update on profile page if present
                     const profileImg = document.querySelector('.profile-header-card .rounded-circle');
                     if (profileImg) {
