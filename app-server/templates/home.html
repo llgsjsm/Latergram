@@ -42,12 +42,8 @@
                   {{ request.requested_at.strftime('%b %d, %Y') if
                   request.requested_at else '' }}
                 </div>
-                <div
-                  class="d-flex align-items-center justify-content-between flex-wrap"
-                >
-                  <div
-                    class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1"
-                  >
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center flex-grow-1">
                     {% if request.profile_picture %}
                     <img
                       src="{{ request.profile_picture }}"
@@ -309,8 +305,16 @@
           {% endif %}
 
           <!-- Post Actions -->
-          <div class="post-actions-container">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <div class="post-actions-container position-relative">
+            <!-- Timestamp positioned in far right corner -->
+            <div class="position-absolute top-0 end-0">
+              <small class="text-muted">
+                {{ post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else
+                '' }}
+              </small>
+            </div>
+            <!-- Action buttons -->
+            <div class="d-flex align-items-center gap-2 mb-2">
               {% if liked_posts.get(post.postId, False) %}
               <!-- Unlike button -->
               <button
@@ -366,52 +370,20 @@
               </button>
               {% endif %}
             </div>
-            <div class="post-timestamp">
-              <small class="text-muted">
-                {{ post.timeOfPost.strftime('%I:%M %p') if post.timeOfPost else
-                '' }}
-              </small>
-            </div>
           </div>
-          <!-- Comments Section - Only show if there are comments -->
-          {% if comment_counts.get(post.postId, 0) > 0 %}
-          <div class="mt-3 border-top pt-2 comments-section-border">
-            <small class="text-muted" id="view-all-comments-{{ post.postId }}"
-              >{{ comment_counts.get(post.postId, 0) }} Comments -
-              <button
-                class="btn btn-link p-0 text-decoration-none text-white"
-                style="vertical-align: baseline; font-size: inherit"
-                onclick="loadComments('{{ post.postId }}')"
-              >
-                View All
-              </button></small
-            >
-            <div id="comments-{{ post.postId }}" style="display: none">
-              <!-- Comments will be loaded dynamically -->
-            </div>
-          </div>
-          {% endif %}
-          <!-- Comment Form -->
+          <!-- Comments Section -->
           <div
-            id="comment-form-{{ post.postId }}"
-            class="mt-2"
+            class="mt-3 border-top pt-2 comments-section-border"
+            id="comments-section-{{ post.postId }}"
             style="display: none"
           >
-            <form
-              action="{{ url_for('comment.add_comment', post_id=post.postId) }}"
-              method="POST"
-            >
-              <div class="input-group">
-                <input
-                  type="text"
-                  class="form-control"
-                  name="comment"
-                  placeholder="Add a comment..."
-                  required
-                />
-                <button class="btn card-btn-primary" type="submit">Post</button>
-              </div>
-            </form>
+            <div id="comments-{{ post.postId }}">
+              <!-- Comments will be loaded dynamically -->
+            </div>
+            <!-- Comment Form -->
+            <div id="comment-form-{{ post.postId }}" class="mt-3">
+              <!-- Form will be dynamically inserted here -->
+            </div>
           </div>
         </div>
       </div>
@@ -438,28 +410,88 @@
     username: "{{ current_user.username if current_user else '' }}",
   };
 
-  // Simple comment form toggle
+  // Simple comment form toggle and load comments
   function toggleCommentForm(postId) {
+    const commentsSection = document.getElementById(
+      `comments-section-${postId}`
+    );
     const form = document.getElementById(`comment-form-${postId}`);
-    if (form.style.display === "none" || form.style.display === "") {
-      form.style.display = "block";
+
+    if (
+      commentsSection.style.display === "none" ||
+      commentsSection.style.display === ""
+    ) {
+      // Show comments section and load comments
+      commentsSection.style.display = "block";
+
+      // Show loading indicator immediately
+      const commentsDiv = document.getElementById(`comments-${postId}`);
+      commentsDiv.innerHTML = `
+        <div class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Loading comments...</span>
+          </div>
+          <div class="mt-2 text-muted small">Loading comments...</div>
+        </div>
+      `;
+
+      loadComments(postId);
+
+      // Show comment form
+      form.innerHTML = `
+        <form action="/comment/${postId}" method="POST">
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              name="comment"
+              placeholder="Add a comment..."
+              required
+            />
+            <button class="btn card-btn-primary" type="submit">Post</button>
+          </div>
+        </form>
+      `;
+
+      // Add event listener to the new form
+      const formElement = form.querySelector("form");
+      if (formElement) {
+        formElement.addEventListener("submit", handleCommentSubmission);
+      }
+
       form.querySelector("input").focus();
     } else {
-      form.style.display = "none";
+      // Hide comments section
+      commentsSection.style.display = "none";
     }
   }
 
   // Function to load comments dynamically
-  function loadComments(postId) {
+  function loadComments(postId, showLoadingIndicator = false) {
     const commentsDiv = document.getElementById("comments-" + postId);
 
-    if (commentsDiv.style.display === "none") {
-      // Load comments via AJAX
-      fetch("/load_comments/" + postId)
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            let commentsHtml = "";
+    // Show loading indicator if requested (for reloads)
+    if (showLoadingIndicator) {
+      commentsDiv.innerHTML = `
+        <div class="text-center py-2">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">Loading comments...</span>
+          </div>
+          <div class="mt-2 text-muted small">Updating comments...</div>
+        </div>
+      `;
+    }
+
+    // Load comments via AJAX
+    fetch("/load_comments/" + postId)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          let commentsHtml = "";
+          if (data.comments.length === 0) {
+            commentsHtml =
+              '<p class="text-muted mb-3">No comments yet. Be the first to comment!</p>';
+          } else {
             data.comments.forEach((comment) => {
               const profileImg = comment.author.profilePicture
                 ? `<img src="${comment.author.profilePicture}" class="rounded-circle" style="width: 25px; height: 25px; object-fit: cover;" alt="Profile">`
@@ -527,23 +559,18 @@
                 </div>
               `;
             });
-            commentsDiv.innerHTML = commentsHtml;
-            commentsDiv.style.display = "block";
-          } else {
-            commentsDiv.innerHTML =
-              '<p class="text-muted">Failed to load comments</p>';
-            commentsDiv.style.display = "block";
           }
-        })
-        .catch((error) => {
-          console.error("Error loading comments:", error);
+          commentsDiv.innerHTML = commentsHtml;
+        } else {
           commentsDiv.innerHTML =
-            '<p class="text-muted">Error loading comments</p>';
-          commentsDiv.style.display = "block";
-        });
-    } else {
-      commentsDiv.style.display = "none";
-    }
+            '<p class="text-muted">Failed to load comments</p>';
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading comments:", error);
+        commentsDiv.innerHTML =
+          '<p class="text-muted">Error loading comments</p>';
+      });
   }
 
   // Define editComment function
@@ -661,75 +688,68 @@
       });
     });
 
-    // Handle comment form submissions with AJAX
-    document.querySelectorAll('form[action*="/comment/"]').forEach((form) => {
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
+    // Function to handle comment form submission
+    window.handleCommentSubmission = function (e) {
+      e.preventDefault();
 
-        const formAction = this.action;
-        const postId = formAction.split("/").pop(); // Extract post ID from URL
-        const commentInput = this.querySelector('input[name="comment"]');
-        const content = commentInput.value.trim();
+      const form = e.target;
+      const formAction = form.action;
+      const postId = formAction.split("/").pop(); // Extract post ID from URL
+      const commentInput = form.querySelector('input[name="comment"]');
+      const content = commentInput.value.trim();
 
-        if (!content) return;
+      if (!content) return;
 
-        csrfFetch(formAction, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: `comment=${encodeURIComponent(content)}`,
+      csrfFetch(formAction, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: `comment=${encodeURIComponent(content)}`,
+      })
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
+          } else if (response.redirected) {
+            // Fallback for redirect response
+            return { success: true };
+          } else {
+            throw new Error("Failed to add comment");
+          }
         })
-          .then((response) => {
-            if (response.ok) {
-              return response.json();
-            } else if (response.redirected) {
-              // Fallback for redirect response
-              return { success: true };
-            } else {
-              throw new Error("Failed to add comment");
-            }
-          })
-          .then((data) => {
-            if (data.success) {
-              // Comment was added successfully, reload comments if they're visible
-              commentInput.value = "";
-              const commentsDiv = document.getElementById(`comments-${postId}`);
-              if (commentsDiv && commentsDiv.style.display !== "none") {
-                loadComments(postId); // This will reload the comments to show the new one
-              }
+        .then((data) => {
+          if (data.success) {
+            // Comment was added successfully, reload comments
+            commentInput.value = "";
+            loadComments(postId, true); // Show loading indicator for reload
 
-              // Update comment count with actual count from backend
-              if (data.comment_count !== undefined) {
-                updateCommentCount(postId, data.comment_count);
-              } else {
-                // Fallback: increment by 1 if we can't get exact count
-                const commentButtonTextSpan = document.getElementById(
-                  `comment-btn-text-${postId}`
+            // Update comment count with actual count from backend
+            if (data.comment_count !== undefined) {
+              updateCommentCount(postId, data.comment_count);
+            } else {
+              // Fallback: increment by 1 if we can't get exact count
+              const commentButtonTextSpan = document.getElementById(
+                `comment-btn-text-${postId}`
+              );
+              if (commentButtonTextSpan) {
+                const currentCount = parseInt(
+                  commentButtonTextSpan.textContent || "0"
                 );
-                if (commentButtonTextSpan) {
-                  const currentCount = parseInt(
-                    commentButtonTextSpan.textContent.match(
-                      /(\d+)\s+Comments/
-                    )?.[1] || "0"
-                  );
-                  updateCommentCount(postId, currentCount + 1);
-                }
+                updateCommentCount(postId, currentCount + 1);
               }
-
-              showNotification("Comment added successfully", "success");
-              window.location.reload();
-            } else {
-              throw new Error(data.error || "Failed to add comment");
             }
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("An error occurred while adding the comment");
-          });
-      });
-    });
+
+            showNotification("Comment added successfully", "success");
+          } else {
+            throw new Error(data.error || "Failed to add comment");
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred while adding the comment");
+        });
+    };
   });
 
   // --- Edit Post Title/Caption Functionality (for own posts) ---
@@ -884,8 +904,8 @@
           const postElement = commentElement.closest('[id^="comments-"]');
           if (postElement) {
             const postId = postElement.id.replace("comments-", "");
-            // Reload comments to show the "Edited" timestamp
-            loadComments(postId);
+            // Reload comments to show the "Edited" timestamp with loading indicator
+            loadComments(postId, true);
           }
         } else {
           showNotification("Error: " + data.error, "danger");
@@ -938,13 +958,7 @@
               commentsDiv.querySelectorAll(".comment-item");
             if (remainingComments.length === 0) {
               commentsDiv.innerHTML =
-                '<p class="text-muted">No comments yet</p>';
-              commentsDiv.style.display = "none"; // Hide the comments section entirely if no comments
-              const commentSectionBorder = commentsDiv.closest(
-                ".comments-section-border"
-              );
-              if (commentSectionBorder)
-                commentSectionBorder.style.display = "none";
+                '<p class="text-muted mb-3">No comments yet. Be the first to comment!</p>';
             }
           } else {
             showNotification("Error: " + data.error, "danger");
@@ -970,33 +984,8 @@
       commentButtonTextSpan.textContent = `${newCount}`; // Only count, no "Comments" text
     }
 
-    // Update the "View All" link section
-    const viewAllCommentsSection = document.getElementById(
-      `view-all-comments-${postId}`
-    );
-    const commentsDiv = document.getElementById(`comments-${postId}`);
-    const commentSectionBorder = commentsDiv
-      ? commentsDiv.closest(".comments-section-border")
-      : null;
-
-    if (newCount > 0) {
-      if (viewAllCommentsSection) {
-        viewAllCommentsSection.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none text-white" style="vertical-align: baseline; font-size: inherit;" onclick="loadComments('${postId}')">View All</button>`;
-      } else if (commentSectionBorder) {
-        // If the section was hidden and now has comments, unhide and create the small tag
-        commentSectionBorder.style.display = "block";
-        const newSmallTag = document.createElement("small");
-        newSmallTag.className = "text-muted";
-        newSmallTag.id = `view-all-comments-${postId}`;
-        newSmallTag.innerHTML = `<span class="text-muted">${newCount} Comments - </span><button class="btn btn-link p-0 text-decoration-none text-white" style="vertical-align: baseline; font-size: inherit;" onclick="loadComments('${postId}')">View All</button>`;
-        commentSectionBorder.prepend(newSmallTag); // Add to the top of the section
-      }
-    } else {
-      // If no comments, hide the entire comments section border and clear the view all text
-      if (viewAllCommentsSection) viewAllCommentsSection.innerHTML = "";
-      if (commentSectionBorder) commentSectionBorder.style.display = "none";
-      if (commentsDiv) commentsDiv.innerHTML = ""; // Clear comments display
-    }
+    // No need to manage "View All" section since it's removed
+    // The comments section visibility is now controlled by the comment button toggle
   }
 
   // Function to show notification
