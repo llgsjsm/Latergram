@@ -83,32 +83,32 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn(b'Not logged in', response.data)
         
-    # ## Test creating a post without authentication
-    # @patch("backend.routes.main.storage")
-    # @patch("backend.routes.main.db")
-    # @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
-    # def test_create_post_unauthenticated(self,mock_is_allowed_file_secure,mock_db,mock_storage):
-    #     # Set up mocks
-    #     mock_user = MagicMock()
-    #     mock_user.username = "testuser"
-    #     mock_db.session.get.return_value = mock_user
-    #     mock_blob = MagicMock()
-    #     mock_blob.public_url = "https://tstuffvro.com/image.jpg"
-    #     mock_storage.bucket.return_value.blob.return_value = mock_blob
-    #     mock_result = MagicMock()
-    #     mock_result.lastrowid = 123
-    #     mock_db.session.execute.return_value = mock_result
+    ## Test creating a post without authentication
+    @patch("backend.routes.main.storage")
+    @patch("backend.routes.main.db")
+    @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
+    def test_create_post_unauthenticated(self,mock_is_allowed_file_secure,mock_db,mock_storage):
+        # Set up mocks
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_db.session.get.return_value = mock_user
+        mock_blob = MagicMock()
+        mock_blob.public_url = "https://tstuffvro.com/image.jpg"
+        mock_storage.bucket.return_value.blob.return_value = mock_blob
+        mock_result = MagicMock()
+        mock_result.lastrowid = 123
+        mock_db.session.execute.return_value = mock_result
 
-    #     # FAKE POST upload
-    #     data = {
-    #         "title": "Unit Test Title",
-    #         "content": "This is test content",
-    #         "image": (io.BytesIO(b"fake image data"), "test.png", "image/png")
-    #     }
-    #     response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=False)
-    #     # probably 302 since not logged in
-    #     self.assertIn(response.status_code, [302, 401, 403])
-    #     self.assertIn(b"login", response.data.lower() or b"not logged in")
+        # FAKE POST upload
+        data = {
+            "title": "Unit Test Title",
+            "content": "This is test content",
+            "image": (io.BytesIO(b"fake image data"), "test.png", "image/png")
+        }
+        response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=False)
+        # probably 302 since not logged in
+        self.assertIn(response.status_code, [302, 401, 403])
+        self.assertIn(b"login", response.data.lower() or b"not logged in")
 
     # ## Test creating a post with authentication
     # @patch("backend.routes.main.storage")

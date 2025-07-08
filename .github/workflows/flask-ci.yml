@@ -66,7 +66,7 @@ jobs:
       run: |
         echo "Current directory: $(pwd)"
         ls -alR
-        
+
     - name: Build Flask 
       run: docker-compose -f docker-compose.ci.yml up -d --build flask nginx mysqldb
 
@@ -112,6 +112,7 @@ jobs:
       run: |
         echo "Running Flask unit tests..."
         docker exec flask python -m unittest discover tests
+        docker exec flask ls -la
     
     - name: Run Playwright Tests
       run: |
