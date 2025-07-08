@@ -30,7 +30,7 @@ def create_app(test_config=None):
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
     app.config['SESSION_COOKIE_SECURE'] = True     # Only send cookies thru HTTPS
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF attacks w SameSite (doubled with WTF)
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF attacks w SameSite
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
@@ -46,8 +46,6 @@ def create_app(test_config=None):
     FILE_LOCATION = os.environ.get('FILE_LOCATION','')
     # Default to false if not set. Set IS_TESTING to true for testing environments
     IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
-    # if not IS_TESTING:
-    #     csrf.init_app(app)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -88,7 +86,7 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
     
-    # Redis Rate limiting (uncommented and fixed)
+    # Redis Rate limiting
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
     init_limiter(app, storage_uri=storage_uri)
     return app
@@ -129,8 +127,12 @@ def session_inactivity_check():
                 return redirect(url_for('main.login'))
         session['last_activity'] = now.strftime('%Y-%m-%d %H:%M:%S')
 
-
-
+@app.after_request
+def apply_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 if __name__ == '__main__':
     with app.app_context():
