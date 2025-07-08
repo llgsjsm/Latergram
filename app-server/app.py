@@ -1,4 +1,4 @@
-from flask import Flask, app, render_template, request, jsonify, flash
+from flask import Flask, app, render_template, request, jsonify, flash, session, redirect, url_for
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -12,7 +12,7 @@ from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
 from backend.limiter import init_limiter
-
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv 
 from models import db
@@ -106,6 +106,29 @@ def handle_csrf_error(e):
 
     # JSON/AJAX 
     return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
+
+@app.before_request
+def session_inactivity_check():
+    now = datetime.now(timezone.utc)
+    # mod timeout (10 minutes)
+    if 'mod_id' in session:
+        last_activity = session.get('last_activity_mod')
+        if last_activity:
+            last_active_time = datetime.strptime(last_activity, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+            if now - last_active_time > timedelta(minutes=10):
+                session.clear()
+                return redirect(url_for('main.login'))  # Redirect to login
+        session['last_activity_mod'] = now.strftime('%Y-%m-%d %H:%M:%S')
+    # user timeout (30 minutes)
+    elif 'user_id' in session:
+        last_activity = session.get('last_activity')
+        if last_activity:
+            last_active_time = datetime.strptime(last_activity, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+            if now - last_active_time > timedelta(minutes=30):
+                session.clear()
+                return redirect(url_for('main.login'))
+        session['last_activity'] = now.strftime('%Y-%m-%d %H:%M:%S')
+
 
 
 
