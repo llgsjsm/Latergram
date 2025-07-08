@@ -17,14 +17,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: List files for debugging
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -alR
+      # - name: List files for debugging
+      #   run: |
+      #     echo "Current directory: $(pwd)"
+      #     ls -alR
 
       - name: Install tools
         run: |
-          pip install -r requirements.txt
+          pip install -r app-server/requirements.txt
           pip install safety pip-audit
 
       - name: Run Safety
