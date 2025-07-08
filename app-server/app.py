@@ -72,7 +72,6 @@ def create_app(test_config=None):
             except Exception as e:
                 print(f"Error initializing Firebase: {e}")
 
-    # Register blueprints
     app.register_blueprint(main_bp)    
     app.register_blueprint(profile_bp, url_prefix='/profile')
     app.register_blueprint(comment_bp, url_prefix='/comment')
