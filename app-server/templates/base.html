@@ -10,14 +10,6 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
     />
-    <!-- <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}"
-    /> -->
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='assets/css/main.css') }}"
@@ -80,8 +72,7 @@
           padding-top: 80px;
         }
       }
-    </style>
-    <style>
+      
       .nav-link.active,
       .nav-link.active:focus,
       .nav-link.active:hover {
@@ -89,6 +80,7 @@
         background: none !important;
         font-weight: 600;
       }
+
       /* Center default user icon in all contexts */
       .default-user-icon,
       .rounded-circle.default-user-icon,
@@ -101,6 +93,7 @@
         font-size: inherit;
         line-height: 1;
       }
+
       /* Ensure icon is centered in nav/profile */
       #nav-default-user .fa-user {
         display: flex;
@@ -110,6 +103,22 @@
         height: 100%;
         font-size: inherit;
         margin-left: 16px;
+      }
+      
+      /* Search Bar Buttons */
+      #search-user-btn, #search-post-btn {
+        color: var(--color-white);
+        border-color: var(--color-primary);
+        height: 48px;
+      }
+
+      #search-user-btn:hover, #search-post-btn:hover {
+        border-color: var(--color-primary-hover);
+        background-color: var(--color-primary-hover);
+      }
+
+      #search-user-btn.active, #search-post-btn.active {
+        background-color: var(--color-primary);
       }
     </style>
   </head>
