@@ -300,3 +300,28 @@ class PostManager:
         except Exception as e:
             print(f"Error getting posts likes batch: {e}")
             return {post_id: False for post_id in post_ids}
+
+    def search_posts_by_title(self, query: str, page: int = 1, per_page: int = 20) -> Dict[str, Any]:
+        """Search for posts by title"""
+        offset = (page - 1) * per_page
+        search_term = f'%{query}%'
+        posts_query = Post.query.filter(Post.title.like(search_term)).offset(offset).limit(per_page)
+        posts = posts_query.all()
+
+        post_results = []
+        for post in posts:
+            post_results.append({
+                'post': {
+                    'post_id': post.postId,
+                    'title': post.title,
+                    'author_id': post.authorId,
+                    'time_of_post': post.timeOfPost,
+                    'image': post.image
+                }
+            })
+
+        return {
+            'success': True,
+            'posts': post_results,
+            'query': query
+        }

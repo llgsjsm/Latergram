@@ -486,7 +486,7 @@ def edit_profile():
             log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
             flash(f'Error updating profile: {result["error"]}', 'danger')
     
-    return render_template('edit_profile.html', user=user)
+    return render_template('edit_profile.html', user=user, current_user=user)
 
 ########################
 ### Password helpers ###
