@@ -54,6 +54,21 @@
     box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25);
     border-color: #6c63ff;
 }
+
+/* Display name validation styling */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.display-name-error {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 </style>
 {% endblock %} {% block content %}
 <div class="container">
@@ -695,20 +710,89 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileForm = document.getElementById('profileForm');
     if (profileForm) {
         profileForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
             const submitButton = this.querySelector('button[type="submit"]');
+            const displayNameInput = document.getElementById('display_name');
+            
             if (submitButton) {
+                // Client-side validation
+                const displayName = displayNameInput.value.trim();
+                if (!displayName) {
+                    showMessage('Display name cannot be empty.', 'error');
+                    return;
+                }
+                
+                if (displayName.length > 50) {
+                    showMessage('Display name cannot be longer than 50 characters.', 'error');
+                    return;
+                }
+                
                 // Show loading state
                 const originalText = submitButton.innerHTML;
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 submitButton.disabled = true;
                 
-                // Re-enable button after a delay in case of errors
-                setTimeout(() => {
-                    if (submitButton.disabled) {
-                        submitButton.innerHTML = originalText;
-                        submitButton.disabled = false;
+                // Clear any existing error messages
+                document.querySelectorAll('.alert-temp').forEach(el => el.remove());
+                
+                // Create FormData object for the CSRF-protected form submission
+                const formData = new FormData(this);
+                
+                // Submit with CSRF protection and AJAX headers
+                csrfFetch('{{ url_for("main.edit_profile") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('Profile updated successfully!', 'success');
+                        // Redirect to profile page after showing success message
+                        setTimeout(() => {
+                            window.location.href = '{{ url_for("profile.profile") }}';
+                        }, 1500);
+                    } else {
+                        showMessage(data.error || 'An error occurred while updating your profile.', 'error');
                     }
-                }, 10000); // 10 seconds timeout
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('An error occurred while updating your profile. Please try again.', 'error');
+                })
+                .finally(() => {
+                    // Restore button state
+                    submitButton.innerHTML = originalText;
+                    submitButton.disabled = false;
+                });
+            }
+        });
+    }
+
+    // Add real-time validation for display name
+    const displayNameInput = document.getElementById('display_name');
+    if (displayNameInput) {
+        displayNameInput.addEventListener('input', function() {
+            const value = this.value.trim();
+            const maxLength = 50;
+            
+            // Remove any existing validation messages
+            const existingError = document.querySelector('.display-name-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            if (value.length > maxLength) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'text-danger small mt-1 display-name-error';
+                errorDiv.textContent = `Display name is too long (${value.length}/${maxLength} characters)`;
+                this.parentNode.appendChild(errorDiv);
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
             }
         });
     }
