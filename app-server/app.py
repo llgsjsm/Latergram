@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, flash
+from flask import Flask, app, render_template, request, jsonify, flash, session, redirect, url_for
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -12,7 +12,7 @@ from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
 from backend.limiter import init_limiter
-
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv 
 from models import db
@@ -29,6 +29,8 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
+    app.config['SESSION_COOKIE_SECURE'] = True     # Only send cookies thru HTTPS
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF attacks w SameSite
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
@@ -44,8 +46,6 @@ def create_app(test_config=None):
     FILE_LOCATION = os.environ.get('FILE_LOCATION','')
     # Default to false if not set. Set IS_TESTING to true for testing environments
     IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
-    # if not IS_TESTING:
-    #     csrf.init_app(app)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -86,7 +86,7 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
     
-    # Redis Rate limiting (uncommented and fixed)
+    # Redis Rate limiting
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
     init_limiter(app, storage_uri=storage_uri)
     return app
@@ -105,7 +105,34 @@ def handle_csrf_error(e):
     # JSON/AJAX 
     return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
 
+@app.before_request
+def session_inactivity_check():
+    now = datetime.now(timezone.utc)
+    # mod timeout (10 minutes)
+    if 'mod_id' in session:
+        last_activity = session.get('last_activity_mod')
+        if last_activity:
+            last_active_time = datetime.strptime(last_activity, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+            if now - last_active_time > timedelta(minutes=10):
+                session.clear()
+                return redirect(url_for('main.login'))  # Redirect to login
+        session['last_activity_mod'] = now.strftime('%Y-%m-%d %H:%M:%S')
+    # user timeout (30 minutes)
+    elif 'user_id' in session:
+        last_activity = session.get('last_activity')
+        if last_activity:
+            last_active_time = datetime.strptime(last_activity, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+            if now - last_active_time > timedelta(minutes=30):
+                session.clear()
+                return redirect(url_for('main.login'))
+        session['last_activity'] = now.strftime('%Y-%m-%d %H:%M:%S')
 
+@app.after_request
+def apply_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 if __name__ == '__main__':
     with app.app_context():

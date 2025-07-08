@@ -241,13 +241,13 @@
           style="display: none; margin-top: 2rem"
           onsubmit="return false;"
         >
-          <div class="input-group">
+          <div class="input-group mb-3" style="height: 48px;">
             <input
               type="text"
               class="form-control"
               name="q"
               id="sidebar-search-input"
-              placeholder="Search users by username..."
+              placeholder="Search..."
               autocomplete="off"
               autofocus
             />
@@ -258,6 +258,10 @@
             >
               Cancel
             </button>
+          </div>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Search type toggle">
+            <button type="button" class="btn btn-outline-primary active" id="search-user-btn" onclick="setSearchType('user')">Users</button>
+            <button type="button" class="btn btn-outline-primary" id="search-post-btn" onclick="setSearchType('post')">Posts</button>
           </div>
         </form>
         <div id="search-suggestions" style="display: none"></div>
@@ -275,7 +279,18 @@
     <!-- Local JS -->
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script>
-      // Live user suggestions
+      let searchType = 'user';
+      function setSearchType(type) {
+        searchType = type;
+        document.getElementById('search-user-btn').classList.toggle('active', type === 'user');
+        document.getElementById('search-post-btn').classList.toggle('active', type === 'post');
+        document.getElementById('sidebar-search-input').placeholder = type === 'user' ? 'Search by username...' : 'Search by title...';
+        // Trigger search again if input is not empty
+        if (searchInput.value.trim().length > 0) {
+          searchInput.dispatchEvent(new Event('input'));
+        }
+      }
+      // Live suggestions for users and posts
       const searchInput = document.getElementById("sidebar-search-input");
       const suggestionsDiv = document.getElementById("search-suggestions");
       if (searchInput) {
@@ -286,33 +301,59 @@
             suggestionsDiv.innerHTML = "";
             return;
           }
-          fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success && data.users.length > 0) {
-                suggestionsDiv.innerHTML = data.users
-                  .map(
-                    (user) => `
-                <a href="/profile/${
-                  user.user_id
-                }" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
-                  ${
-                    user.profile_picture
-                      ? `<img src="${user.profile_picture}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">`
-                      : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`
-                  }
-                  <span>${user.username}</span>
-                </a>
-              `
-                  )
-                  .join("");
-                suggestionsDiv.style.display = "block";
-              } else {
-                suggestionsDiv.innerHTML =
-                  '<div class="text-muted px-3 py-2">No users found.</div>';
-                suggestionsDiv.style.display = "block";
-              }
-            });
+          if (searchType === 'user') {
+            fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success && data.users.length > 0) {
+                  suggestionsDiv.innerHTML = data.users
+                    .map(
+                      (user) => `
+                  <a href="/profile/${user.user_id}" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
+                    ${
+                      user.profile_picture
+                        ? `<img src="${user.profile_picture}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">`
+                        : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`
+                    }
+                    <span>${user.username}</span>
+                  </a>
+                `
+                    )
+                    .join("");
+                  suggestionsDiv.style.display = "block";
+                } else {
+                  suggestionsDiv.innerHTML =
+                    '<div class="text-muted py-2">No users found.</div>';
+                  suggestionsDiv.style.display = "block";
+                }
+              });
+          } else if (searchType === 'post') {
+            fetch(`/api/search_posts?q=${encodeURIComponent(q)}`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success && data.posts.length > 0) {
+                  suggestionsDiv.innerHTML = data.posts
+                    .map(
+                      (post) => `
+              <a href="/profile/${post.author_id}?post=${post.post_id}" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
+                ${
+                  post.image
+                    ? `<img src="${post.image}" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;">`
+                    : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-image\"></i></span>`
+                }
+                <span>${post.title}</span>
+              </a>
+            `
+                    )
+                    .join("");
+                  suggestionsDiv.style.display = "block";
+                } else {
+                  suggestionsDiv.innerHTML =
+                    '<div class="text-muted py-2">No posts found.</div>';
+                  suggestionsDiv.style.display = "block";
+                }
+              });
+          }
         });
         // Hide suggestions when input loses focus (with slight delay for click)
         searchInput.addEventListener("blur", function () {
@@ -324,7 +365,6 @@
           if (suggestionsDiv.innerHTML.trim() !== "")
             suggestionsDiv.style.display = "block";
         });
-
         // Handle clicks on search suggestions
         suggestionsDiv.addEventListener("click", function (e) {
           if (e.target.closest("a")) {
@@ -333,16 +373,13 @@
             e.stopPropagation();
             const link = e.target.closest("a");
             const href = link.getAttribute("href");
-
             // Hide suggestions immediately
             suggestionsDiv.style.display = "none";
             hideSearchBar();
-
-            // Navigate to the profile page
+            // Navigate to the profile or post page
             window.location.href = href;
           }
         });
-
         // Prevent suggestions from being hidden when clicking inside suggestions
         suggestionsDiv.addEventListener("mousedown", function (e) {
           e.preventDefault();

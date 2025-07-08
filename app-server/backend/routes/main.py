@@ -486,7 +486,7 @@ def edit_profile():
             log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
             flash(f'Error updating profile: {result["error"]}', 'danger')
     
-    return render_template('edit_profile.html', user=user)
+    return render_template('edit_profile.html', user=user, current_user=user)
 
 ########################
 ### Password helpers ###
@@ -520,7 +520,6 @@ def reset_password():
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
-    # Backend email validation -- remove if already has existing validation somewhere...
     email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
     if not email:

@@ -1285,4 +1285,18 @@
       .catch(() => { showNotification('Network error occurred while updating post', 'danger'); });
   }
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Auto-open post modal if ?post=<post_id> is in the URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const postId = urlParams.get('post');
+  if (postId) {
+    const modal = document.getElementById('postModal' + postId);
+    if (modal) {
+      const bsModal = new bootstrap.Modal(modal);
+      bsModal.show();
+    }
+  }
+});
+</script>
 {% endblock %}

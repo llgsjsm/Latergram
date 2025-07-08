@@ -270,6 +270,28 @@ def api_search_users():
     else:
         return jsonify({'success': False, 'error': 'Search failed'})
 
+@api_bp.route('/search_posts')
+def api_search_posts():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'success': True, 'posts': []})
+    search_result = post_manager.search_posts_by_title(query, per_page=5)
+    if search_result['success']:
+        posts = [
+            {
+                'post_id': p['post']['post_id'],
+                'title': p['post']['title'],
+                'author_id': p['post']['author_id'],
+                'time_of_post': p['post']['time_of_post'],
+                'image': p['post']['image']
+            } for p in search_result['posts']
+        ]
+        return jsonify({'success': True, 'posts': posts})
+    else:
+        return jsonify({'success': False, 'error': 'Search failed'})
+
 @api_bp.route('/remove-follower/<int:follower_user_id>', methods=['POST'])
 def remove_follower_api(follower_user_id):
     if 'user_id' not in session:
