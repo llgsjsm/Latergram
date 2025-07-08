@@ -11,7 +11,8 @@
   background-color: var(--color-primary) !important;
 }
 
-.profile-save-btn-primary:hover, .profile-save-btn-primary:focus {
+.profile-save-btn-primary:hover,
+.profile-save-btn-primary:focus {
   background-color: var(--color-primary-hover) !important;
   color: var(--color-white) !important;
 }
@@ -137,6 +138,7 @@ body,
   flex-direction: column;
   gap: 1.2rem;
   align-items: flex-end;
+  transition: all 0.3s ease;
 }
 
 .profile-header-actions .btn {
@@ -151,6 +153,7 @@ body,
   justify-content: center;
   box-shadow: 0 2px 8px 0 rgba(95, 119, 248, 0.1);
   transition: background 0.2s;
+  border-radius: 8px;
 }
 
 .profile-header-actions .btn:hover {
@@ -172,7 +175,7 @@ body,
   }
 }
 
-.posts-section{
+.posts-section {
   color: #bfc7d5;
 }
 
@@ -187,14 +190,9 @@ body,
   transform: scale(1.02);
 }
 
-.post-thumbnail:hover .post-overlay {
-  opacity: 1 !important;
-}
-
+/* Remove hover overlay completely */
 .post-overlay {
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  border-radius: 8px;
+  display: none !important;
 }
 
 /* Post action buttons styling */
@@ -249,31 +247,38 @@ body,
   height: 280px;
 }
 
-.post-action-bar .btn-primary, .post-action-bar .btn-primary:active {
+.post-action-bar .btn-primary,
+.post-action-bar .btn-primary:active {
   background-color: #363947 !important;
   color: var(--color-white) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.post-action-bar .btn-danger, .post-action-bar .btn-danger:active {
+.post-action-bar .btn-danger,
+.post-action-bar .btn-danger:active {
   background-color: var(--color-danger) !important;
   color: var(--color-white) !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-.post-action-bar .btn-primary:hover, .post-action-bar .btn-primary:focus {
+.post-action-bar .btn-primary:hover,
+.post-action-bar .btn-primary:focus {
   background: var(--color-navbg) !important;
 }
 
-.post-action-bar .btn-danger:hover, .post-action-bar .btn-danger:focus {
+.post-action-bar .btn-danger:hover,
+.post-action-bar .btn-danger:focus {
   background-color: var(--color-danger-hover) !important;
 }
 
-.btn-outline-warning:hover, .btn-outline-warning:focus {
-  background-color: #ffc107 !important; /* Bootstrap's yellow */
-  color: #212529 !important;            /* Dark text for contrast */
+.btn-outline-warning:hover,
+.btn-outline-warning:focus {
+  background-color: #ffc107 !important;
+  /* Bootstrap's yellow */
+  color: #212529 !important;
+  /* Dark text for contrast */
   border-color: #ffc107 !important;
 }
 
@@ -286,32 +291,21 @@ body,
 @media (max-width: 991px) {
   .profile-header-card {
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     padding: 1.2rem 1rem 1.5rem 1rem;
-    text-align: center;
-    position: relative;
+    text-align: left;
     background-color: transparent;
   }
 
-  .profile-header-actions {
-    position: absolute;
-    right: 1rem;
-    margin-top: 0;
-    flex-direction: row;
-    gap: 0.5rem;
-    width: auto;
-    justify-content: flex-end;
-  }
-
   .profile-header-left {
-    align-items: left;
+    align-items: flex-start;
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .profile-header-username {
     font-size: 1.5rem;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     text-align: left;
   }
 
@@ -328,12 +322,12 @@ body,
 
   .profile-header-stats {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    text-align: center;
+    text-align: left;
     gap: 2rem;
     margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
     font-size: 1rem;
     width: 100%;
   }
@@ -341,10 +335,263 @@ body,
   .profile-header-stats a {
     margin-right: 0;
   }
-  
+
+  .profile-header-actions {
+    margin-top: 0;
+    flex-direction: row;
+    gap: 0.75rem;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+
   .profile-header-actions .btn {
     width: 40px;
     height: 40px;
     font-size: 1.1rem;
+    flex: 0 0 auto;
   }
+
+  /* Mobile post action buttons - consistent design */
+  .post-thumbnail .btn {
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .post-thumbnail .btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Like button states for mobile - white heart when liked */
+  .like-btn[data-action="unlike"] {
+    color: #fff !important;
+    background-color: rgba(220, 53, 69, 0.1) !important;
+  }
+
+  .like-btn[data-action="unlike"] i {
+    color: #fff !important;
+  }
+
+  .like-btn[data-action="like"] {
+    color: #fff !important;
+    background-color: transparent !important;
+  }
+
+  .like-btn[data-action="like"]:hover {
+    color: #dc3545 !important;
+    background-color: rgba(220, 53, 69, 0.1) !important;
+  }
+
+  /* Better spacing for mobile action bar */
+  .d-block.d-md-none .d-flex {
+    gap: 0.5rem;
+  }
+
+  .d-block.d-md-none .btn {
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Remove animation for cleaner look */
+  .liked-animation {
+    animation: none;
+  }
+}
+
+/* Desktop post action buttons - similar to mobile but slightly larger */
+.d-none.d-md-block .btn {
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+}
+
+.d-none.d-md-block .btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Desktop like button states - white heart when liked */
+.d-none.d-md-block .like-btn[data-action="unlike"] {
+  color: #fff !important;
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.d-none.d-md-block .like-btn[data-action="unlike"] i {
+  color: #fff !important;
+}
+
+.d-none.d-md-block .like-btn[data-action="like"] {
+  color: #fff !important;
+  background-color: transparent !important;
+}
+
+.d-none.d-md-block .like-btn[data-action="like"]:hover {
+  color: #dc3545 !important;
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+/* Better spacing for desktop action bar */
+.d-none.d-md-block .d-flex {
+  gap: 0.75rem;
+}
+
+/* Responsive follow button improvements */
+@media (min-width: 576px) and (max-width: 767px) {
+  .profile-header-actions {
+    justify-content: flex-start;
+    margin-left: 0;
+    gap: 1rem;
+  }
+
+  .profile-header-actions .btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .profile-header-actions {
+    justify-content: center;
+    margin-left: 0;
+    gap: 1rem;
+  }
+
+  .profile-header-actions .btn {
+    width: 46px;
+    height: 46px;
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .profile-header-actions {
+    justify-content: flex-end;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .profile-header-actions .btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+}
+
+/* Force like button styles to override inline styles */
+.like-btn {
+  border: none !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Mobile like button states - specific styles */
+@media (max-width: 767px) {
+  .like-btn[data-action="unlike"] {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+
+  .like-btn[data-action="unlike"] i {
+    color: #fff !important;
+  }
+
+  .like-btn[data-action="like"] {
+    background-color: transparent !important;
+    color: #fff !important;
+    border: none !important;
+  }
+
+  .like-btn[data-action="like"]:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #dc3545 !important;
+  }
+
+  .like-btn[data-action="like"]:hover i {
+    color: #dc3545 !important;
+  }
+}
+
+/* Desktop like button states - specific styles */
+@media (min-width: 768px) {
+  .like-btn[data-action="unlike"] {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+
+  .like-btn[data-action="unlike"] i {
+    color: #fff !important;
+  }
+
+  .like-btn[data-action="like"] {
+    background-color: transparent !important;
+    color: #fff !important;
+    border: none !important;
+  }
+
+  .like-btn[data-action="like"]:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #dc3545 !important;
+  }
+
+  .like-btn[data-action="like"]:hover i {
+    color: #dc3545 !important;
+  }
+}
+
+/* Modal like button styles to match home page design */
+.modal .btn-outline-danger.like-btn {
+  background-color: transparent !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.modal .btn-outline-danger.like-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.modal .btn-danger.like-btn {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.modal .btn-danger.like-btn:hover {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+  color: #fff !important;
+}
+
+/* Ensure modal like button icon colors are correct */
+.modal .btn-outline-danger.like-btn i {
+  color: #dc3545 !important;
+}
+
+.modal .btn-danger.like-btn i {
+  color: #fff !important;
+}
+
+.modal .like-btn {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.modal .btn-outline-danger.like-btn:not(:hover):not(:focus):not(:active) {
+  background-color: transparent !important;
+  box-shadow: none !important;
 }

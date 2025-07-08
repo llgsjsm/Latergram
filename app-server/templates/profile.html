@@ -169,8 +169,7 @@
       <div
         class="position-relative post-thumbnail"
         style="cursor: pointer"
-        data-bs-toggle="modal"
-        data-bs-target="#postModal{{ post.postId }}"
+        onclick="openPostModalFromCard(event, '{{ post.postId }}')"
       >
         {% if post.image %}
         <img
@@ -194,82 +193,185 @@
         {% endif %}
 
         <!-- Card Body: Simplified for both own and other profiles -->
-<div
-class="card-body p-3"
-style="
-  background: #23263a;
-  border-radius: 0 0 1rem 1rem;
-  min-height: 120px;
-  position: relative;
-  color: #fff;
-"
->
-<!-- Username and Date -->
-<div class="d-flex justify-content-between align-items-start mb-2">
-  <div>
-    <span class="fw-bold" style="color: #6c63ff">
-      {{ profile_user.username }}
-    </span><br />
-    <span class="text-muted small">
-      {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else '' }}
-    </span>
-  </div>
-</div>
+        <div
+          class="card-body p-3"
+          style="
+            background: #23263a;
+            border-radius: 0 0 1rem 1rem;
+            min-height: 120px;
+            position: relative;
+            color: #fff;
+          "
+        >
+          <!-- Username and Date -->
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <span class="fw-bold" style="color: #6c63ff">
+                {{ profile_user.username }} </span
+              ><br />
+              <span class="text-muted small">
+                {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else
+                '' }}
+              </span>
+            </div>
+          </div>
 
-<!-- Post Title -->
-{% if post.title %}
-  <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}"
-      {% if is_own_profile %}style="cursor: pointer" onclick="enablePostEdit('{{ post.postId }}', false)"{% endif %}>
-    {{ post.title }}
-    {% if post.updatedAt %}
-      <span class="badge bg-secondary" style="font-size: 0.8rem; vertical-align: middle; margin-left: 8px;">Edited</span>
-    {% endif %}
-  </h6>
-  {% if is_own_profile %}
-  <input
-    type="text"
-    class="form-control d-none"
-    id="edit-title-{{ post.postId }}"
-    value="{{ post.title }}"
-    maxlength="100"
-    style="font-size: 1rem; font-weight: 600; margin-bottom: 4px"
-  />
-  {% endif %}
-{% endif %}
+          <!-- Post Title -->
+          {% if post.title %}
+          <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
+            {{ post.title }} {% if post.updatedAt %}
+            <span
+              class="badge bg-secondary"
+              style="
+                font-size: 0.8rem;
+                vertical-align: middle;
+                margin-left: 8px;
+              "
+              >Edited</span
+            >
+            {% endif %}
+          </h6>
+          {% endif %}
 
-<!-- Post Content / Caption -->
-{% if is_own_profile %}
-  <p class="card-text" id="post-caption-{{ post.postId }}"
-     style="cursor: pointer; white-space: pre-line"
-     onclick="enablePostEdit('{{ post.postId }}', true)">
-    {{ post.content }}
-  </p>
-  <textarea
-    class="form-control d-none"
-    id="edit-caption-{{ post.postId }}"
-    rows="2"
-    maxlength="500"
-    style="margin-bottom: 8px"
-  >{{ post.content }}</textarea>
+          <!-- Post Content / Caption -->
+          <p
+            class="card-text"
+            id="post-caption-{{ post.postId }}"
+            style="white-space: pre-line"
+          >
+            {{ post.content }}
+          </p>
 
-  <button
-    id="save-post-{{ post.postId }}"
-    class="btn card-btn-primary btn-sm d-none me-2 mb-2"
-    onclick="savePostEdit('{{ post.postId }}')"
-  >Save</button>
+          <!-- Mobile Action Bar - Only visible on small screens -->
+          <div
+            class="d-block d-md-none mt-3 pt-2 border-top"
+            style="border-color: #343a40 !important"
+          >
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex gap-2">
+                {% if liked_posts.get(post.postId, False) %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
+                >
+                  <i class="bi bi-heart-fill"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
+                  <i class="bi bi-heart"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% endif %}
 
-  <button
-    id="cancel-post-{{ post.postId }}"
-    class="btn btn-outline-secondary btn-sm d-none mb-2"
-    onclick="hideEditFields('{{ post.postId }}')"
-  >Cancel</button>
-{% else %}
-  <div style="white-space: pre-line;">
-    {{ post.content }}
-  </div>
-{% endif %}
-</div>
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openPostModal('{{ post.postId }}')"
+                  style="background: none; border: none; color: #fff"
+                >
+                  <i class="fas fa-comment"></i>
+                  <span class="ms-1"
+                    >{% set comment_count = comment_counts.get(post.postId, 0)
+                    %}{% if comment_count == 0 %}0{% else %}{{ comment_count
+                    }}{% endif %}</span
+                  >
+                </button>
+              </div>
 
+              <div>
+                {% if is_own_profile %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="deletePost('{{ post.postId }}', this)"
+                  title="Delete Post"
+                  style="background: none; border: none; color: #dc3545"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openReportModal('{{ post.postId }}')"
+                  title="Report Post"
+                  style="background: none; border: none; color: #ffc107"
+                >
+                  <i class="fas fa-flag"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Action Bar - Only visible on medium+ screens -->
+          <div
+            class="d-none d-md-block mt-3 pt-2 border-top"
+            style="border-color: #343a40 !important"
+          >
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex gap-2">
+                {% if liked_posts.get(post.postId, False) %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
+                >
+                  <i class="bi bi-heart-fill"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
+                  <i class="bi bi-heart"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% endif %}
+
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openPostModal('{{ post.postId }}')"
+                  style="background: none; border: none; color: #fff"
+                >
+                  <i class="fas fa-comment"></i>
+                  <span class="ms-1"
+                    >{% set comment_count = comment_counts.get(post.postId, 0)
+                    %}{% if comment_count == 0 %}0{% else %}{{ comment_count
+                    }}{% endif %}</span
+                  >
+                </button>
+              </div>
+
+              <div>
+                {% if is_own_profile %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="deletePost('{{ post.postId }}', this)"
+                  title="Delete Post"
+                  style="background: none; border: none; color: #dc3545"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openReportModal('{{ post.postId }}')"
+                  title="Report Post"
+                  style="background: none; border: none; color: #ffc107"
+                >
+                  <i class="fas fa-flag"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Hover Overlay -->
         <div
@@ -425,12 +527,12 @@ style="
                 >
                   <i class="fas fa-comment comment-icon"></i>
                   {% if comment_counts.get(post.postId, 0) > 0 %} {{
-                  comment_counts.get(post.postId, 0) }} {% else %} {% endif %}
+                  comment_counts.get(post.postId, 0) }} {% else %} 0{% endif %}
                 </button>
                 {% if is_own_profile %}
                 <button
                   class="btn btn-danger btn-sm ms-2"
-                  onclick="deletePost('{{ post.postId }}')"
+                  onclick="deletePost('{{ post.postId }}', this)"
                   title="Delete Post"
                 >
                   <i class="fas fa-trash"></i>
@@ -782,6 +884,38 @@ style="
       });
   }
 
+  // Function to open post modal programmatically
+  function openPostModal(postId) {
+    const modal = document.getElementById(`postModal${postId}`);
+    if (modal) {
+      const bsModal = new bootstrap.Modal(modal);
+      bsModal.show();
+      // Also toggle comments section if we want to show comments by default
+      // toggleCommentsSection(postId);
+    }
+  }
+
+  // Function to open post modal from card click, but not from button clicks
+  function openPostModalFromCard(event, postId) {
+    // Check if the click target or any of its parents is a button
+    let target = event.target;
+    while (target && target !== event.currentTarget) {
+      if (
+        target.tagName === "BUTTON" ||
+        target.tagName === "A" ||
+        target.closest("button") ||
+        target.closest("a")
+      ) {
+        // If it's a button or link, don't open the modal
+        return;
+      }
+      target = target.parentNode;
+    }
+
+    // If we get here, it's not a button click, so open the modal
+    openPostModal(postId);
+  }
+
   // Toggle comments section (combined form and list)
   function toggleCommentsSection(postId) {
     const section = document.getElementById(`comments-section-modal-${postId}`);
@@ -1045,7 +1179,7 @@ style="
 
   // Function to update comment count on buttons
   function updateCommentCount(postId, newCount) {
-    // Find the comment button for this post
+    // Find the comment button for this post in modal
     const commentButton = document.querySelector(
       `button[onclick*="toggleCommentsSection('${postId}')"]`
     );
@@ -1053,9 +1187,24 @@ style="
       if (newCount > 0) {
         commentButton.innerHTML = `<i class="fas fa-comment"></i> ${newCount}`;
       } else {
-        commentButton.innerHTML = `<i class="fas fa-comment"></i>`;
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> 0`;
       }
     }
+
+    // Find and update comment buttons outside the modal (mobile and desktop)
+    const outsideCommentButtons = document.querySelectorAll(
+      `button[onclick*="openPostModal('${postId}')"]`
+    );
+    outsideCommentButtons.forEach((btn) => {
+      const countSpan = btn.querySelector(".ms-1");
+      if (countSpan) {
+        if (newCount > 0) {
+          countSpan.textContent = newCount;
+        } else {
+          countSpan.textContent = "0";
+        }
+      }
+    });
 
     // Also update the hover overlay comment count
     const hoverCommentCount = document.getElementById(
@@ -1153,7 +1302,7 @@ style="
 
   // Like/Unlike functionality with instant UI updates
   document.addEventListener("DOMContentLoaded", function () {
-    // Add click handlers for like buttons
+    // Add click handlers for like buttons (both modal and mobile)
     document.querySelectorAll(".like-btn").forEach((button) => {
       button.addEventListener("click", function () {
         const postId = this.dataset.postId;
@@ -1172,18 +1321,30 @@ style="
         let newCount;
         if (action === "like") {
           newCount = originalCount + 1;
-          btn.className = "btn btn-danger btn-sm like-btn";
+          if (btn.closest(".modal")) {
+            // Modal button - use same classes as home page
+            btn.className = "btn btn-danger btn-sm like-btn";
+            btn.style.cssText = ""; // Clear any inline styles to let CSS handle it
+          } else {
+            // Mobile or Desktop button - remove inline styles and let CSS handle it
+            btn.style.cssText = "";
+            btn.className = "btn btn-sm p-1 like-btn";
+          }
           btn.dataset.action = "unlike";
           btn.querySelector("i").className = "bi bi-heart-fill";
-          btn.style.cssText =
-            "background-color: #dc3545; border-color: #dc3545; color: white;";
         } else {
           newCount = Math.max(0, originalCount - 1);
-          btn.className = "btn btn-outline-danger btn-sm like-btn";
+          if (btn.closest(".modal")) {
+            // Modal button - use same classes as home page
+            btn.className = "btn btn-outline-danger btn-sm like-btn";
+            btn.style.cssText = ""; // Clear any inline styles to let CSS handle it
+          } else {
+            // Mobile or Desktop button - remove inline styles and let CSS handle it
+            btn.style.cssText = "";
+            btn.className = "btn btn-sm p-1 like-btn";
+          }
           btn.dataset.action = "like";
           btn.querySelector("i").className = "bi bi-heart";
-          btn.style.cssText =
-            "background-color: transparent; border: 1.5px solid #fff; color: #fff;";
         }
         likeCountSpan.textContent = newCount;
 
@@ -1195,9 +1356,46 @@ style="
           hoverLikeCount.textContent = newCount;
         }
 
-        // Add animation for visual feedback
-        btn.classList.add("liked-animation");
-        setTimeout(() => btn.classList.remove("liked-animation"), 300);
+        // Update all like buttons for this post (mobile and modal)
+        const allLikeButtons = document.querySelectorAll(
+          `[data-post-id="${postId}"].like-btn`
+        );
+        allLikeButtons.forEach((otherBtn) => {
+          if (otherBtn !== btn) {
+            const otherCountSpan = otherBtn.querySelector(".like-count");
+            const otherIcon = otherBtn.querySelector("i");
+
+            otherCountSpan.textContent = newCount;
+            otherBtn.dataset.action = btn.dataset.action;
+            otherIcon.className = btn.querySelector("i").className;
+
+            if (action === "like") {
+              if (otherBtn.closest(".modal")) {
+                otherBtn.className = "btn btn-danger btn-sm like-btn";
+                otherBtn.style.cssText = ""; // Clear any inline styles
+              } else {
+                // Remove inline styles and let CSS handle it
+                otherBtn.style.cssText = "";
+                otherBtn.className = "btn btn-sm p-1 like-btn";
+              }
+            } else {
+              if (otherBtn.closest(".modal")) {
+                otherBtn.className = "btn btn-outline-danger btn-sm like-btn";
+                otherBtn.style.cssText = ""; // Clear any inline styles
+              } else {
+                // Remove inline styles and let CSS handle it
+                otherBtn.style.cssText = "";
+                otherBtn.className = "btn btn-sm p-1 like-btn";
+              }
+            }
+          }
+        });
+
+        // Add visual feedback without animation
+        btn.style.opacity = "0.8";
+        setTimeout(() => {
+          btn.style.opacity = "1";
+        }, 150);
 
         // Briefly disable button to prevent spam clicking
         btn.disabled = true;
@@ -1221,6 +1419,11 @@ style="
               // Sync with server response if different from optimistic update
               if (data.new_count !== undefined && data.new_count !== newCount) {
                 likeCountSpan.textContent = data.new_count;
+                // Update all instances
+                allLikeButtons.forEach((otherBtn) => {
+                  otherBtn.querySelector(".like-count").textContent =
+                    data.new_count;
+                });
                 // Update hover overlay too
                 if (hoverLikeCount) {
                   hoverLikeCount.textContent = data.new_count;
@@ -1228,12 +1431,40 @@ style="
               }
               // UI is already updated optimistically, no need to change unless correcting
             } else {
-              // Rollback on error
-              likeCountSpan.textContent = originalCount;
-              btn.className = originalClass;
-              btn.dataset.action = originalAction;
-              btn.querySelector("i").className = originalIconClass;
-              btn.style.cssText = originalStyle;
+              // Rollback on error for all buttons
+              allLikeButtons.forEach((otherBtn) => {
+                const otherCountSpan = otherBtn.querySelector(".like-count");
+                otherCountSpan.textContent = originalCount;
+                otherBtn.dataset.action = originalAction;
+                otherBtn.querySelector("i").className = originalIconClass;
+
+                if (otherBtn === btn) {
+                  otherBtn.className = originalClass;
+                  otherBtn.style.cssText = originalStyle;
+                } else {
+                  // Reset other buttons to match original state
+                  if (originalAction === "like") {
+                    if (otherBtn.closest(".modal")) {
+                      otherBtn.className =
+                        "btn btn-outline-danger btn-sm like-btn";
+                      otherBtn.style.cssText = ""; // Clear any inline styles
+                    } else {
+                      // Remove inline styles and let CSS handle it
+                      otherBtn.style.cssText = "";
+                      otherBtn.className = "btn btn-sm p-1 like-btn";
+                    }
+                  } else {
+                    if (otherBtn.closest(".modal")) {
+                      otherBtn.className = "btn btn-danger btn-sm like-btn";
+                      otherBtn.style.cssText = ""; // Clear any inline styles
+                    } else {
+                      // Remove inline styles and let CSS handle it
+                      otherBtn.style.cssText = "";
+                      otherBtn.className = "btn btn-sm p-1 like-btn";
+                    }
+                  }
+                }
+              });
 
               // Rollback hover overlay too
               if (hoverLikeCount) {
@@ -1251,12 +1482,18 @@ style="
           })
           .catch((error) => {
             console.error("Error:", error);
-            // Rollback on network error
-            likeCountSpan.textContent = originalCount;
-            btn.className = originalClass;
-            btn.dataset.action = originalAction;
-            btn.querySelector("i").className = originalIconClass;
-            btn.style.cssText = originalStyle;
+            // Rollback on network error for all buttons
+            allLikeButtons.forEach((otherBtn) => {
+              const otherCountSpan = otherBtn.querySelector(".like-count");
+              otherCountSpan.textContent = originalCount;
+              otherBtn.dataset.action = originalAction;
+              otherBtn.querySelector("i").className = originalIconClass;
+
+              if (otherBtn === btn) {
+                otherBtn.className = originalClass;
+                otherBtn.style.cssText = originalStyle;
+              }
+            });
 
             // Rollback hover overlay too
             if (hoverLikeCount) {
@@ -1308,12 +1545,22 @@ style="
   }
 
   // Delete post function
-  function deletePost(postId) {
+  function deletePost(postId, clickedButton) {
     if (
       confirm(
         "Are you sure you want to delete this post? This action cannot be undone."
       )
     ) {
+      // Store original state of only the clicked button
+      const originalState = {
+        innerHTML: clickedButton.innerHTML,
+        disabled: clickedButton.disabled,
+      };
+
+      // Show loading only on the clicked button
+      clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      clickedButton.disabled = true;
+
       const url = `/delete-post/${postId}`;
       console.log("Attempting to delete post with URL:", url);
 
@@ -1330,7 +1577,7 @@ style="
         .then((data) => {
           console.log("Response data:", data);
           if (data.success) {
-            // Close the modal
+            // Close any open modal for this post
             const modal = document.getElementById(`postModal${postId}`);
             if (modal) {
               const bsModal = bootstrap.Modal.getInstance(modal);
@@ -1341,7 +1588,9 @@ style="
 
             // Remove the post from the page
             const postElement = document
-              .querySelector(`[data-bs-target="#postModal${postId}"]`)
+              .querySelector(
+                `[onclick*="openPostModalFromCard(event, '${postId}')"]`
+              )
               .closest(".col-lg-4, .col-md-6");
             if (postElement) {
               postElement.remove();
@@ -1373,11 +1622,17 @@ style="
               location.reload(); // Reload to show empty state
             }
           } else {
+            // Restore button state on error (only clicked button)
+            clickedButton.innerHTML = originalState.innerHTML;
+            clickedButton.disabled = originalState.disabled;
             console.error("Delete failed:", data.error);
             alert("Error: " + data.error);
           }
         })
         .catch((error) => {
+          // Restore button state on network error (only clicked button)
+          clickedButton.innerHTML = originalState.innerHTML;
+          clickedButton.disabled = originalState.disabled;
           console.error("Error details:", error);
           alert("An error occurred while deleting the post: " + error.message);
         });
@@ -1397,120 +1652,8 @@ style="
       });
   });
 
-  let _postEditSaving = {};
-
-  function enablePostEdit(postId, isCaption) {
-    if (!window._postEditOriginal) window._postEditOriginal = {};
-    if (!window._postEditOriginal[postId]) {
-      window._postEditOriginal[postId] = {
-        title: document.getElementById(`edit-title-${postId}`).value,
-        content: document.getElementById(`edit-caption-${postId}`).value,
-      };
-    }
-    if (!isCaption) {
-      document.getElementById(`post-title-${postId}`).classList.add("d-none");
-      const titleInput = document.getElementById(`edit-title-${postId}`);
-      titleInput.classList.remove("d-none");
-      titleInput.focus();
-      // Hide on blur if not saving
-      titleInput.onblur = function () {
-        setTimeout(function () {
-          if (!_postEditSaving[postId]) hideEditFields(postId);
-        }, 100);
-      };
-    } else {
-      document.getElementById(`post-caption-${postId}`).classList.add("d-none");
-      const captionInput = document.getElementById(`edit-caption-${postId}`);
-      captionInput.classList.remove("d-none");
-      captionInput.focus();
-      // Hide on blur if not saving
-      captionInput.onblur = function () {
-        setTimeout(function () {
-          if (!_postEditSaving[postId]) hideEditFields(postId);
-        }, 100);
-      };
-    }
-    document.getElementById(`save-post-${postId}`).classList.remove("d-none");
-  }
-
-  function hideEditFields(postId) {
-    // Restore original values
-    if (window._postEditOriginal && window._postEditOriginal[postId]) {
-      document.getElementById(`edit-title-${postId}`).value =
-        window._postEditOriginal[postId].title;
-      document.getElementById(`edit-caption-${postId}`).value =
-        window._postEditOriginal[postId].content;
-    }
-    document.getElementById(`post-title-${postId}`).classList.remove("d-none");
-    document.getElementById(`edit-title-${postId}`).classList.add("d-none");
-    document
-      .getElementById(`post-caption-${postId}`)
-      .classList.remove("d-none");
-    document.getElementById(`edit-caption-${postId}`).classList.add("d-none");
-    document.getElementById(`save-post-${postId}`).classList.add("d-none");
-    _postEditSaving[postId] = false;
-  }
-
-  // Optional: handle Esc key to cancel edit
-  ["edit-title-", "edit-caption-"].forEach((prefix) => {
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") {
-        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
-        inputs.forEach((input) => {
-          if (!input.classList.contains("d-none")) {
-            const postId = input.id.split("-").pop();
-            hideEditFields(postId);
-          }
-        });
-      }
-    });
-  });
-
-  function savePostEdit(postId) {
-    _postEditSaving[postId] = true;
-    const titleInput = document.getElementById(`edit-title-${postId}`);
-    const captionInput = document.getElementById(`edit-caption-${postId}`);
-    const title = titleInput ? titleInput.value.trim() : "";
-    const content = captionInput ? captionInput.value.trim() : "";
-    csrfFetch(`/api/edit-post/${postId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, content }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          document.getElementById(`post-title-${postId}`).textContent =
-            data.title;
-          document.getElementById(
-            `post-caption-${postId}`
-          ).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
-          document
-            .getElementById(`post-title-${postId}`)
-            .classList.remove("d-none");
-          document
-            .getElementById(`edit-title-${postId}`)
-            .classList.add("d-none");
-          document
-            .getElementById(`post-caption-${postId}`)
-            .classList.remove("d-none");
-          document
-            .getElementById(`edit-caption-${postId}`)
-            .classList.add("d-none");
-          document
-            .getElementById(`save-post-${postId}`)
-            .classList.add("d-none");
-          if (window._postEditOriginal) delete window._postEditOriginal[postId];
-          showNotification("Post updated!", "success");
-        } else {
-          showNotification(data.error || "Failed to update post", "danger");
-        }
-        _postEditSaving[postId] = false;
-      })
-      .catch(() => {
-        _postEditSaving[postId] = false;
-      });
-  }
+  // Note: Post editing outside modal has been removed.
+  // Only modal-based editing is supported for better UX.
 
   function enableModalPostEdit(postId, isCaption) {
     if (!window._modalPostEditOriginal) window._modalPostEditOriginal = {};

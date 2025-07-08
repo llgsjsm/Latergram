@@ -631,11 +631,15 @@
           btn.className = "btn btn-danger btn-sm like-btn";
           btn.dataset.action = "unlike";
           btn.querySelector("i").className = "bi bi-heart-fill";
+          // Force remove any background styles that might persist
+          btn.style.backgroundColor = "";
         } else {
           newCount = Math.max(0, originalCount - 1);
           btn.className = "btn btn-outline-danger btn-sm like-btn";
           btn.dataset.action = "like";
           btn.querySelector("i").className = "bi bi-heart";
+          // Force remove any background styles that might persist
+          btn.style.backgroundColor = "";
         }
         likeCountSpan.textContent = newCount;
 
