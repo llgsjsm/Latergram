@@ -7,28 +7,23 @@ on:
       - completed
 
 jobs:
-  python-security:
+  security-scan:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
         with:
-          python-version: '3.11'
+          project: "Latergram"
+          path: "."
+          format: "HTML"
+          out: "dependency-check-report"
 
-      # - name: List files for debugging
-      #   run: |
-      #     echo "Current directory: $(pwd)"
-      #     ls -alR
-
-      - name: Install tools
-        run: |
-          pip install -r app-server/requirements.txt
-          pip install safety pip-audit
-
-      - name: Run Safety
-        run: safety check
-
-      - name: Run pip-audit
-        run: pip-audit
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dependency-Check-Report
+          path: dependency-check-report

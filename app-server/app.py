@@ -98,8 +98,6 @@ def handle_csrf_error(e):
     if request.accept_mimetypes.accept_html:
         flash('Security token mismatch. Please refresh the page and try again.', 'danger')
         return redirect(url_for('main.login')), 400
-
-    # JSON/AJAX 
     return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
 
 @app.before_request
