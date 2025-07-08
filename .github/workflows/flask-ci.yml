@@ -111,8 +111,9 @@ jobs:
     - name: Run Flask Unit Tests
       run: |
         echo "Running Flask unit tests..."
-        docker exec flask python -m unittest discover tests
         docker exec flask ls -la
+        docker exec flask echo "Current directory: $(pwd)"
+        docker exec flask python -m unittest discover tests
     
     - name: Run Playwright Tests
       run: |
