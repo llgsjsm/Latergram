@@ -1,3 +1,5 @@
+name: OWASP Dependency Check
+
 on:
   workflow_run:
     workflows: ["Flask CI for Dev Branches"]
@@ -5,37 +7,23 @@ on:
       - completed
 
 jobs:
-  security-scan:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  python-security:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Run OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          project: "Latergram"
-          path: "."
-          format: "HTML"
-          out: "dependency-check-report"
+          python-version: '3.11'
 
-      - name: Install Safety
-        run: pip install safety
-
-      - name: Run Safety Check and Save Report
+      - name: Install tools
         run: |
-          mkdir -p safety-report
-          safety check --full-report --file=requirements.txt > safety-report/safety-report.txt
+          pip install -r requirements.txt
+          pip install safety pip-audit
 
-      - name: Upload Dependency-Check Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: Dependency-Check-Report
-          path: dependency-check-report
+      - name: Run Safety
+        run: safety check
 
-      - name: Upload Safety Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: Safety-Report
-          path: safety-report
+      - name: Run pip-audit
+        run: pip-audit

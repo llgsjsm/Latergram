@@ -91,8 +91,6 @@ def create_app(test_config=None):
     init_limiter(app, storage_uri=storage_uri)
     return app
 
-
-# Create the app instance
 app = create_app()
 
 @app.errorhandler(CSRFError)
