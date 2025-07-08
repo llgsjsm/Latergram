@@ -356,7 +356,10 @@ def create_post():
         log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username, content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('main.home'))
-    return render_template('create_post.html')
+    
+    # Get current user for navbar profile picture
+    current_user = User.query.filter_by(userId=session['user_id']).first()
+    return render_template('create_post.html', current_user=current_user)
 
 @main_bp.route('/search', methods=['GET'])
 def search():
@@ -479,13 +482,22 @@ def edit_profile():
             profile_picture_url=profile_pic_url
         )
         
+        # Check if this is an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         if result['success']:
-            flash('Profile updated successfully!', 'success')
-            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
-            return redirect(url_for('profile.profile'))
+            if is_ajax:
+                return jsonify({'success': True, 'message': 'Profile updated successfully!'})
+            else:
+                flash('Profile updated successfully!', 'success')
+                log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
+                return redirect(url_for('profile.profile'))
         else:
-            log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
-            flash(f'Error updating profile: {result["error"]}', 'danger')
+            if is_ajax:
+                return jsonify({'success': False, 'error': result['error']})
+            else:
+                log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
+                flash(result['error'], 'danger')
     
     return render_template('edit_profile.html', user=user, current_user=user)
 

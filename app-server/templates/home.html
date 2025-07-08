@@ -42,50 +42,55 @@
                   {{ request.requested_at.strftime('%b %d, %Y') if
                   request.requested_at else '' }}
                 </div>
-                <div class="d-flex align-items-center justify-content-between">
-                  <div class="d-flex align-items-center flex-grow-1">
+                <div class="d-flex align-items-center" style="min-height: 42px">
+                  <div
+                    class="d-flex align-items-center flex-grow-1"
+                    style="min-width: 0"
+                  >
                     {% if request.profile_picture %}
                     <img
                       src="{{ request.profile_picture }}"
-                      class="rounded-circle me-3"
-                      style="width: 42px; height: 42px; object-fit: cover"
+                      class="rounded-circle me-2 flex-shrink-0"
+                      style="width: 32px; height: 32px; object-fit: cover"
                       alt="Profile Picture"
                     />
                     {% else %}
                     <span
-                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 flex-shrink-0"
                       style="
-                        width: 42px;
-                        height: 42px;
+                        width: 32px;
+                        height: 32px;
                         background: #23263a;
                         color: #bfc7d5;
-                        font-size: 1.3rem;
+                        font-size: 1rem;
                         border: 2px solid #343a40;
                       "
                     >
                       <i class="fas fa-user"></i>
                     </span>
                     {% endif %}
-                    <div class="flex-grow-1">
+                    <div
+                      class="flex-grow-1"
+                      style="min-width: 0; overflow: hidden"
+                    >
                       <a
                         href="{{ url_for('profile.profile', user_id=request.requester_id) }}"
-                        class="text-decoration-none"
+                        class="text-decoration-none d-block text-truncate"
                       >
                         <strong>{{ request.username }}</strong>
                       </a>
-                      {% if request.bio %}
-                      <div class="text-muted small">
-                        {{ request.bio[:40] }}{% if request.bio|length > 40
-                        %}...{% endif %}
-                      </div>
-                      {% endif %}
                     </div>
                   </div>
-                  <div class="d-flex gap-2 flex-shrink-0">
+                  <div class="d-flex gap-1 flex-shrink-0 ms-2">
                     <button
                       class="btn btn-primary btn-sm request-btn"
                       data-action="accept"
                       data-requester-id="{{ request.requester_id }}"
+                      style="
+                        font-size: 0.75rem;
+                        padding: 0.25rem 0.5rem;
+                        white-space: nowrap;
+                      "
                     >
                       Accept
                     </button>
@@ -93,6 +98,11 @@
                       class="btn btn-outline-secondary btn-sm request-btn"
                       data-action="decline"
                       data-requester-id="{{ request.requester_id }}"
+                      style="
+                        font-size: 0.75rem;
+                        padding: 0.25rem 0.5rem;
+                        white-space: nowrap;
+                      "
                     >
                       Decline
                     </button>
@@ -131,53 +141,54 @@
             <div class="card-body">
               {% for user in suggested_users[:3] %}
               <div class="mb-3">
-                <div
-                  class="d-flex align-items-center justify-content-between flex-wrap"
-                >
+                <div class="d-flex align-items-center" style="min-height: 42px">
                   <div
-                    class="d-flex align-items-center mb-2 mb-sm-0 flex-grow-1"
+                    class="d-flex align-items-center flex-grow-1"
+                    style="min-width: 0"
                   >
                     {% if user.profilePicture %}
                     <img
                       src="{{ user.profilePicture }}"
-                      class="rounded-circle me-3"
-                      style="width: 42px; height: 42px; object-fit: cover"
+                      class="rounded-circle me-2 flex-shrink-0"
+                      style="width: 32px; height: 32px; object-fit: cover"
                       alt="Profile Picture"
                     />
                     {% else %}
                     <span
-                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-3"
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 flex-shrink-0"
                       style="
-                        width: 42px;
-                        height: 42px;
+                        width: 32px;
+                        height: 32px;
                         background: #23263a;
                         color: #bfc7d5;
-                        font-size: 1.3rem;
+                        font-size: 1rem;
                         border: 2px solid #343a40;
                       "
                     >
                       <i class="fas fa-user"></i>
                     </span>
                     {% endif %}
-                    <div class="flex-grow-1">
+                    <div
+                      class="flex-grow-1"
+                      style="min-width: 0; overflow: hidden"
+                    >
                       <a
                         href="{{ url_for('profile.profile', user_id=user.userId) }}"
-                        class="text-decoration-none"
+                        class="text-decoration-none d-block text-truncate"
                       >
                         <strong>{{ user.username }}</strong>
                       </a>
-                      {% if user.bio %}
-                      <div class="text-muted small">
-                        {{ user.bio[:40] }}{% if user.bio|length > 40 %}...{%
-                        endif %}
-                      </div>
-                      {% endif %}
                     </div>
                   </div>
-                  <div class="flex-shrink-0">
+                  <div class="flex-shrink-0 ms-2">
                     <a
                       href="{{ url_for('profile.profile', user_id=user.userId) }}"
                       class="btn btn-outline-primary btn-sm"
+                      style="
+                        font-size: 0.75rem;
+                        padding: 0.25rem 0.5rem;
+                        white-space: nowrap;
+                      "
                     >
                       View
                     </a>
@@ -1124,11 +1135,6 @@
         >
           <strong>{{ user.username }}</strong>
         </a>
-        {% if user.bio %}
-        <div class="text-muted small">
-          {{ user.bio[:30] }}{% if user.bio|length > 30 %}...{% endif %}
-        </div>
-        {% endif %}
       </div>
       <a
         href="{{ url_for('profile.profile', user_id=user.userId) }}"

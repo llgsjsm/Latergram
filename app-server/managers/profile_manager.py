@@ -85,9 +85,16 @@ class ProfileManager:
         if not user:
             return {'success': False, 'error': 'User not found'}
         
+        # Check for display name (username) duplicates before updating
+        if display_name is not None and display_name.strip() != user.username:
+            # Check if the new display name is already taken by another user
+            existing_user = User.query.filter(User.username == display_name.strip(), User.userId != user_id).first()
+            if existing_user:
+                return {'success': False, 'error': 'This display name is already taken. Please choose a different one.'}
+        
         # Update provided fields (note: display_name maps to username in current schema)
         if display_name is not None:
-            user.username = display_name
+            user.username = display_name.strip()
         if bio is not None:
             user.bio = bio
         if profile_picture_url is not None:
@@ -112,6 +119,9 @@ class ProfileManager:
             }
         except Exception as e:
             db.session.rollback()
+            # Handle database unique constraint errors specifically
+            if 'duplicate' in str(e).lower() or 'unique' in str(e).lower():
+                return {'success': False, 'error': 'This display name is already taken. Please choose a different one.'}
             return {'success': False, 'error': f'Failed to update profile: {str(e)}'}
 
     def change_visibility(self, user_id: int, visibility_type: str) -> Dict[str, Any]:
