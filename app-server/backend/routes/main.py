@@ -356,7 +356,10 @@ def create_post():
         log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username, content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('main.home'))
-    return render_template('create_post.html')
+    
+    # Get current user for navbar profile picture
+    current_user = User.query.filter_by(userId=session['user_id']).first()
+    return render_template('create_post.html', current_user=current_user)
 
 @main_bp.route('/search', methods=['GET'])
 def search():
