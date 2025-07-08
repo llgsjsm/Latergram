@@ -81,7 +81,7 @@ def home():
         if posts:
             post_ids = [post.postId for post in posts]
             liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
-            # Also get comment counts for all posts
+            # get comment counts for all posts
             comment_counts = feed_manager.get_comment_counts_batch(post_ids)
         else:
             liked_posts = {}

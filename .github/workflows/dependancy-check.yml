@@ -1,5 +1,3 @@
-name: OWASP Dependency Check
-
 on:
   workflow_run:
     workflows: ["Flask CI for Dev Branches"]
@@ -22,8 +20,22 @@ jobs:
           format: "HTML"
           out: "dependency-check-report"
 
-      - name: Upload Report
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Run Safety Check and Save Report
+        run: |
+          mkdir -p safety-report
+          safety check --full-report --file=requirements.txt > safety-report/safety-report.txt
+
+      - name: Upload Dependency-Check Report
         uses: actions/upload-artifact@v4
         with:
           name: Dependency-Check-Report
           path: dependency-check-report
+
+      - name: Upload Safety Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Safety-Report
+          path: safety-report
