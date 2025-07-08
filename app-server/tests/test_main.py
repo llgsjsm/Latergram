@@ -19,7 +19,8 @@ class MainRouteTestCase(unittest.TestCase):
     #########################################################
 
     ## Forgot Password rate limit test
-    def test_forgot_password_rate_limit(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_forgot_password_rate_limit(self, mock_log_to_splunk):
         for _ in range(5):
             response = self.client.post('/forgot-password', json={})
             self.assertEqual(response.status_code, 200)
@@ -27,7 +28,8 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 429)
 
     ## Login rate limit test
-    def test_login_rate_limit(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_login_rate_limit(self, mock_log_to_splunk):
         for _ in range(7):
             response = self.client.post('/login', json={
                 "email": "testuser@email.com",
@@ -45,7 +47,8 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 429)
 
     ## Homepage landing health check
-    def test_homepage_health(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_homepage_health(self, mock_log_to_splunk):
         response = self.client.get('/login')
         self.assertIn(response.status_code, [200, 404])
 
@@ -114,7 +117,8 @@ class MainRouteTestCase(unittest.TestCase):
     @patch("backend.routes.main.storage")
     @patch("backend.routes.main.db")
     @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
-    def test_create_post_authenticated(self,mock_is_allowed_file_secure,mock_db,mock_storage):
+    @patch("backend.routes.main.log_action")
+    def test_create_post_authenticated(self,mock_log_action,mock_is_allowed_file_secure,mock_db,mock_storage):
         self.login_as_user(user_id=99)
 
         # Set up mocks
