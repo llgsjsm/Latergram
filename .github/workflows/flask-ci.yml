@@ -51,8 +51,8 @@ jobs:
 
     - name: Create Firebase Key
       run: |
-        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > app-server/firebase_key.json
-        
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > app-server/${{ secrets.FILE_LOCATION }}
+
     - name: Generate .env files
       run: |
         cat <<EOF > .env
@@ -61,11 +61,6 @@ jobs:
         MYSQL_USER=${{ secrets.MYSQL_USER }}
         MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
         EOF
-
-    - name: List files for debugging
-      run: |
-        echo "Current directory: $(pwd)"
-        ls -alR
 
     - name: Build Flask 
       run: docker-compose -f docker-compose.ci.yml up -d --build flask nginx mysqldb
@@ -111,8 +106,6 @@ jobs:
     - name: Run Flask Unit Tests
       run: |
         echo "Running Flask unit tests..."
-        docker exec flask ls -la
-        docker exec flask echo "Current directory: $(pwd)"
         docker exec flask python -m unittest discover tests
     
     - name: Run Playwright Tests

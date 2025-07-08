@@ -205,7 +205,6 @@ class MainRouteTestCase(unittest.TestCase):
             "content": "bitch", 
             "image": (io.BytesIO(b"fake image data"), "test.png", "image/png")
         }
-
         response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=False)
         self.assertEqual(response.status_code, 400)
         self.assertIn(b"Profanity detected", response.data)
