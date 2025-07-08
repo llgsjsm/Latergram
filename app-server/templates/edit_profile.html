@@ -69,6 +69,142 @@
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+    /* Fix container padding for mobile */
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Fix profile picture layout on mobile */
+    #user-picture {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    /* Adjust row spacing for mobile */
+    .row.mb-4[style*="gap: 0"] {
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Make columns stack better on mobile */
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    /* Fix button group for mobile */
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    /* Make buttons full width on mobile */
+    .base-btn {
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Fix select dropdown for mobile */
+    .form-select {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Fix option text wrapping */
+    .form-select option {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    
+    /* Fix input group for mobile */
+    .input-group {
+        flex-wrap: wrap;
+    }
+    
+    .input-group .btn {
+        width: 100%;
+        margin-top: 0.5rem;
+        border-top-left-radius: 0.375rem !important;
+        border-top-right-radius: 0.375rem !important;
+    }
+    
+    /* Fix form controls to prevent overflow */
+    .form-control, .form-select {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Fix card body padding */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* Fix modal buttons for mobile */
+    .modal-body .d-flex.gap-2 {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-body .btn {
+        width: 100%;
+    }
+    
+    /* Fix security settings layout */
+    .d-flex.justify-content-between.align-items-center {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+    
+    /* Fix form switch alignment */
+    .form-check.form-switch {
+        align-self: flex-end;
+        margin-top: -2rem;
+    }
+}
+
+/* Additional mobile-specific fixes for small screens */
+@media (max-width: 576px) {
+    /* Further reduce font sizes for very small screens */
+    .form-select option {
+        font-size: 0.8rem;
+    }
+    
+    /* Make profile picture smaller on very small screens */
+    .profile-pic-img {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    #profile-pic-preview .profile-pic-img {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    /* Reduce button padding for very small screens */
+    .base-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Make card headers more compact */
+    .card-header h4 {
+        font-size: 1.1rem;
+    }
+}
+</style>
 </style>
 {% endblock %} {% block content %}
 <div class="container">
