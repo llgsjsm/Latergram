@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, flash
+from flask import Flask, app, render_template, request, jsonify, flash
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -29,6 +29,8 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.urandom(24)
+    app.config['SESSION_COOKIE_SECURE'] = True     # Only send cookies thru HTTPS
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF attacks w SameSite (doubled with WTF)
     if test_config:
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
