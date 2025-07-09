@@ -27,6 +27,7 @@ html {
 }
 
 .navbar-brand {
+  margin: 0 0 16px 16px !important;
   color: var(--color-white);
   font-family: Arial, sans-serif;
   font-size: 24px;
@@ -218,23 +219,6 @@ html {
   padding: 2rem 1rem;
 }
 
-@media (max-width: 991px) {
-  #main-content {
-    margin-right: 0;
-  }
-}
-
-@media (max-width: 767px) {
-  #main-nav {
-    width: 60px;
-  }
-
-  #main-content {
-    margin-left: 60px;
-    padding: 1rem 0.5rem;
-  }
-}
-
 /* --- Dark Mode Shared Styles --- */
 body,
 .container {
@@ -413,6 +397,10 @@ h4.card-header,
 }
 
 @media (max-width: 991px) {
+  #main-content {
+    margin-right: 0;
+  }
+
   /* Responsive sidebar */
   #main-nav {
     position: fixed;
@@ -437,7 +425,7 @@ h4.card-header,
   .mobile-nav-toggle {
     position: fixed;
     top: 15px;
-    left: 15px;
+    left: 32px;
     z-index: 1051;
     background: var(--color-primary);
     border: none;
@@ -529,5 +517,22 @@ h4.card-header,
   /* Ensure search doesn't interfere with nav toggle */
   #main-nav.show {
     padding-top: 2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  #main-nav {
+    width: 100vw !important;
+    left: -100vw;
+    background-color: #151722 !important;
+  }
+
+  #main-content {
+    margin-left: 60px;
+    padding: 1rem 0.5rem;
+  }
+
+  .navbar {
+    padding: 8px 32px !important;
   }
 }
