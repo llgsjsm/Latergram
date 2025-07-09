@@ -19,11 +19,6 @@ from managers.authentication_manager import bcrypt
 
 import firebase_admin
 from firebase_admin import credentials, storage, _DEFAULT_APP_NAME
-# from flask_wtf import CSRFProtect
-# from flask_wtf.csrf import CSRFError
-
-from backend.limiter import check_rate_limit, record_request, request_data, get_rate_limited_paths
-from backend.splunk_utils import get_real_ip
 
 def create_app(test_config=None):
     load_dotenv()
@@ -92,14 +87,6 @@ def create_app(test_config=None):
     return app
 
 app = create_app()
-
-@app.before_request
-def before_request():
-    ip = get_real_ip()
-    if request.method == "POST" and request.path in get_rate_limited_paths():
-        if not check_rate_limit(ip, request_data=request_data):
-            return jsonify({"error": "Rate limit exceeded"}), 429
-    record_request(ip, request_data=request_data)
 
 @app.before_request
 def csrf_protect():

@@ -6,7 +6,7 @@ from backend.splunk_utils import log_to_splunk
 from backend.profanity_helper import check_profanity
 from backend.logging_utils import log_action
 from managers import get_auth_manager, get_profile_manager, get_post_manager
-# from backend.limiter import limiter
+from backend.limiter import rate_limit_required
 
 api_bp = Blueprint('api', __name__)
 
@@ -328,6 +328,7 @@ def api_edit_post(post_id):
 
 @api_bp.route('/send-email-update-otp', methods=['POST'])
 # @limiter.limit('5 per minute')
+@rate_limit_required
 def send_email_update_otp():
     """Send OTP to new email address for email update verification"""
     if 'user_id' not in session:
@@ -368,6 +369,7 @@ def send_email_update_otp():
 
 @api_bp.route('/verify-email-update-otp', methods=['POST'])
 # @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_email_update_otp():
     """Verify OTP and update email address"""
     if 'user_id' not in session:
@@ -449,6 +451,7 @@ def api_update_email():
 
 @api_bp.route('/send-password-change-otp', methods=['POST'])
 # @limiter.limit('5 per minute')
+@rate_limit_required
 def send_password_change_otp():
     """Send OTP for password change verification"""
     if 'user_id' not in session:
