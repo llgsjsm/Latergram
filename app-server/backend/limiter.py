@@ -5,7 +5,7 @@ from backend.splunk_utils import get_real_ip
 
 request_data = defaultdict(list)
 
-def check_rate_limit(ip, request_data, max_requests=5, time_window=60):
+def check_rate_limit(ip, request_data, max_requests=5, time_window=15):
     """Check if the IP has exceeded the rate limit"""
     current_time = time.time()
 
