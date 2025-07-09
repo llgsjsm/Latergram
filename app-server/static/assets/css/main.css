@@ -27,6 +27,7 @@ html {
 }
 
 .navbar-brand {
+  margin: 0 0 16px 16px !important;
   color: var(--color-white);
   font-family: Arial, sans-serif;
   font-size: 24px;
@@ -77,6 +78,14 @@ html {
   font-weight: 600;
 }
 
+.btn-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+
 .base-btn {
   border: none;
   border-radius: var(--bs-border-radius-sm);
@@ -112,21 +121,6 @@ html {
 .base-btn-secondary:focus {
   background: var(--color-navbg) !important;
   color: var(--color-white) !important;
-}
-
-#search-user-btn, #search-post-btn {
-  color: var(--color-white);
-  border-color: var(--color-primary);
-  height: 48px;
-}
-
-#search-user-btn:hover, #search-post-btn:hover {
-  border-color: var(--color-primary-hover);
-  background-color: var(--color-primary-hover);
-}
-
-#search-user-btn.active, #search-post-btn.active {
-  background-color: var(--color-primary);
 }
 
 .card-btn-primary {
@@ -231,23 +225,6 @@ html {
   margin-right: 0;
   min-height: 100vh;
   padding: 2rem 1rem;
-}
-
-@media (max-width: 991px) {
-  #main-content {
-    margin-right: 0;
-  }
-}
-
-@media (max-width: 767px) {
-  #main-nav {
-    width: 60px;
-  }
-
-  #main-content {
-    margin-left: 60px;
-    padding: 1rem 0.5rem;
-  }
 }
 
 /* --- Dark Mode Shared Styles --- */
@@ -428,6 +405,10 @@ h4.card-header,
 }
 
 @media (max-width: 991px) {
+  #main-content {
+    margin-right: 0;
+  }
+
   /* Responsive sidebar */
   #main-nav {
     position: fixed;
@@ -452,7 +433,7 @@ h4.card-header,
   .mobile-nav-toggle {
     position: fixed;
     top: 15px;
-    left: 15px;
+    left: 32px;
     z-index: 1051;
     background: var(--color-primary);
     border: none;
@@ -495,8 +476,6 @@ h4.card-header,
     top: 10px;
     z-index: 1052;
     margin-top: 1rem !important;
-    padding: 0.5rem;
-    background: var(--color-navbg);
     border-radius: 8px;
   }
 
@@ -509,6 +488,7 @@ h4.card-header,
     background: var(--color-input);
     border-radius: 8px;
     margin-top: 0.5rem;
+    padding: 0 16px;
     border: 1px solid #363947;
   }
 
@@ -544,5 +524,30 @@ h4.card-header,
   /* Ensure search doesn't interfere with nav toggle */
   #main-nav.show {
     padding-top: 2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  #main-nav {
+    width: 100vw !important;
+    left: -100vw;
+    background-color: #151722 !important;
+  }
+
+  #main-content {
+    margin-left: 60px;
+    padding: 1rem 0.5rem;
+  }
+
+  .navbar {
+    padding: 8px 32px !important;
+  }
+
+  #user-search-form {
+    margin: auto 16px
+  }
+
+  #search-suggestions {
+    margin: 8px 16px;
   }
 }

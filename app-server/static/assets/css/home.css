@@ -173,6 +173,12 @@
   justify-content: space-between;
 }
 
+/* Scrollable comments section */
+[id^="comments-"] {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
 /* Responsive post actions layout */
 .post-actions-container {
   display: flex;
@@ -313,13 +319,13 @@
     flex-direction: column;
     align-items: flex-start !important;
   }
-  
+
   .d-lg-none .request-item .d-flex.gap-2 {
     width: 100%;
     justify-content: flex-end;
     margin-top: 0.5rem;
   }
-  
+
   .d-lg-none .request-btn {
     flex: 1;
     max-width: 80px;
@@ -331,22 +337,22 @@
   .d-lg-none .request-item {
     padding: 0.75rem 0.5rem;
   }
-  
+
   .d-lg-none .request-item .d-flex.gap-2 {
     gap: 0.5rem !important;
   }
-  
+
   .d-lg-none .request-btn {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
     max-width: 90px;
   }
-  
+
   .d-lg-none .request-item .rounded-circle {
     width: 38px !important;
     height: 38px !important;
   }
-  
+
   .d-lg-none .request-item .text-muted {
     font-size: 0.8rem;
   }
@@ -383,4 +389,54 @@
 
 .notification.info {
   background-color: #17a2b8;
+}
+
+/* Fix like button states to prevent red background persistence */
+.btn-outline-danger.like-btn {
+  background-color: transparent !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.btn-outline-danger.like-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.btn-danger.like-btn {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.btn-danger.like-btn:hover {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+  color: #fff !important;
+}
+
+/* Ensure like button icon colors are correct */
+.btn-outline-danger.like-btn i {
+  color: #dc3545 !important;
+}
+
+.btn-danger.like-btn i {
+  color: #fff !important;
+}
+
+/* Remove any conflicting background colors on mobile */
+@media (max-width: 767px) {
+  .like-btn {
+    transition: all 0.2s ease-in-out !important;
+  }
+
+  .btn-outline-danger.like-btn {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .btn-outline-danger.like-btn:not(:hover):not(:focus):not(:active) {
+    background-color: transparent !important;
+  }
 }

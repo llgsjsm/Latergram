@@ -10,10 +10,9 @@ from backend.firebase_utils import ensure_firebase_initialized
 from datetime import datetime, timedelta, timezone
 from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
-import uuid, re, magic, os
+import uuid, re, magic, os, secrets
 from firebase_admin import storage
-from backend.limiter import limiter
-from flask_wtf.csrf import generate_csrf
+from backend.limiter import rate_limit_required
 
 main_bp = Blueprint('main', __name__)
 auth_manager = get_auth_manager()
@@ -25,7 +24,7 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png'}
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
-# Check if Playwright is enabled, default to False
+# Check if Playwright is enabled, default to False.
 PLAYWRIGHT = os.getenv("PLAYWRIGHT", "false").lower() == "true"
 
 ######################
@@ -81,7 +80,7 @@ def home():
         if posts:
             post_ids = [post.postId for post in posts]
             liked_posts = post_manager.get_posts_with_likes_batch(post_ids, session['user_id'])
-            # Also get comment counts for all posts
+            # get comment counts for all posts
             comment_counts = feed_manager.get_comment_counts_batch(post_ids)
         else:
             liked_posts = {}
@@ -96,14 +95,19 @@ def home():
 
     return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
 
+def generate_csrf():
+    csrf_token = secrets.token_hex(32)  # Generates a secure 32-byte hex token
+    session['csrf_token'] = csrf_token  # Store the token in the session
+    return csrf_token
+
 @main_bp.route('/get-csrf-token', methods=['GET'])
 def get_csrf_token():
     token = generate_csrf()
     return jsonify({'csrf_token': token})
 
-
 @main_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit('7 per minute')
+# @limiter.limit('7 per minute')
+@rate_limit_required
 def login():
     log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
@@ -124,23 +128,19 @@ def login():
                 password = data.get('password', '')
 
                 if email and password:
-                    if PLAYWRIGHT:
-                        result = auth_manager.login(email, password)
-                        if result['success']:
-                            session['user_id'] = 999999
-                            return jsonify(result)
-
                     # Check if user exists in User table first
                     user = User.query.filter(
                         or_(User.username == email, User.email == email)
                     ).first()
-                    
                     if user:
                         # Use OTP login if user has it enabled, otherwise use normal login
                         if getattr(user, 'otp_enabled', True):  # Default to True (enabled)
                             result = auth_manager.login_with_otp(email, password)
                             if result['success']:
                                 return jsonify(result)
+                            else:
+                                log_to_splunk("Login", "Failed valid user login attempt", username=email)
+
                         else:
                             # Use normal login for user
                             result = auth_manager.login(email, password)
@@ -258,6 +258,7 @@ def logout():
         user = User.query.filter_by(userId=session['user_id']).first()
         log_to_splunk("Logout", "User logged out", username=user.username)
         session.pop('user_id', None)
+        session.pop('_flashes', None) 
     else:
         try:
             mod = Moderator.query.filter_by(modID=session['mod_id']).first()
@@ -355,7 +356,10 @@ def create_post():
         log_to_splunk("Create Post", "Post created successfully", username=db.session.get(User, session['user_id']).username, content=[title, content, image_url])
         flash("Post created successfully!", "success")
         return redirect(url_for('main.home'))
-    return render_template('create_post.html')
+    
+    # Get current user for navbar profile picture
+    current_user = User.query.filter_by(userId=session['user_id']).first()
+    return render_template('create_post.html', current_user=current_user)
 
 @main_bp.route('/search', methods=['GET'])
 def search():
@@ -478,13 +482,22 @@ def edit_profile():
             profile_picture_url=profile_pic_url
         )
         
+        # Check if this is an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         if result['success']:
-            flash('Profile updated successfully!', 'success')
-            log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
-            return redirect(url_for('profile.profile'))
+            if is_ajax:
+                return jsonify({'success': True, 'message': 'Profile updated successfully!'})
+            else:
+                flash('Profile updated successfully!', 'success')
+                log_to_splunk("Edit Profile", "Profile updated successfully", username=user.username, content=[display_name, bio, visibility, profile_pic_url])
+                return redirect(url_for('profile.profile'))
         else:
-            log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
-            flash(f'Error updating profile: {result["error"]}', 'danger')
+            if is_ajax:
+                return jsonify({'success': False, 'error': result['error']})
+            else:
+                log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
+                flash(result['error'], 'danger')
     
     return render_template('edit_profile.html', user=user, current_user=user)
 
@@ -516,14 +529,15 @@ def reset_password():
     return jsonify(result)
 
 @main_bp.route('/forgot-password', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
     email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
     if not email:
-        return jsonify({'success': False, 'error': 'Email is required'})
+        return jsonify({'success': False, 'error': 'Email is required'}), 401
 
     if not email_regex.match(email):
         log_to_splunk("Reset Password", "Invalid email input", username=email)
@@ -596,7 +610,8 @@ def change_password():
 ### OTP helpers ###
 ######################
 @main_bp.route('/verify-login-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -630,7 +645,8 @@ def verify_login_otp():
     return jsonify(result)
 
 @main_bp.route('/verify-register-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_register_otp():
     data = request.get_json()
     email = data.get('email')
@@ -681,7 +697,8 @@ def verify_register_otp():
         return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
     
 @main_bp.route('/verify-reset-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -740,7 +757,8 @@ def update_otp_setting():
         return jsonify({'success': False, 'error': 'Failed to update OTP setting'}), 500
 
 @main_bp.route('/resend-login-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')

@@ -1,213 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Latergram</title>
 
-    <!-- Local CSS -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}"
-    />
-    <!-- <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='fonts/beau-rivage/style.css') }}"
-    /> -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='assets/css/main.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-      rel="stylesheet"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Beau+Rivage&display=swap"
-      rel="stylesheet"
-    />
-    {% block head %}{% endblock %}
-    <style>
-      /* Responsive main content layout */
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Latergram</title>
+
+  <!-- Local CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/main.css') }}" />
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='bootstrap/css/node_modules/bootstrap-icons/font/bootstrap-icons.css') }}" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Beau+Rivage&display=swap" rel="stylesheet" />
+  {% block head %}{% endblock %}
+  <style>
+    /* Responsive main content layout */
+    #main-content {
+      margin-left: 250px;
+      transition: margin-left 0.3s ease, margin-right 0.3s ease;
+    }
+
+      {
+      % if request.endpoint=='main.home' %
+    }
+
+    @media (min-width: 1200px) {
       #main-content {
-        margin-left: 250px;
-        transition: margin-left 0.3s ease, margin-right 0.3s ease;
+        margin-right: 320px;
       }
+    }
 
-      {% if request.endpoint == 'main.home' %}
-      @media (min-width: 1200px) {
-        #main-content {
-          margin-right: 320px;
-        }
+    @media (min-width: 992px) and (max-width: 1199px) {
+      #main-content {
+        margin-right: 280px;
       }
+    }
 
-      @media (min-width: 992px) and (max-width: 1199px) {
-        #main-content {
-          margin-right: 280px;
-        }
-      }
-      {% endif %}
+      {
+      % endif %
+    }
 
-      /* Mobile responsive adjustments */
-      @media (max-width: 991px) {
-        #main-content {
-          margin-left: 0 !important;
-          margin-right: 0 !important;
-          padding-top: 60px; /* Account for mobile nav if needed */
-        }
+    /* Mobile responsive adjustments */
+    @media (max-width: 991px) {
+      #main-content {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-top: 60px;
+        /* Account for mobile nav if needed */
       }
+    }
 
-      @media (max-width: 768px) {
-        #main-content {
-          padding-left: 0.5rem;
-          padding-right: 0.5rem;
-          padding-top: 70px;
-        }
+    @media (max-width: 768px) {
+      #main-content {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 70px;
       }
+    }
 
-      @media (max-width: 576px) {
-        #main-content {
-          padding-top: 80px;
-        }
+    @media (max-width: 576px) {
+      #main-content {
+        padding-top: 80px;
       }
-    </style>
-    <style>
-      .nav-link.active,
-      .nav-link.active:focus,
-      .nav-link.active:hover {
-        color: var(--color-primary) !important;
-        background: none !important;
-        font-weight: 600;
-      }
-      /* Center default user icon in all contexts */
-      .default-user-icon,
-      .rounded-circle.default-user-icon,
-      .rounded-circle span.default-user-icon {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100%;
-        height: 100%;
-        font-size: inherit;
-        line-height: 1;
-      }
-      /* Ensure icon is centered in nav/profile */
-      #nav-default-user .fa-user {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-        font-size: inherit;
-        margin-left: 16px;
-      }
-    </style>
-  </head>
+    }
 
-  <body>
-    <!-- Top Navigation Bar -->
-    <nav
-      class="navbar navbar-dark fixed-top px-3 d-lg-none d-flex align-items-center justify-content-center"
-      style="
+    .nav-link.active,
+    .nav-link.active:focus,
+    .nav-link.active:hover {
+      color: var(--color-primary) !important;
+      background: none !important;
+      font-weight: 600;
+    }
+
+    /* Center default user icon in all contexts */
+    .default-user-icon,
+    .rounded-circle.default-user-icon,
+    .rounded-circle span.default-user-icon {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100%;
+      height: 100%;
+      font-size: inherit;
+      line-height: 1;
+    }
+
+    /* Ensure icon is centered in nav/profile */
+    #nav-default-user .fa-user {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-size: inherit;
+      margin-left: 16px;
+    }
+
+    /* Search Bar Buttons */
+    #search-user-btn,
+    #search-post-btn {
+      color: var(--color-white);
+      border-color: var(--color-primary);
+      height: 48px;
+    }
+
+    #search-user-btn:hover,
+    #search-post-btn:hover {
+      border-color: var(--color-primary-hover);
+      background-color: var(--color-primary-hover);
+    }
+
+    #search-user-btn.active,
+    #search-post-btn.active {
+      background-color: var(--color-primary);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Top Navigation Bar -->
+  <nav class="navbar navbar-dark fixed-top px-3 d-lg-none d-flex align-items-center justify-content-center" style="
         height: 72px;
         z-index: 1100;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         background-color: #151722;
-      "
-    >
-      <div class="d-flex align-items-center justify-content-center w-100">
-        <!-- Mobile Navigation Toggle (already present, but moved inside navbar for alignment) -->
-        <button
-          class="mobile-nav-toggle d-lg-none me-2"
-          onclick="toggleMobileNav()"
-          style="margin-bottom: 0"
-        >
-          <i class="fas fa-bars"></i>
-        </button>
-        <a
-          id="nav-brand-mobile"
-          class="navbar-brand mb-0 h1"
-          href="/"
-          style="color: #fff; font-weight: 600; letter-spacing: 1px"
-        >
-          Later<span class="beau">G</span>ram
-        </a>
-      </div>
-    </nav>
+      ">
+    <div class="d-flex align-items-center justify-content-center w-100">
+      <!-- Mobile Navigation Toggle (already present, but moved inside navbar for alignment) -->
+      <button class="mobile-nav-toggle d-lg-none me-2" onclick="toggleMobileNav()" style="margin-bottom: 0">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a id="nav-brand-mobile" class="navbar-brand mb-0 h1" href="/"
+        style="color: #fff; font-weight: 600; letter-spacing: 1px">
+        Later<span class="beau">G</span>ram
+      </a>
+    </div>
+  </nav>
 
-    <!-- Navigation Overlay for mobile -->
-    <div class="nav-overlay" onclick="handleOverlayClick()"></div>
+  <!-- Navigation Overlay for mobile -->
+  <div class="nav-overlay" onclick="handleOverlayClick()"></div>
 
-    <div class="d-flex">
-      <nav id="main-nav" class="flex-column bg-light py-5 px-3">
-        <a id="nav-brand" class="navbar-brand mb-4" href="">
-          Later<span class="beau">G</span>ram
-        </a>
-        <ul class="nav nav-pills flex-column" id="nav-list">
-          {% if session.get('mod_id') %}
-          <!-- Moderator sidebar items -->
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'moderation.moderation' %} active{% endif %}"
-              href="{{ url_for('moderation.moderation') }}"
-            >
-              <i class="fas fa-gavel"></i> Moderation Dashboard
-            </a>
-          </li>
-          {% elif session.get('user_id') %}
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'main.home' %} active{% endif %}"
-              href="{{ url_for('main.home') }}"
-            >
-              <i class="fas fa-house"></i> Home
-            </a>
-          </li>
-          <li class="nav-item" id="search-nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'main.search' %} active{% endif %}"
-              href="#"
-              onclick="showSearchBar(event)"
-              ><i class="fas fa-magnifying-glass"></i> Search</a
-            >
-          </li>
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'main.create_post' %} active{% endif %}"
-              href="{{ url_for('main.create_post') }}"
-              ><i class="fas fa-plus"></i> Create Post</a
-            >
-          </li>
-          <li class="nav-item">
-            <a
-              class="nav-link{% if request.endpoint == 'profile.profile' %} active{% endif %}"
-              href="{{ url_for('profile.profile') }}"
-            >
-              <span
-                id="main-nav-profile-pic"
-                style="vertical-align: middle; margin-right: 8px"
-              >
-                {% if current_user and current_user.profilePicture %}
-                <img
-                  src="{{ current_user.profilePicture }}"
-                  class="rounded-circle"
-                  style="width: 28px; height: 28px; object-fit: cover"
-                />
-                {% else %}
-                <span
-                  id="nav-default-user"
-                  class="d-inline-flex align-items-center justify-content-center rounded-circle default-user-icon"
-                  style="
+  <div class="d-flex">
+    <nav id="main-nav" class="flex-column bg-light py-5 px-3">
+      <a id="nav-brand" class="navbar-brand mb-4" href="">
+        Later<span class="beau">G</span>ram
+      </a>
+      <ul class="nav nav-pills flex-column" id="nav-list">
+        {% if session.get('mod_id') %}
+        <!-- Moderator sidebar items -->
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'moderation.moderation' %} active{% endif %}"
+            href="{{ url_for('moderation.moderation') }}">
+            <i class="fas fa-gavel"></i> Moderation Dashboard
+          </a>
+        </li>
+        {% elif session.get('user_id') %}
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'main.home' %} active{% endif %}"
+            href="{{ url_for('main.home') }}">
+            <i class="fas fa-house"></i> Home
+          </a>
+        </li>
+        <li class="nav-item" id="search-nav-item">
+          <a class="nav-link{% if request.endpoint == 'main.search' %} active{% endif %}" href="#"
+            onclick="showSearchBar(event)"><i class="fas fa-magnifying-glass"></i> Search</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'main.create_post' %} active{% endif %}"
+            href="{{ url_for('main.create_post') }}"><i class="fas fa-plus"></i> Create Post</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.endpoint == 'profile.profile' %} active{% endif %}"
+            href="{{ url_for('profile.profile') }}">
+            <span id="main-nav-profile-pic" style="vertical-align: middle; margin-right: 8px">
+              {% if current_user and current_user.profilePicture %}
+              <img src="{{ current_user.profilePicture }}" class="rounded-circle"
+                style="width: 28px; height: 28px; object-fit: cover" />
+              {% else %}
+              <span id="nav-default-user"
+                class="d-inline-flex align-items-center justify-content-center rounded-circle default-user-icon" style="
                     width: 28px;
                     height: 28px;
                     background: #23263a;
@@ -215,277 +189,258 @@
                     font-size: 1rem;
                     border: 2px solid #343a40;
                     margin-right: 0 !important;
-                  "
-                >
-                  <i class="fas fa-user"></i>
-                </span>
-                {% endif %}
+                  ">
+                <i class="fas fa-user"></i>
               </span>
-              <span style="margin-left: 4px"
-                >{{ current_user.username if current_user else 'Profile'
-                }}</span
-              >
-            </a>
-          </li>
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('main.logout') }}"
-              ><i class="fas fa-arrow-right-from-bracket"></i> Logout</a
-            >
-          </li>
-        </ul>
-        <form
-          id="user-search-form"
-          method="get"
-          action="{{ url_for('main.search') }}"
-          style="display: none; margin-top: 2rem"
-          onsubmit="return false;"
-        >
-          <div class="input-group mb-3" style="height: 48px;">
-            <input
-              type="text"
-              class="form-control"
-              name="q"
-              id="sidebar-search-input"
-              placeholder="Search..."
-              autocomplete="off"
-              autofocus
-            />
-            <button
-              class="btn btn-secondary"
-              type="button"
-              onclick="hideSearchBar()"
-            >
-              Cancel
-            </button>
-          </div>
-          <div class="btn-group w-100 mb-2" role="group" aria-label="Search type toggle">
-            <button type="button" class="btn btn-outline-primary active" id="search-user-btn" onclick="setSearchType('user')">Users</button>
-            <button type="button" class="btn btn-outline-primary" id="search-post-btn" onclick="setSearchType('post')">Posts</button>
-          </div>
-        </form>
-        <div id="search-suggestions" style="display: none"></div>
-      </nav>
-      <div id="main-content" class="flex-grow-1">
-        {% block content %}{% endblock %}
-      </div>
-      {% if request.endpoint == 'main.home' %}
-      <div id="right-panel" class="d-none d-lg-block">
-        {% block rightpanel %}{% endblock %}
-      </div>
-      {% endif %}
+              {% endif %}
+            </span>
+            <span style="margin-left: 4px">{{ current_user.username if current_user else 'Profile'
+              }}</span>
+          </a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('main.logout') }}"><i class="fas fa-arrow-right-from-bracket"></i>
+            Logout</a>
+        </li>
+      </ul>
+      <form id="user-search-form" method="get" action="{{ url_for('main.search') }}"
+        style="display: none; margin-top: 2rem" onsubmit="return false;">
+        <div class="input-group mb-3" style="height: 48px;">
+          <input type="text" class="form-control" name="q" id="sidebar-search-input" placeholder="Search..."
+            autocomplete="off" autofocus />
+          <button class="btn btn-secondary" type="button" onclick="hideSearchBar()">
+            Cancel
+          </button>
+        </div>
+        <div class="btn-group w-100 mb-2" role="group" aria-label="Search type toggle">
+          <button type="button" class="btn btn-outline-primary active" id="search-user-btn"
+            onclick="setSearchType('user')">Users</button>
+          <button type="button" class="btn btn-outline-primary" id="search-post-btn"
+            onclick="setSearchType('post')">Posts</button>
+        </div>
+      </form>
+      <div id="search-suggestions" style="display: none"></div>
+    </nav>
+    <div id="main-content" class="flex-grow-1">
+      {% block content %}{% endblock %}
     </div>
+    {% if request.endpoint == 'main.home' %}
+    <div id="right-panel" class="d-none d-lg-block">
+      {% block rightpanel %}{% endblock %}
+    </div>
+    {% endif %}
+  </div>
 
-    <!-- Local JS -->
-    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-      let searchType = 'user';
-      function setSearchType(type) {
-        searchType = type;
-        document.getElementById('search-user-btn').classList.toggle('active', type === 'user');
-        document.getElementById('search-post-btn').classList.toggle('active', type === 'post');
-        document.getElementById('sidebar-search-input').placeholder = type === 'user' ? 'Search by username...' : 'Search by title...';
-        // Trigger search again if input is not empty
-        if (searchInput.value.trim().length > 0) {
-          searchInput.dispatchEvent(new Event('input'));
-        }
+  <!-- Local JS -->
+  <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    let searchType = 'user';
+    function setSearchType(type) {
+      searchType = type;
+      document.getElementById('search-user-btn').classList.toggle('active', type === 'user');
+      document.getElementById('search-post-btn').classList.toggle('active', type === 'post');
+      document.getElementById('sidebar-search-input').placeholder = type === 'user' ? 'Search by username...' : 'Search by title...';
+      // Trigger search again if input is not empty
+      if (searchInput.value.trim().length > 0) {
+        searchInput.dispatchEvent(new Event('input'));
       }
-      // Live suggestions for users and posts
-      const searchInput = document.getElementById("sidebar-search-input");
-      const suggestionsDiv = document.getElementById("search-suggestions");
-      if (searchInput) {
-        searchInput.addEventListener("input", function () {
-          const q = this.value.trim();
-          if (q.length === 0) {
-            suggestionsDiv.style.display = "none";
-            suggestionsDiv.innerHTML = "";
-            return;
-          }
-          if (searchType === 'user') {
-            fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.success && data.users.length > 0) {
-                  suggestionsDiv.innerHTML = data.users
-                    .map(
-                      (user) => `
+    }
+    // Live suggestions for users and posts
+    const searchInput = document.getElementById("sidebar-search-input");
+    const suggestionsDiv = document.getElementById("search-suggestions");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        const q = this.value.trim();
+        if (q.length === 0) {
+          suggestionsDiv.style.display = "none";
+          suggestionsDiv.innerHTML = "";
+          return;
+        }
+        if (searchType === 'user') {
+          fetch(`/api/search_users?q=${encodeURIComponent(q)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success && data.users.length > 0) {
+                suggestionsDiv.innerHTML = data.users
+                  .map(
+                    (user) => `
                   <a href="/profile/${user.user_id}" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
-                    ${
-                      user.profile_picture
+                    ${user.profile_picture
                         ? `<img src="${user.profile_picture}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">`
                         : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-user\"></i></span>`
-                    }
+                      }
                     <span>${user.username}</span>
                   </a>
                 `
-                    )
-                    .join("");
-                  suggestionsDiv.style.display = "block";
-                } else {
-                  suggestionsDiv.innerHTML =
-                    '<div class="text-muted py-2">No users found.</div>';
-                  suggestionsDiv.style.display = "block";
-                }
-              });
-          } else if (searchType === 'post') {
-            fetch(`/api/search_posts?q=${encodeURIComponent(q)}`)
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.success && data.posts.length > 0) {
-                  suggestionsDiv.innerHTML = data.posts
-                    .map(
-                      (post) => `
+                  )
+                  .join("");
+                suggestionsDiv.style.display = "block";
+              } else {
+                suggestionsDiv.innerHTML =
+                  '<div class="text-muted py-2">No users found.</div>';
+                suggestionsDiv.style.display = "block";
+              }
+            });
+        } else if (searchType === 'post') {
+          fetch(`/api/search_posts?q=${encodeURIComponent(q)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success && data.posts.length > 0) {
+                suggestionsDiv.innerHTML = data.posts
+                  .map(
+                    (post) => `
               <a href="/profile/${post.author_id}?post=${post.post_id}" class="list-group-item list-group-item-action d-flex align-items-center" style="border:none;">
-                ${
-                  post.image
-                    ? `<img src="${post.image}" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;">`
-                    : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-image\"></i></span>`
-                }
+                ${post.image
+                        ? `<img src="${post.image}" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;">`
+                        : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width:32px;height:32px;background:#23263a;color:#bfc7d5;font-size:1rem;border:2px solid #343a40;"><i class=\"fas fa-image\"></i></span>`
+                      }
                 <span>${post.title}</span>
               </a>
             `
-                    )
-                    .join("");
-                  suggestionsDiv.style.display = "block";
-                } else {
-                  suggestionsDiv.innerHTML =
-                    '<div class="text-muted py-2">No posts found.</div>';
-                  suggestionsDiv.style.display = "block";
-                }
-              });
-          }
-        });
-        // Hide suggestions when input loses focus (with slight delay for click)
-        searchInput.addEventListener("blur", function () {
-          setTimeout(() => {
-            suggestionsDiv.style.display = "none";
-          }, 200);
-        });
-        searchInput.addEventListener("focus", function () {
-          if (suggestionsDiv.innerHTML.trim() !== "")
-            suggestionsDiv.style.display = "block";
-        });
-        // Handle clicks on search suggestions
-        suggestionsDiv.addEventListener("click", function (e) {
-          if (e.target.closest("a")) {
-            // Prevent the blur event from hiding suggestions immediately
-            e.preventDefault();
-            e.stopPropagation();
-            const link = e.target.closest("a");
-            const href = link.getAttribute("href");
-            // Hide suggestions immediately
-            suggestionsDiv.style.display = "none";
-            hideSearchBar();
-            // Navigate to the profile or post page
-            window.location.href = href;
-          }
-        });
-        // Prevent suggestions from being hidden when clicking inside suggestions
-        suggestionsDiv.addEventListener("mousedown", function (e) {
-          e.preventDefault();
-        });
-      }
-
-      // Mobile Navigation Functions
-      function toggleMobileNav() {
-        const nav = document.getElementById("main-nav");
-        const overlay = document.querySelector(".nav-overlay");
-
-        nav.classList.toggle("show");
-        overlay.classList.toggle("show");
-      }
-
-      function closeMobileNav() {
-        const nav = document.getElementById("main-nav");
-        const overlay = document.querySelector(".nav-overlay");
-
-        // Don't close if search is active and user is interacting with it
-        const searchForm = document.getElementById("user-search-form");
-        if (searchForm && searchForm.style.display === "block") {
-          return;
-        }
-
-        nav.classList.remove("show");
-        overlay.classList.remove("show");
-      }
-
-      function handleOverlayClick() {
-        const searchForm = document.getElementById("user-search-form");
-        // If search is active, hide search first, then close nav
-        if (searchForm && searchForm.style.display === "block") {
-          hideSearchBar();
-        } else {
-          closeMobileNav();
-        }
-      }
-
-      // Modified search functions for mobile compatibility
-      function showSearchBar(e) {
-        e.preventDefault();
-        document.getElementById("nav-list").style.display = "none";
-        document.getElementById("user-search-form").style.display = "block";
-        document.getElementById("sidebar-search-input").focus();
-
-        // Keep mobile nav open when search is active
-        if (window.innerWidth <= 991) {
-          const nav = document.getElementById("main-nav");
-          const overlay = document.querySelector(".nav-overlay");
-          nav.classList.add("show");
-          overlay.classList.add("show");
-        }
-      }
-
-      function hideSearchBar() {
-        document.getElementById("user-search-form").style.display = "none";
-        document.getElementById("nav-list").style.display = "flex";
-        document.getElementById("search-suggestions").style.display = "none";
-
-        // On mobile, close the nav after hiding search
-        if (window.innerWidth <= 991) {
-          setTimeout(() => {
-            closeMobileNav();
-          }, 100);
-        }
-      }
-
-      // Close mobile nav when clicking on regular nav links (but not search)
-      document.addEventListener("DOMContentLoaded", function () {
-        const navLinks = document.querySelectorAll(
-          '#main-nav .nav-link:not([onclick*="showSearchBar"])'
-        );
-        navLinks.forEach((link) => {
-          link.addEventListener("click", () => {
-            // Small delay to allow navigation to complete
-            setTimeout(closeMobileNav, 100);
-          });
-        });
-
-        // Handle window resize
-        window.addEventListener("resize", function () {
-          if (window.innerWidth >= 992) {
-            const nav = document.getElementById("main-nav");
-            const overlay = document.querySelector(".nav-overlay");
-            nav.classList.remove("show");
-            overlay.classList.remove("show");
-          }
-        });
-
-        // Prevent closing mobile nav when clicking inside search form or suggestions
-        const searchForm = document.getElementById("user-search-form");
-        const searchSuggestions = document.getElementById("search-suggestions");
-
-        if (searchForm) {
-          searchForm.addEventListener("click", function (e) {
-            e.stopPropagation();
-          });
-        }
-
-        if (searchSuggestions) {
-          searchSuggestions.addEventListener("click", function (e) {
-            e.stopPropagation();
-          });
+                  )
+                  .join("");
+                suggestionsDiv.style.display = "block";
+              } else {
+                suggestionsDiv.innerHTML =
+                  '<div class="text-muted py-2">No posts found.</div>';
+                suggestionsDiv.style.display = "block";
+              }
+            });
         }
       });
-    </script>
-  </body>
+      // Hide suggestions when input loses focus (with slight delay for click)
+      searchInput.addEventListener("blur", function () {
+        setTimeout(() => {
+          suggestionsDiv.style.display = "none";
+        }, 200);
+      });
+      searchInput.addEventListener("focus", function () {
+        if (suggestionsDiv.innerHTML.trim() !== "")
+          suggestionsDiv.style.display = "block";
+      });
+      // Handle clicks on search suggestions
+      suggestionsDiv.addEventListener("click", function (e) {
+        if (e.target.closest("a")) {
+          // Prevent the blur event from hiding suggestions immediately
+          e.preventDefault();
+          e.stopPropagation();
+          const link = e.target.closest("a");
+          const href = link.getAttribute("href");
+          // Hide suggestions immediately
+          suggestionsDiv.style.display = "none";
+          hideSearchBar();
+          // Navigate to the profile or post page
+          window.location.href = href;
+        }
+      });
+      // Prevent suggestions from being hidden when clicking inside suggestions
+      suggestionsDiv.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+    }
+
+    // Mobile Navigation Functions
+    function toggleMobileNav() {
+      const nav = document.getElementById("main-nav");
+      const overlay = document.querySelector(".nav-overlay");
+
+      nav.classList.toggle("show");
+      overlay.classList.toggle("show");
+    }
+
+    function closeMobileNav() {
+      const nav = document.getElementById("main-nav");
+      const overlay = document.querySelector(".nav-overlay");
+
+      // Don't close if search is active and user is interacting with it
+      const searchForm = document.getElementById("user-search-form");
+      if (searchForm && searchForm.style.display === "block") {
+        return;
+      }
+
+      nav.classList.remove("show");
+      overlay.classList.remove("show");
+    }
+
+    function handleOverlayClick() {
+      const searchForm = document.getElementById("user-search-form");
+      // If search is active, hide search first, then close nav
+      if (searchForm && searchForm.style.display === "block") {
+        hideSearchBar();
+      } else {
+        closeMobileNav();
+      }
+    }
+
+    // Modified search functions for mobile compatibility
+    function showSearchBar(e) {
+      e.preventDefault();
+      document.getElementById("nav-list").style.display = "none";
+      document.getElementById("user-search-form").style.display = "block";
+      document.getElementById("sidebar-search-input").focus();
+
+      // Keep mobile nav open when search is active
+      if (window.innerWidth <= 991) {
+        const nav = document.getElementById("main-nav");
+        const overlay = document.querySelector(".nav-overlay");
+        nav.classList.add("show");
+        overlay.classList.add("show");
+      }
+    }
+
+    function hideSearchBar() {
+      document.getElementById("user-search-form").style.display = "none";
+      document.getElementById("nav-list").style.display = "flex";
+      document.getElementById("search-suggestions").style.display = "none";
+
+      // On mobile, close the nav after hiding search
+      if (window.innerWidth <= 991) {
+        setTimeout(() => {
+          closeMobileNav();
+        }, 100);
+      }
+    }
+
+    // Close mobile nav when clicking on regular nav links (but not search)
+    document.addEventListener("DOMContentLoaded", function () {
+      const navLinks = document.querySelectorAll(
+        '#main-nav .nav-link:not([onclick*="showSearchBar"])'
+      );
+      navLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          // Small delay to allow navigation to complete
+          setTimeout(closeMobileNav, 100);
+        });
+      });
+
+      // Handle window resize
+      window.addEventListener("resize", function () {
+        if (window.innerWidth >= 992) {
+          const nav = document.getElementById("main-nav");
+          const overlay = document.querySelector(".nav-overlay");
+          nav.classList.remove("show");
+          overlay.classList.remove("show");
+        }
+      });
+
+      // Prevent closing mobile nav when clicking inside search form or suggestions
+      const searchForm = document.getElementById("user-search-form");
+      const searchSuggestions = document.getElementById("search-suggestions");
+
+      if (searchForm) {
+        searchForm.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+      }
+
+      if (searchSuggestions) {
+        searchSuggestions.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+      }
+    });
+  </script>
+</body>
+
 </html>

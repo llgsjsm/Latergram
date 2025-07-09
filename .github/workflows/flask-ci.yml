@@ -51,9 +51,7 @@ jobs:
 
     - name: Create Firebase Key
       run: |
-        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > ${{ secrets.FILE_LOCATION }}
-        cat ${{ secrets.FILE_LOCATION }}
-        ls -l app-server/
+        echo "${{ secrets.FIREBASE_KEY }}" | base64 --decode > app-server/${{ secrets.FILE_LOCATION }}
 
     - name: Generate .env files
       run: |

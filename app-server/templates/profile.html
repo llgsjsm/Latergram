@@ -1,5 +1,12 @@
 {% extends "base.html" %} {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/css/profile.css') }}" />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/profile.css') }}"
+/>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/home.css') }}"
+/>
 {% endblock %} {% block content %}
 
 <div class="container-fluid profile-bg">
@@ -7,30 +14,37 @@
     <div class="profile-header-left">
       <div class="d-flex align-items-center mb-2">
         {% if profile_user.profilePicture %}
-        <img src="{{ profile_user.profilePicture }}" alt="Profile Picture" class="rounded-circle me-3" style="
+        <img
+          src="{{ profile_user.profilePicture }}"
+          alt="Profile Picture"
+          class="rounded-circle me-3"
+          style="
             width: 120px;
             height: 120px;
             object-fit: cover;
             border: 2px solid #343a40;
-          " />
+          "
+        />
         {% else %}
-        <span class="d-flex align-items-center justify-content-center rounded-circle me-3" style="
+        <span
+          class="d-flex align-items-center justify-content-center rounded-circle me-3"
+          style="
             width: 120px;
             height: 120px;
             background: #23263a;
             color: #bfc7d5;
             font-size: 2rem;
             border: 2px solid #343a40;
-          ">
+          "
+        >
           <i class="fas fa-user"></i>
         </span>
         {% endif %}
-        <div style="padding-right: 10px;">
+        <div style="padding-right: 10px">
           <div class="profile-header-username">{{ profile_user.username }}</div>
           {% if profile_user.bio %}
           <div class="profile-header-bio">{{ profile_user.bio }}</div>
-          {% endif %}
-          {% if profile_user.visibility %}
+          {% endif %} {% if profile_user.visibility %}
           <div class="profile-header-privacy-status text-muted small mb-2">
             {% if profile_user.visibility == 'Public' %}
             <span class="badge bg-success">Public</span>
@@ -44,19 +58,35 @@
         </div>
       </div>
       <div class="profile-header-stats">
-        <a href="#" id="followers-link" data-bs-toggle="modal" data-bs-target="#followersModal">
+        <a
+          href="#"
+          id="followers-link"
+          data-bs-toggle="modal"
+          data-bs-target="#followersModal"
+        >
           <span id="follower-count">{{ user_stats.followers_count or 0 }}</span>
           Followers
         </a>
-        <a href="#" id="following-link" data-bs-toggle="modal" data-bs-target="#followingModal">
-          <span id="following-count">{{ user_stats.following_count or 0 }}</span>
+        <a
+          href="#"
+          id="following-link"
+          data-bs-toggle="modal"
+          data-bs-target="#followingModal"
+        >
+          <span id="following-count"
+            >{{ user_stats.following_count or 0 }}</span
+          >
           Following
         </a>
       </div>
     </div>
     <div class="profile-header-actions">
       {% if is_own_profile %}
-      <a href="{{ url_for('main.edit_profile') }}" class="btn" title="Edit Profile">
+      <a
+        href="{{ url_for('main.edit_profile') }}"
+        class="btn"
+        title="Edit Profile"
+      >
         <!-- <i class="fas fa-pen"></i> -->
         <i class="fas fa-cog"></i>
       </a>
@@ -65,34 +95,58 @@
       </button> -->
       <ul class="dropdown-menu">
         <li>
-          <a class="dropdown-item" href="{{ url_for('main.edit_profile') }}">Settings</a>
+          <a class="dropdown-item" href="{{ url_for('main.edit_profile') }}"
+            >Settings</a
+          >
         </li>
         <li>
-          <a class="dropdown-item" href="#" onclick="alert('Feature coming soon!')">Privacy</a>
+          <a
+            class="dropdown-item"
+            href="#"
+            onclick="alert('Feature coming soon!')"
+            >Privacy</a
+          >
         </li>
         <li>
           <hr class="dropdown-divider" />
         </li>
         <li>
-          <a class="dropdown-item" href="{{ url_for('main.logout') }}">Logout</a>
+          <a class="dropdown-item" href="{{ url_for('main.logout') }}"
+            >Logout</a
+          >
         </li>
       </ul>
       {% else %} {% if follow_status and follow_status.is_following %}
       <!-- Currently following -->
-      <button class="btn btn-outline-primary profile-action-btn" data-user-id="{{ profile_user.userId }}"
-        data-action="unfollow" title="Unfollow" style="width: auto; padding: 0.5rem 1.5rem">
+      <button
+        class="btn btn-outline-primary profile-action-btn"
+        data-user-id="{{ profile_user.userId }}"
+        data-action="unfollow"
+        title="Unfollow"
+        style="width: auto; padding: 0.5rem 1.5rem"
+      >
         <i class="fas fa-user-check me-1"></i>Following
       </button>
       {% elif follow_status and follow_status.request_pending %}
       <!-- Request pending -->
-      <button class="btn btn-outline-secondary profile-action-btn" data-user-id="{{ profile_user.userId }}"
-        data-action="cancel-request" title="Click to cancel request" style="width: auto; padding: 0.5rem 1.5rem">
+      <button
+        class="btn btn-outline-secondary profile-action-btn"
+        data-user-id="{{ profile_user.userId }}"
+        data-action="cancel-request"
+        title="Click to cancel request"
+        style="width: auto; padding: 0.5rem 1.5rem"
+      >
         <i class="fas fa-clock me-1"></i>Requested
       </button>
       {% else %}
       <!-- Not following -->
-      <button class="btn btn-primary profile-action-btn" data-user-id="{{ profile_user.userId }}" data-action="follow"
-        title="Follow" style="width: auto; padding: 0.5rem 1.5rem">
+      <button
+        class="btn btn-primary profile-action-btn"
+        data-user-id="{{ profile_user.userId }}"
+        data-action="follow"
+        title="Follow"
+        style="width: auto; padding: 0.5rem 1.5rem"
+      >
         <i class="fas fa-user-plus me-1"></i>Follow
       </button>
       {% endif %} {% endif %}
@@ -103,7 +157,9 @@
 <!-- Posts Section Header -->
 <div class="pt-4 posts-section">
   <div class="d-flex justify-content-center mb-4">
-    <div class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header">
+    <div
+      class="text-center border-top border-2 border-light pt-3 px-4 posts-section-header"
+    >
       <i class="fas fa-th-large me-2"></i>
       <span class="fw-bold text-uppercase small">POSTS</span>
     </div>
@@ -114,12 +170,23 @@
   <div class="row">
     {% for post in user_posts %}
     <div class="col-lg-4 col-md-6 mb-4">
-      <div class="position-relative post-thumbnail" style="cursor: pointer" data-bs-toggle="modal"
-        data-bs-target="#postModal{{ post.postId }}">
+      <div
+        class="position-relative post-thumbnail"
+        style="cursor: pointer"
+        onclick="openPostModalFromCard(event, '{{ post.postId }}')"
+      >
         {% if post.image %}
-        <img src="{{ post.image }}" class="img-fluid w-100" style="aspect-ratio: 1; object-fit: cover" alt="Post" />
+        <img
+          src="{{ post.image }}"
+          class="img-fluid w-100"
+          style="aspect-ratio: 1; object-fit: cover"
+          alt="Post"
+        />
         {% else %}
-        <div class="w-100 bg-light d-flex align-items-center justify-content-center text-muted" style="aspect-ratio: 1">
+        <div
+          class="w-100 bg-light d-flex align-items-center justify-content-center text-muted"
+          style="aspect-ratio: 1"
+        >
           <div class="text-center">
             <i class="fas fa-file-text fa-2x mb-2"></i>
             <div class="small">
@@ -129,88 +196,203 @@
         </div>
         {% endif %}
 
-        <!-- Card Body: Username, Date, Edited Badge -->
-        <div class="card-body p-3" style="background: #23263a; border-radius: 0 0 1rem 1rem; min-height: 120px; position: relative;">
+        <!-- Card Body: Simplified for both own and other profiles -->
+        <div
+          class="card-body p-3"
+          style="
+            background: #23263a;
+            border-radius: 0 0 1rem 1rem;
+            min-height: 120px;
+            position: relative;
+            color: #fff;
+          "
+        >
+          <!-- Username and Date -->
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <span class="fw-bold" style="color: #6c63ff;">{{ profile_user.username }}</span><br>
-              <span class="text-muted small">{{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else '' }}</span>
+              <span class="fw-bold" style="color: #6c63ff">
+                {{ profile_user.username }} </span
+              ><br />
+              <span class="text-muted small">
+                {{ post.timeOfPost.strftime('%b %d, %Y') if post.timeOfPost else
+                '' }}
+              </span>
             </div>
           </div>
-          {% if is_own_profile %}
-            <div>
-              {% if post.title %} {% if is_own_profile %}
-              <h6
-                class="card-title fw-bold"
-                id="post-title-{{ post.postId }}"
-                style="cursor: pointer"
-                onclick="enablePostEdit('{{ post.postId }}', false)"
-              >
-                {{ post.title }}
-                {% if post.updatedAt %}
-                  <span class="badge bg-secondary" style="font-size: 0.8rem; vertical-align: middle; margin-left: 8px;">Edited</span>
-                {% endif %}
-              </h6>
-              <input
-                type="text"
-                class="form-control d-none"
-                id="edit-title-{{ post.postId }}"
-                value="{{ post.title }}"
-                maxlength="100"
-                style="font-size: 1rem; font-weight: 600; margin-bottom: 4px"
-              />
-              {% else %}
-              <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
-                {{ post.title }}
-              </h6>
-              {% endif %} {% endif %} {% if is_own_profile %}
-              <p
-                class="card-text"
-                id="post-caption-{{ post.postId }}"
-                style="cursor: pointer"
-                onclick="enablePostEdit('{{ post.postId }}', true)"
-              >
-                {{ post.content }}
-              </p>
-              <textarea
-                class="form-control d-none"
-                id="edit-caption-{{ post.postId }}"
-                rows="2"
-                maxlength="500"
-                style="margin-bottom: 8px"
-              >{{ post.content }}</textarea>
-              <button
-                id="save-post-{{ post.postId }}"
-                class="btn card-btn-primary btn-sm d-none me-2 mb-2 mb-md-0"
-                onclick="savePostEdit('{{ post.postId }}')"
-              >
-                Save
-              </button>
-              <button
-                id="cancel-post-{{ post.postId }}"
-                class="btn btn-outline-secondary btn-sm d-none me-2 mb-2 mb-md-0"
-                onclick="hideEditFields('{{ post.postId }}')"
-              >
-                Cancel
-              </button>
-              {% else %}
-              <div style="color: #fff; white-space: pre-line;">{{ post.content }}</div>
-              {% endif %}
-            </div>
+
+          <!-- Post Title -->
+          {% if post.title %}
+          <h6 class="card-title fw-bold" id="post-title-{{ post.postId }}">
+            {{ post.title }} {% if post.updatedAt %}
+            <span
+              class="badge bg-secondary"
+              style="
+                font-size: 0.8rem;
+                vertical-align: middle;
+                margin-left: 8px;
+              "
+              >Edited</span
+            >
+            {% endif %}
+          </h6>
           {% endif %}
+
+          <!-- Post Content / Caption -->
+          <p
+            class="card-text"
+            id="post-caption-{{ post.postId }}"
+            style="white-space: pre-line"
+          >
+            {{ post.content }}
+          </p>
+
+          <!-- Mobile Action Bar - Only visible on small screens -->
+          <div
+            class="d-block d-md-none mt-3 pt-2 border-top"
+            style="border-color: #343a40 !important"
+          >
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex gap-2">
+                {% if liked_posts.get(post.postId, False) %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
+                >
+                  <i class="bi bi-heart-fill"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
+                  <i class="bi bi-heart"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% endif %}
+
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openPostModal('{{ post.postId }}')"
+                  style="background: none; border: none; color: #fff"
+                >
+                  <i class="fas fa-comment"></i>
+                  <span class="ms-1"
+                    >{% set comment_count = comment_counts.get(post.postId, 0)
+                    %}{% if comment_count == 0 %}0{% else %}{{ comment_count
+                    }}{% endif %}</span
+                  >
+                </button>
+              </div>
+
+              <div>
+                {% if is_own_profile %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="deletePost('{{ post.postId }}', this)"
+                  title="Delete Post"
+                  style="background: none; border: none; color: #dc3545"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openReportModal('{{ post.postId }}')"
+                  title="Report Post"
+                  style="background: none; border: none; color: #ffc107"
+                >
+                  <i class="fas fa-flag"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Action Bar - Only visible on medium+ screens -->
+          <div
+            class="d-none d-md-block mt-3 pt-2 border-top"
+            style="border-color: #343a40 !important"
+          >
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex gap-2">
+                {% if liked_posts.get(post.postId, False) %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
+                >
+                  <i class="bi bi-heart-fill"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1 like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
+                  <i class="bi bi-heart"></i>
+                  <span class="like-count ms-1">{{ post.like or 0 }}</span>
+                </button>
+                {% endif %}
+
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openPostModal('{{ post.postId }}')"
+                  style="background: none; border: none; color: #fff"
+                >
+                  <i class="fas fa-comment"></i>
+                  <span class="ms-1"
+                    >{% set comment_count = comment_counts.get(post.postId, 0)
+                    %}{% if comment_count == 0 %}0{% else %}{{ comment_count
+                    }}{% endif %}</span
+                  >
+                </button>
+              </div>
+
+              <div>
+                {% if is_own_profile %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="deletePost('{{ post.postId }}', this)"
+                  title="Delete Post"
+                  style="background: none; border: none; color: #dc3545"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-sm p-1"
+                  onclick="openReportModal('{{ post.postId }}')"
+                  title="Report Post"
+                  style="background: none; border: none; color: #ffc107"
+                >
+                  <i class="fas fa-flag"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Hover Overlay -->
         <div
           class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center post-overlay"
-          style="opacity: 0; transition: opacity 0.3s">
+          style="opacity: 0; transition: opacity 0.3s"
+        >
           <div class="text-white text-center">
             <div class="mb-2">
               <i class="fas fa-heart"></i>
-              <span id="hover-like-count-{{ post.postId }}">{{ post.like or 0 }}</span>
+              <span id="hover-like-count-{{ post.postId }}"
+                >{{ post.like or 0 }}</span
+              >
               <span class="ms-3">
                 <i class="fas fa-comment"></i>
-                <span id="hover-comment-count-{{ post.postId }}">{{ comment_counts.get(post.postId, 0) }}</span>
+                <span id="hover-comment-count-{{ post.postId }}"
+                  >{{ comment_counts.get(post.postId, 0) }}</span
+                >
               </span>
             </div>
           </div>
@@ -224,34 +406,95 @@
         <div class="modal-content">
           <div class="modal-header flex-column align-items-start">
             <div class="d-flex align-items-center w-100">
-              <h5 class="modal-title{% if not is_own_profile %} readonly-edit{% endif %}"
-                id="post-title-{{ post.postId }}" style="cursor:pointer; margin-bottom: 0;" {% if is_own_profile %}onclick="enableModalPostEdit('{{ post.postId }}', false)"{% endif %}>
-                {{ post.title or 'Post' }}
-                {% if post.updatedAt %}
-                  <span class="badge bg-secondary" style="font-size: 0.8rem; vertical-align: middle; margin-left: 8px;">Edited</span>
+              <h5
+                class="modal-title{% if not is_own_profile %} readonly-edit{% endif %}"
+                id="post-title-{{ post.postId }}"
+                style="cursor: pointer; margin-bottom: 0"
+                {%
+                if
+                is_own_profile
+                %}onclick="enableModalPostEdit('{{ post.postId }}', false)"
+                {%
+                endif
+                %}
+              >
+                {{ post.title or 'Post' }} {% if post.updatedAt %}
+                <span
+                  class="badge bg-secondary"
+                  style="
+                    font-size: 0.8rem;
+                    vertical-align: middle;
+                    margin-left: 8px;
+                  "
+                  >Edited</span
+                >
                 {% endif %}
               </h5>
             </div>
             {% if is_own_profile %}
             <div class="w-100 mt-2">
-              <input type="text" class="form-control d-none" id="modal-edit-title-{{ post.postId }}" value="{{ post.title or '' }}" maxlength="100" style="font-size:1.25rem; font-weight:600; margin-bottom: 8px;">
+              <input
+                type="text"
+                class="form-control d-none"
+                id="modal-edit-title-{{ post.postId }}"
+                value="{{ post.title or '' }}"
+                maxlength="100"
+                style="font-size: 1.25rem; font-weight: 600; margin-bottom: 8px"
+              />
             </div>
             {% endif %}
-            <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close position-absolute end-0 top-0 m-3"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div id="individual-post-modal" class="modal-body">
             {% if post.image %}
-            <img src="{{ post.image }}" class="img-fluid mb-3" alt="Post image" />
+            <img
+              src="{{ post.image }}"
+              class="img-fluid mb-3"
+              alt="Post image"
+            />
             {% endif %}
-            <p id="post-caption-{{ post.postId }}"
+            <p
+              id="post-caption-{{ post.postId }}"
               class="{% if is_own_profile %}modal-body{% else %}modal-body readonly-edit{% endif %}"
-              style="cursor:pointer; margin:0; padding:0;" {% if is_own_profile %}onclick="enableModalPostEdit('{{ post.postId }}', true)"{% endif %}>
+              style="cursor: pointer; margin: 0; padding: 0"
+              {%
+              if
+              is_own_profile
+              %}onclick="enableModalPostEdit('{{ post.postId }}', true)"
+              {%
+              endif
+              %}
+            >
               <strong>{{ profile_user.username }}</strong> {{ post.content }}
             </p>
             {% if is_own_profile %}
-            <textarea class="form-control d-none" style="margin-bottom: 8px;" id="modal-edit-caption-{{ post.postId }}" rows="2" maxlength="500">{{ post.content }}</textarea>
-            <button class="btn card-btn-primary d-none me-2 mt-2 mb-2" id="modal-save-post-{{ post.postId }}" onclick="saveModalPostEdit('{{ post.postId }}')">Save</button>
-            <button class="btn card-btn-secondary d-none mt-2 mb-2" id="modal-cancel-post-{{ post.postId }}" onclick="hideModalEditFields('{{ post.postId }}')">Cancel</button>
+            <textarea
+              class="form-control d-none"
+              style="margin-bottom: 8px"
+              id="modal-edit-caption-{{ post.postId }}"
+              rows="2"
+              maxlength="500"
+            >
+{{ post.content }}</textarea
+            >
+            <button
+              class="btn card-btn-primary d-none me-2 mt-2 mb-2"
+              id="modal-save-post-{{ post.postId }}"
+              onclick="saveModalPostEdit('{{ post.postId }}')"
+            >
+              Save
+            </button>
+            <button
+              class="btn card-btn-secondary d-none mt-2 mb-2"
+              id="modal-cancel-post-{{ post.postId }}"
+              onclick="hideModalEditFields('{{ post.postId }}')"
+            >
+              Cancel
+            </button>
             {% endif %}
             <div class="text-muted small">
               {{ post.timeOfPost.strftime('%B %d, %Y at %I:%M %p') if
@@ -259,64 +502,102 @@
             </div>
 
             <!-- Like and Comment buttons -->
-            <div class="mt-3 post-action-bar d-flex justify-content-between align-items-center">
+            <div
+              class="mt-3 post-action-bar d-flex justify-content-between align-items-center"
+            >
               <div>
                 {% if liked_posts.get(post.postId, False) %}
-                <button class="btn btn-danger btn-sm like-btn" data-post-id="{{ post.postId }}" data-action="unlike">
+                <button
+                  class="btn btn-danger btn-sm like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="unlike"
+                >
                   <i class="bi bi-heart-fill"></i>
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% else %}
-                <button class="btn btn-outline-danger btn-sm like-btn" data-post-id="{{ post.postId }}"
-                  data-action="like">
+                <button
+                  class="btn btn-outline-danger btn-sm like-btn"
+                  data-post-id="{{ post.postId }}"
+                  data-action="like"
+                >
                   <i class="bi bi-heart"></i>
                   <span class="like-count">{{ post.like or 0 }}</span>
                 </button>
                 {% endif %}
-                <button class="btn btn-outline-comment btn-sm ms-2" onclick="toggleCommentsSection('{{ post.postId }}')">
+                <button
+                  class="btn btn-outline-comment btn-sm ms-2"
+                  onclick="toggleCommentsSection('{{ post.postId }}')"
+                >
                   <i class="fas fa-comment comment-icon"></i>
-                  {% if comment_counts.get(post.postId, 0) > 0 %} {{ comment_counts.get(post.postId, 0) }} Comments {% else %} Comment {% endif %}
+                  {% if comment_counts.get(post.postId, 0) > 0 %} {{
+                  comment_counts.get(post.postId, 0) }} {% else %} 0{% endif %}
                 </button>
                 {% if is_own_profile %}
-                <button class="btn btn-danger btn-sm ms-2" onclick="deletePost('{{ post.postId }}')"
-                  title="Delete Post">
-                  <i class="fas fa-trash"></i> Delete
+                <button
+                  class="btn btn-danger btn-sm ms-2"
+                  onclick="deletePost('{{ post.postId }}', this)"
+                  title="Delete Post"
+                >
+                  <i class="fas fa-trash"></i>
                 </button>
                 {% else %}
                 <!-- Report Button for posts not owned by current user -->
-                <button class="btn btn-outline-warning btn-sm ms-2" onclick="openReportModal('{{ post.postId }}')">
+                <button
+                  class="btn btn-outline-warning btn-sm ms-2"
+                  onclick="openReportModal('{{ post.postId }}')"
+                >
                   <i class="fas fa-flag report-icon"></i>
                 </button>
                 {% endif %}
               </div>
               {% if is_own_profile %}
-              <button class="btn profile-save-btn-primary btn-sm d-none" id="save-post-{{ post.postId }}"
-                onclick="savePostEdit('{{ post.postId }}')">Save</button>
+              <button
+                class="btn profile-save-btn-primary btn-sm d-none"
+                id="save-post-{{ post.postId }}"
+                onclick="savePostEdit('{{ post.postId }}')"
+              >
+                Save
+              </button>
               {% endif %}
             </div>
 
             <!-- Comments Section -->
-            <div id="comments-section-modal-{{ post.postId }}" class="mt-3"
-              style="display: none; color: var(--color-white) !important;">
+            <div
+              id="comments-section-modal-{{ post.postId }}"
+              class="mt-3"
+              style="display: none; color: var(--color-white) !important"
+            >
               <!-- Comment Form -->
               <div class="mb-3">
-                <form action="{{ url_for('comment.add_comment', post_id=post.postId) }}" method="POST" class="comment-form"
-                  data-post-id="{{ post.postId }}">
+                <form
+                  action="{{ url_for('comment.add_comment', post_id=post.postId) }}"
+                  method="POST"
+                  class="comment-form"
+                  data-post-id="{{ post.postId }}"
+                >
                   <div class="input-group">
-                    <input type="text" class="form-control" name="comment" placeholder="Add a comment..." required />
-                    <button class="btn btn-primary" type="submit">
-                      Post
-                    </button>
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="comment"
+                      placeholder="Add a comment..."
+                      required
+                    />
+                    <button class="btn btn-primary" type="submit">Post</button>
                   </div>
                 </form>
               </div>
 
               <!-- Comments List -->
-              <div id="comments-list-modal-{{ post.postId }}" class="border-top pt-3">
+              <div
+                id="comments-list-modal-{{ post.postId }}"
+                class="border-top pt-3"
+              >
                 {% if comment_counts.get(post.postId, 0) > 0 %}
                 <div class="text-center">
                   <div class="spinner-border spinner-border-sm" role="status">
-                    <span class="visually-hidden">Loading comments...</span>
+                    <span class="visually-hidden"></span>
                   </div>
                 </div>
                 {% else %}
@@ -346,7 +627,8 @@
     </a>
     {% else %}
     <p>
-      When <span>{{ profile_user.username }}</span> shares photos, they'll appear here.
+      When <span>{{ profile_user.username }}</span> shares photos, they'll
+      appear here.
     </p>
     {% endif %}
   </div>
@@ -371,7 +653,11 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Followers</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
       </div>
       <div class="modal-body">
         <div id="followersList">
@@ -392,7 +678,11 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Following</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
       </div>
       <div class="modal-body">
         <div id="followingList">
@@ -419,7 +709,7 @@
   // Current user info for JavaScript
   const currentUser = {
     id: "{{ profile_user.userId if profile_user else 'null' }}",
-    username: "{{ profile_user.username if profile_user else '' }}"
+    username: "{{ profile_user.username if profile_user else '' }}",
   };
 
   // Follow/Unfollow functionality
@@ -530,22 +820,28 @@
             .map(
               (follower) => `
                 <div class="d-flex align-items-center mb-3">
-                  ${follower.profilePicture ?
-                  `<img src="${follower.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
-                  `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
-                }
+                  ${
+                    follower.profilePicture
+                      ? `<img src="${follower.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">`
+                      : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                  }
                   <div class="flex-grow-1">
-                    <a href="/profile/${follower.userId}" class="text-decoration-none">
+                    <a href="/profile/${
+                      follower.userId
+                    }" class="text-decoration-none">
                       <strong>${follower.username}</strong>
                     </a>
                   </div>
-                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="removeFollower('${follower.userId}', this)">Remove</button>{% endif %}
+                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="removeFollower('${
+                    follower.userId
+                  }', this)">Remove</button>{% endif %}
                 </div>
               `
             )
             .join("");
         } else {
-          followersList.innerHTML = '<p class="text-muted text-center">No followers yet</p>';
+          followersList.innerHTML =
+            '<p class="text-muted text-center">No followers yet</p>';
         }
       });
   }
@@ -561,22 +857,28 @@
             .map(
               (user) => `
                 <div class="d-flex align-items-center mb-3">
-                  ${user.profilePicture ?
-                  `<img src="${user.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">` :
-                  `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
-                }
+                  ${
+                    user.profilePicture
+                      ? `<img src="${user.profilePicture}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">`
+                      : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-3" style="width: 40px; height: 40px; background: #23263a; color: #bfc7d5; font-size: 1rem; border: 2px solid #343a40;"><i class="fas fa-user"></i></span>`
+                  }
                   <div class="flex-grow-1">
-                    <a href="/profile/${user.userId}" class="text-decoration-none">
+                    <a href="/profile/${
+                      user.userId
+                    }" class="text-decoration-none">
                       <strong>${user.username}</strong>
                     </a>
                   </div>
-                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="unfollowUser('${user.userId}', this)">Remove</button>{% endif %}
+                  {% if is_own_profile %}<button class="btn btn-sm btn-danger ms-2" onclick="unfollowUser('${
+                    user.userId
+                  }', this)">Remove</button>{% endif %}
                 </div>
               `
             )
             .join("");
         } else {
-          followingList.innerHTML = '<p class="text-muted text-center">Not following anyone yet</p>';
+          followingList.innerHTML =
+            '<p class="text-muted text-center">Not following anyone yet</p>';
         }
       })
       .catch((error) => {
@@ -586,20 +888,66 @@
       });
   }
 
+  // Function to open post modal programmatically
+  function openPostModal(postId) {
+    const modal = document.getElementById(`postModal${postId}`);
+    if (modal) {
+      const bsModal = new bootstrap.Modal(modal);
+      bsModal.show();
+      // Also toggle comments section if we want to show comments by default
+      // toggleCommentsSection(postId);
+    }
+  }
+
+  // Function to open post modal from card click, but not from button clicks
+  function openPostModalFromCard(event, postId) {
+    // Check if the click target or any of its parents is a button
+    let target = event.target;
+    while (target && target !== event.currentTarget) {
+      if (
+        target.tagName === "BUTTON" ||
+        target.tagName === "A" ||
+        target.closest("button") ||
+        target.closest("a")
+      ) {
+        // If it's a button or link, don't open the modal
+        return;
+      }
+      target = target.parentNode;
+    }
+
+    // If we get here, it's not a button click, so open the modal
+    openPostModal(postId);
+  }
+
   // Toggle comments section (combined form and list)
   function toggleCommentsSection(postId) {
     const section = document.getElementById(`comments-section-modal-${postId}`);
-    const commentsList = document.getElementById(`comments-list-modal-${postId}`);
+    const commentsList = document.getElementById(
+      `comments-list-modal-${postId}`
+    );
 
     if (!section) {
-      console.error('Comments section element not found:', `comments-section-modal-${postId}`);
+      console.error(
+        "Comments section element not found:",
+        `comments-section-modal-${postId}`
+      );
       return;
     }
 
     if (section.style.display === "none" || section.style.display === "") {
       section.style.display = "block";
       // Load comments if there are any and they haven't been loaded yet
-      if (commentsList && commentsList.innerHTML.includes('spinner-border')) {
+      if (commentsList && commentsList.innerHTML.includes("spinner-border")) {
+        // Show loading indicator immediately
+        commentsList.innerHTML = `
+          <div class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden"></span>
+            </div>
+            <div class="mt-2 text-muted small"></div>
+          </div>
+        `;
         loadCommentsForPost(postId);
       }
       // Focus on comment input
@@ -613,134 +961,197 @@
   }
 
   // Function to load comments for a specific post
-  function loadCommentsForPost(postId) {
-    const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
+  function loadCommentsForPost(postId, showLoadingIndicator = false) {
+    const commentsListDiv = document.getElementById(
+      `comments-list-modal-${postId}`
+    );
 
-    fetch('/load_comments/' + postId)
-      .then(response => response.json())
-      .then(data => {
+    // Show loading indicator if requested (for reloads)
+    if (showLoadingIndicator) {
+      commentsListDiv.innerHTML = `
+        <div class="text-center py-2">
+          <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden"></span>
+          </div>
+          <div class="mt-2 text-muted small"></div>
+        </div>
+      `;
+    }
+
+    fetch("/load_comments/" + postId)
+      .then((response) => response.json())
+      .then((data) => {
         if (data.success && data.comments.length > 0) {
           let commentsHtml = '<h6 class="mb-3">Comments:</h6>';
-          data.comments.forEach(comment => {
-            const profileImg = comment.author.profilePicture ?
-              `<img src="${comment.author.profilePicture}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" alt="Profile">` :
-              `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 32px; height: 32px; background: #23263a; color: #bfc7d5; font-size: 0.9rem;"><i class="fas fa-user"></i></span>`;
+          data.comments.forEach((comment) => {
+            const profileImg = comment.author.profilePicture
+              ? `<img src="${comment.author.profilePicture}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" alt="Profile">`
+              : `<span class="d-inline-flex align-items-center justify-content-center rounded-circle me-2" style="width: 32px; height: 32px; background: #23263a; color: #bfc7d5; font-size: 0.9rem;"><i class="fas fa-user"></i></span>`;
 
-            const isOwnComment = comment.author.username === currentUser.username;
+            const isOwnComment =
+              comment.author.username === currentUser.username;
             const isPostOwner = data.current_user_id === data.post_owner_id;
             const canDelete = isOwnComment || isPostOwner;
             const canEdit = isOwnComment; // Only comment owner can edit
 
-            const editDeleteButtons = (canEdit || canDelete) ? `
-              <div class="ms-auto">
-                ${canEdit ? `
-                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                ` : ''}
-                ${canDelete ? `
-                  <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.commentId}, ${postId})"
-                    title="${isOwnComment ? 'Delete your comment' : 'Delete comment (as post owner)'}">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                ` : ''}
-              </div>
-            ` : '';
+            const editDeleteButtons =
+              canEdit || canDelete
+                ? `
+                <div class="ms-auto d-flex">
+                  ${
+                    canEdit
+                      ? `
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${
+                      comment.commentId
+                    }, '${comment.content.replace(/'/g, "\\'")}')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  `
+                      : ""
+                  }
+                  ${
+                    canDelete
+                      ? `
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${
+                      comment.commentId
+                    }, ${postId})"
+                      title="${
+                        isOwnComment
+                          ? "Delete your comment"
+                          : "Delete comment (as post owner)"
+                      }">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  `
+                      : ""
+                  }
+                </div>
+              `
+                : "";
 
             commentsHtml += `
-              <div class="mb-3 d-flex comment-item" id="comment-${comment.commentId}">
-                ${profileImg}
-                <div class="flex-grow-1">
-                  <div><strong>${comment.author.username}</strong></div>
-                  <div class="comment-content" id="content-${comment.commentId}">${comment.content}</div>
-                  <div class="text-muted small">
-                    ${comment.timestamp}
-                    ${comment.is_edited ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>` : ''}
-                  </div>
+              <div class="comment-item d-flex flex-column mb-2" id="comment-${
+                comment.commentId
+              }">
+                <div class="d-flex align-items-center comment-header-row">
+                  ${profileImg}
+                  <div class="fw-bold">${comment.author.username}</div>
+                  ${editDeleteButtons}
                 </div>
-                ${editDeleteButtons}
+                <div class="comment-content-row" id="content-${
+                  comment.commentId
+                }">${comment.content}</div>
+                <div class="comment-edit-actions-row mt-2" id="edit-actions-${
+                  comment.commentId
+                }" style="display:none;"></div>
+                <div class="text-muted small mt-2">
+                  ${comment.timestamp}
+                  ${
+                    comment.is_edited
+                      ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>`
+                      : ""
+                  }
+                </div>
               </div>
             `;
           });
           commentsListDiv.innerHTML = commentsHtml;
         } else {
-          commentsListDiv.innerHTML = '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
+          commentsListDiv.innerHTML =
+            '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
         }
       })
-      .catch(error => {
-        console.error('Error loading comments:', error);
-        commentsListDiv.innerHTML = '<p class="text-muted text-center">Error loading comments</p>';
+      .catch((error) => {
+        console.error("Error loading comments:", error);
+        commentsListDiv.innerHTML =
+          '<p class="text-muted text-center">Error loading comments</p>';
       });
   }
 
   // Function to edit comment
   function editComment(commentId, currentContent) {
-    const contentDiv = document.getElementById(`content-${commentId}`);
-    const commentItem = document.getElementById(`comment-${commentId}`);
+    const contentElement = document.getElementById(`content-${commentId}`);
+    const actionsElement = document.getElementById(`edit-actions-${commentId}`);
 
-    // Create edit form
-    const editForm = document.createElement('div');
-    editForm.innerHTML = `
-      <div class="input-group mt-2">
-        <input type="text" class="form-control" value="${currentContent}" id="edit-input-${commentId}" maxlength="500">
-        <button class="btn btn-success btn-sm" onclick="saveComment(${commentId})">Save</button>
-        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
-      </div>
+    // Replace content with textarea for editing
+    contentElement.innerHTML = `
+        <textarea class="form-control mb-2" id="edit-input-${commentId}" rows="2" maxlength="500">${currentContent}</textarea>
     `;
 
-    // Replace content with edit form
-    contentDiv.innerHTML = '';
-    contentDiv.appendChild(editForm);
+    // Show save/cancel buttons
+    actionsElement.innerHTML = `
+        <button class="btn btn-sm card-btn-primary me-2" onclick="saveComment(${commentId})">Save</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="cancelEdit(${commentId}, '${currentContent.replace(
+      /'/g,
+      "\\'"
+    )}')">Cancel</button>
+    `;
+    actionsElement.style.display = "block";
 
-    // Focus on input
+    // Focus on the textarea
     document.getElementById(`edit-input-${commentId}`).focus();
   }
 
   // Function to save edited comment
   function saveComment(commentId) {
-    const newContent = document.getElementById(`edit-input-${commentId}`).value.trim();
+    const newContent = document
+      .getElementById(`edit-input-${commentId}`)
+      .value.trim();
     if (!newContent) {
-      alert('Comment cannot be empty');
+      alert("Comment cannot be empty");
       return;
     }
 
     csrfFetch(`/edit_comment/${commentId}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ content: newContent })
+      body: JSON.stringify({ content: newContent }),
     })
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         if (data.success) {
           // Update the content
-          document.getElementById(`content-${commentId}`).innerHTML = newContent;
-          showNotification('Comment updated successfully', 'success');
+          document.getElementById(`content-${commentId}`).innerHTML =
+            newContent;
+          showNotification("Comment updated successfully", "success");
+          // Reload comments to show the "Edited" timestamp
+          const commentElement = document.getElementById(
+            `comment-${commentId}`
+          );
+          const postElement = commentElement.closest(
+            '[id*="comments-list-modal-"]'
+          );
+          if (postElement) {
+            const postId = postElement.id.replace("comments-list-modal-", "");
+            loadCommentsForPost(postId, true); // Show loading indicator for reload
+          }
         } else {
-          alert('Error: ' + data.error);
+          alert("Error: " + data.error);
         }
       })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while updating the comment');
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred while updating the comment");
       });
   }
 
   // Function to cancel edit
   function cancelEdit(commentId, originalContent) {
     document.getElementById(`content-${commentId}`).innerHTML = originalContent;
-  }  // Function to delete comment
+    document.getElementById(`edit-actions-${commentId}`).style.display = "none";
+  } // Function to delete comment
   function deleteComment(commentId, postId) {
-    if (confirm('Are you sure you want to delete this comment?')) {
+    if (confirm("Are you sure you want to delete this comment?")) {
       csrfFetch(`/delete_comment/${commentId}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       })
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
           if (data.success) {
             // Remove comment from UI
             document.getElementById(`comment-${commentId}`).remove();
@@ -751,52 +1162,76 @@
             }
 
             // Show success message
-            const message = data.is_post_owner_deletion ?
-              'Comment deleted successfully (as post owner)' :
-              'Comment deleted successfully';
-            showNotification(message, 'success');
+            const message = data.is_post_owner_deletion
+              ? "Comment deleted successfully (as post owner)"
+              : "Comment deleted successfully";
+            showNotification(message, "success");
 
             // Check if no comments left
-            const commentsListDiv = document.getElementById(`comments-list-modal-${postId}`);
-            const remainingComments = commentsListDiv.querySelectorAll('.comment-item');
+            const commentsListDiv = document.getElementById(
+              `comments-list-modal-${postId}`
+            );
+            const remainingComments =
+              commentsListDiv.querySelectorAll(".comment-item");
             if (remainingComments.length === 0) {
-              commentsListDiv.innerHTML = '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
+              commentsListDiv.innerHTML =
+                '<p class="text-muted text-center">No comments yet. Be the first to comment!</p>';
             }
           } else {
-            alert('Error: ' + data.error);
+            alert("Error: " + data.error);
           }
         })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while deleting the comment');
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("An error occurred while deleting the comment");
         });
     }
   }
 
   // Function to update comment count on buttons
   function updateCommentCount(postId, newCount) {
-    // Find the comment button for this post
-    const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
+    // Find the comment button for this post in modal
+    const commentButton = document.querySelector(
+      `button[onclick*="toggleCommentsSection('${postId}')"]`
+    );
     if (commentButton) {
       if (newCount > 0) {
-        commentButton.innerHTML = `<i class="fas fa-comment"></i> ${newCount} Comments`;
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> ${newCount}`;
       } else {
-        commentButton.innerHTML = `<i class="fas fa-comment"></i> Comment`;
+        commentButton.innerHTML = `<i class="fas fa-comment"></i> 0`;
       }
     }
 
+    // Find and update comment buttons outside the modal (mobile and desktop)
+    const outsideCommentButtons = document.querySelectorAll(
+      `button[onclick*="openPostModal('${postId}')"]`
+    );
+    outsideCommentButtons.forEach((btn) => {
+      const countSpan = btn.querySelector(".ms-1");
+      if (countSpan) {
+        if (newCount > 0) {
+          countSpan.textContent = newCount;
+        } else {
+          countSpan.textContent = "0";
+        }
+      }
+    });
+
     // Also update the hover overlay comment count
-    const hoverCommentCount = document.getElementById(`hover-comment-count-${postId}`);
+    const hoverCommentCount = document.getElementById(
+      `hover-comment-count-${postId}`
+    );
     if (hoverCommentCount) {
       hoverCommentCount.textContent = newCount;
     }
   }
 
   // Function to show notification
-  function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
+  function showNotification(message, type = "success") {
+    const notification = document.createElement("div");
     notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
+    notification.style.cssText =
+      "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
     notification.innerHTML = `
       ${message}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -811,9 +1246,9 @@
   }
 
   // Handle comment form submissions with AJAX
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.comment-form').forEach(form => {
-      form.addEventListener('submit', function (e) {
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".comment-form").forEach((form) => {
+      form.addEventListener("submit", function (e) {
         e.preventDefault();
 
         const postId = this.dataset.postId;
@@ -823,118 +1258,183 @@
         if (!content) return;
 
         csrfFetch(this.action, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
           },
-          body: `comment=${encodeURIComponent(content)}`
+          body: `comment=${encodeURIComponent(content)}`,
         })
-          .then(response => {
+          .then((response) => {
             if (response.ok) {
               return response.json();
             } else if (response.redirected) {
               // Fallback for redirect response
               return { success: true };
             } else {
-              throw new Error('Failed to add comment');
+              throw new Error("Failed to add comment");
             }
           })
-          .then(data => {
+          .then((data) => {
             if (data.success) {
               // Comment was added successfully, reload comments
-              commentInput.value = '';
-              loadCommentsForPost(postId);
+              commentInput.value = "";
+              loadCommentsForPost(postId, true); // Show loading indicator for reload
 
               // Update comment count with actual count from backend
               if (data.comment_count !== undefined) {
                 updateCommentCount(postId, data.comment_count);
               } else {
                 // Fallback: increment by 1 if we can't get exact count
-                const commentButton = document.querySelector(`button[onclick*="toggleCommentsSection('${postId}')"]`);
+                const commentButton = document.querySelector(
+                  `button[onclick*="toggleCommentsSection('${postId}')"]`
+                );
                 if (commentButton) {
                   const buttonText = commentButton.innerHTML;
-                  const currentCount = parseInt(buttonText.match(/(\d+)\s+Comments/)?.[1] || '0');
+                  const currentCount = parseInt(
+                    buttonText.match(/(\d+)\s+Comments/)?.[1] || "0"
+                  );
                   updateCommentCount(postId, currentCount + 1);
                 }
               }
-              showNotification('Comment added successfully', 'success');
-              window.location.reload();
+              showNotification("Comment added successfully", "success");
+              // Don't reload, just keep the comment section open
             } else {
-              throw new Error(data.error || 'Failed to add comment');
+              throw new Error(data.error || "Failed to add comment");
             }
           })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while adding the comment');
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while adding the comment");
           });
       });
     });
   });
 
   // Like/Unlike functionality with instant UI updates
-  document.addEventListener('DOMContentLoaded', function () {
-    // Add click handlers for like buttons
-    document.querySelectorAll('.like-btn').forEach(button => {
-      button.addEventListener('click', function () {
+  document.addEventListener("DOMContentLoaded", function () {
+    // Add click handlers for like buttons (both modal and mobile)
+    document.querySelectorAll(".like-btn").forEach((button) => {
+      button.addEventListener("click", function () {
         const postId = this.dataset.postId;
         const action = this.dataset.action;
         const btn = this;
-        const likeCountSpan = btn.querySelector('.like-count');
+        const likeCountSpan = btn.querySelector(".like-count");
 
         // Store original state for rollback
         const originalCount = parseInt(likeCountSpan.textContent) || 0;
         const originalClass = btn.className;
         const originalAction = btn.dataset.action;
-        const originalIconClass = btn.querySelector('i').className;
+        const originalIconClass = btn.querySelector("i").className;
         const originalStyle = btn.style.cssText;
 
         // INSTANT UI UPDATE (Optimistic)
         let newCount;
-        if (action === 'like') {
+        if (action === "like") {
           newCount = originalCount + 1;
-          btn.className = 'btn btn-danger btn-sm like-btn';
-          btn.dataset.action = 'unlike';
-          btn.querySelector('i').className = 'bi bi-heart-fill';
-          btn.style.cssText = 'background-color: #dc3545; border-color: #dc3545; color: white;';
+          if (btn.closest(".modal")) {
+            // Modal button - use same classes as home page
+            btn.className = "btn btn-danger btn-sm like-btn";
+            btn.style.cssText = ""; // Clear any inline styles to let CSS handle it
+          } else {
+            // Mobile or Desktop button - remove inline styles and let CSS handle it
+            btn.style.cssText = "";
+            btn.className = "btn btn-sm p-1 like-btn";
+          }
+          btn.dataset.action = "unlike";
+          btn.querySelector("i").className = "bi bi-heart-fill";
         } else {
           newCount = Math.max(0, originalCount - 1);
-          btn.className = 'btn btn-outline-danger btn-sm like-btn';
-          btn.dataset.action = 'like';
-          btn.querySelector('i').className = 'bi bi-heart';
-          btn.style.cssText = 'background-color: transparent; border: 1.5px solid #fff; color: #fff;';
+          if (btn.closest(".modal")) {
+            // Modal button - use same classes as home page
+            btn.className = "btn btn-outline-danger btn-sm like-btn";
+            btn.style.cssText = ""; // Clear any inline styles to let CSS handle it
+          } else {
+            // Mobile or Desktop button - remove inline styles and let CSS handle it
+            btn.style.cssText = "";
+            btn.className = "btn btn-sm p-1 like-btn";
+          }
+          btn.dataset.action = "like";
+          btn.querySelector("i").className = "bi bi-heart";
         }
         likeCountSpan.textContent = newCount;
 
         // Also update the hover overlay like count immediately
-        const hoverLikeCount = document.getElementById(`hover-like-count-${postId}`);
+        const hoverLikeCount = document.getElementById(
+          `hover-like-count-${postId}`
+        );
         if (hoverLikeCount) {
           hoverLikeCount.textContent = newCount;
         }
 
-        // Add animation for visual feedback
-        btn.classList.add('liked-animation');
-        setTimeout(() => btn.classList.remove('liked-animation'), 300);
+        // Update all like buttons for this post (mobile and modal)
+        const allLikeButtons = document.querySelectorAll(
+          `[data-post-id="${postId}"].like-btn`
+        );
+        allLikeButtons.forEach((otherBtn) => {
+          if (otherBtn !== btn) {
+            const otherCountSpan = otherBtn.querySelector(".like-count");
+            const otherIcon = otherBtn.querySelector("i");
+
+            otherCountSpan.textContent = newCount;
+            otherBtn.dataset.action = btn.dataset.action;
+            otherIcon.className = btn.querySelector("i").className;
+
+            if (action === "like") {
+              if (otherBtn.closest(".modal")) {
+                otherBtn.className = "btn btn-danger btn-sm like-btn";
+                otherBtn.style.cssText = ""; // Clear any inline styles
+              } else {
+                // Remove inline styles and let CSS handle it
+                otherBtn.style.cssText = "";
+                otherBtn.className = "btn btn-sm p-1 like-btn";
+              }
+            } else {
+              if (otherBtn.closest(".modal")) {
+                otherBtn.className = "btn btn-outline-danger btn-sm like-btn";
+                otherBtn.style.cssText = ""; // Clear any inline styles
+              } else {
+                // Remove inline styles and let CSS handle it
+                otherBtn.style.cssText = "";
+                otherBtn.className = "btn btn-sm p-1 like-btn";
+              }
+            }
+          }
+        });
+
+        // Add visual feedback without animation
+        btn.style.opacity = "0.8";
+        setTimeout(() => {
+          btn.style.opacity = "1";
+        }, 150);
 
         // Briefly disable button to prevent spam clicking
         btn.disabled = true;
-        setTimeout(() => { btn.disabled = false; }, 300);
+        setTimeout(() => {
+          btn.disabled = false;
+        }, 300);
 
         // Send background request
-        const url = action === 'like' ? `/api/like/${postId}` : `/api/unlike/${postId}`;
+        const url =
+          action === "like" ? `/api/like/${postId}` : `/api/unlike/${postId}`;
 
         csrfFetch(url, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         })
-          .then(response => response.json())
-          .then(data => {
+          .then((response) => response.json())
+          .then((data) => {
             if (data.success) {
               // Sync with server response if different from optimistic update
               if (data.new_count !== undefined && data.new_count !== newCount) {
                 likeCountSpan.textContent = data.new_count;
+                // Update all instances
+                allLikeButtons.forEach((otherBtn) => {
+                  otherBtn.querySelector(".like-count").textContent =
+                    data.new_count;
+                });
                 // Update hover overlay too
                 if (hoverLikeCount) {
                   hoverLikeCount.textContent = data.new_count;
@@ -942,12 +1442,40 @@
               }
               // UI is already updated optimistically, no need to change unless correcting
             } else {
-              // Rollback on error
-              likeCountSpan.textContent = originalCount;
-              btn.className = originalClass;
-              btn.dataset.action = originalAction;
-              btn.querySelector('i').className = originalIconClass;
-              btn.style.cssText = originalStyle;
+              // Rollback on error for all buttons
+              allLikeButtons.forEach((otherBtn) => {
+                const otherCountSpan = otherBtn.querySelector(".like-count");
+                otherCountSpan.textContent = originalCount;
+                otherBtn.dataset.action = originalAction;
+                otherBtn.querySelector("i").className = originalIconClass;
+
+                if (otherBtn === btn) {
+                  otherBtn.className = originalClass;
+                  otherBtn.style.cssText = originalStyle;
+                } else {
+                  // Reset other buttons to match original state
+                  if (originalAction === "like") {
+                    if (otherBtn.closest(".modal")) {
+                      otherBtn.className =
+                        "btn btn-outline-danger btn-sm like-btn";
+                      otherBtn.style.cssText = ""; // Clear any inline styles
+                    } else {
+                      // Remove inline styles and let CSS handle it
+                      otherBtn.style.cssText = "";
+                      otherBtn.className = "btn btn-sm p-1 like-btn";
+                    }
+                  } else {
+                    if (otherBtn.closest(".modal")) {
+                      otherBtn.className = "btn btn-danger btn-sm like-btn";
+                      otherBtn.style.cssText = ""; // Clear any inline styles
+                    } else {
+                      // Remove inline styles and let CSS handle it
+                      otherBtn.style.cssText = "";
+                      otherBtn.className = "btn btn-sm p-1 like-btn";
+                    }
+                  }
+                }
+              });
 
               // Rollback hover overlay too
               if (hoverLikeCount) {
@@ -956,25 +1484,37 @@
 
               // Show error without blocking UI
               if (!data.already_liked && !data.not_liked) {
-                showNotification('Error: ' + (data.error || 'Failed to update like'), 'danger');
+                showNotification(
+                  "Error: " + (data.error || "Failed to update like"),
+                  "danger"
+                );
               }
             }
           })
-          .catch(error => {
-            console.error('Error:', error);
-            // Rollback on network error
-            likeCountSpan.textContent = originalCount;
-            btn.className = originalClass;
-            btn.dataset.action = originalAction;
-            btn.querySelector('i').className = originalIconClass;
-            btn.style.cssText = originalStyle;
+          .catch((error) => {
+            console.error("Error:", error);
+            // Rollback on network error for all buttons
+            allLikeButtons.forEach((otherBtn) => {
+              const otherCountSpan = otherBtn.querySelector(".like-count");
+              otherCountSpan.textContent = originalCount;
+              otherBtn.dataset.action = originalAction;
+              otherBtn.querySelector("i").className = originalIconClass;
+
+              if (otherBtn === btn) {
+                otherBtn.className = originalClass;
+                otherBtn.style.cssText = originalStyle;
+              }
+            });
 
             // Rollback hover overlay too
             if (hoverLikeCount) {
               hoverLikeCount.textContent = originalCount;
             }
 
-            showNotification('Network error occurred while updating like', 'danger');
+            showNotification(
+              "Network error occurred while updating like",
+              "danger"
+            );
           });
       });
     });
@@ -1016,12 +1556,22 @@
   }
 
   // Delete post function
-  function deletePost(postId) {
+  function deletePost(postId, clickedButton) {
     if (
       confirm(
         "Are you sure you want to delete this post? This action cannot be undone."
       )
     ) {
+      // Store original state of only the clicked button
+      const originalState = {
+        innerHTML: clickedButton.innerHTML,
+        disabled: clickedButton.disabled,
+      };
+
+      // Show loading only on the clicked button
+      clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      clickedButton.disabled = true;
+
       const url = `/delete-post/${postId}`;
       console.log("Attempting to delete post with URL:", url);
 
@@ -1038,7 +1588,7 @@
         .then((data) => {
           console.log("Response data:", data);
           if (data.success) {
-            // Close the modal
+            // Close any open modal for this post
             const modal = document.getElementById(`postModal${postId}`);
             if (modal) {
               const bsModal = bootstrap.Modal.getInstance(modal);
@@ -1049,7 +1599,9 @@
 
             // Remove the post from the page
             const postElement = document
-              .querySelector(`[data-bs-target="#postModal${postId}"]`)
+              .querySelector(
+                `[onclick*="openPostModalFromCard(event, '${postId}')"]`
+              )
               .closest(".col-lg-4, .col-md-6");
             if (postElement) {
               postElement.remove();
@@ -1081,11 +1633,17 @@
               location.reload(); // Reload to show empty state
             }
           } else {
+            // Restore button state on error (only clicked button)
+            clickedButton.innerHTML = originalState.innerHTML;
+            clickedButton.disabled = originalState.disabled;
             console.error("Delete failed:", data.error);
             alert("Error: " + data.error);
           }
         })
         .catch((error) => {
+          // Restore button state on network error (only clicked button)
+          clickedButton.innerHTML = originalState.innerHTML;
+          clickedButton.disabled = originalState.disabled;
           console.error("Error details:", error);
           alert("An error occurred while deleting the post: " + error.message);
         });
@@ -1105,198 +1663,145 @@
       });
   });
 
-  let _postEditSaving = {};
-
-  function enablePostEdit(postId, isCaption) {
-    if (!window._postEditOriginal) window._postEditOriginal = {};
-    if (!window._postEditOriginal[postId]) {
-      window._postEditOriginal[postId] = {
-        title: document.getElementById(`edit-title-${postId}`).value,
-        content: document.getElementById(`edit-caption-${postId}`).value
-      };
-    }
-    if (!isCaption) {
-      document.getElementById(`post-title-${postId}`).classList.add('d-none');
-      const titleInput = document.getElementById(`edit-title-${postId}`);
-      titleInput.classList.remove('d-none');
-      titleInput.focus();
-      // Hide on blur if not saving
-      titleInput.onblur = function () {
-        setTimeout(function () {
-          if (!_postEditSaving[postId]) hideEditFields(postId);
-        }, 100);
-      };
-    } else {
-      document.getElementById(`post-caption-${postId}`).classList.add('d-none');
-      const captionInput = document.getElementById(`edit-caption-${postId}`);
-      captionInput.classList.remove('d-none');
-      captionInput.focus();
-      // Hide on blur if not saving
-      captionInput.onblur = function () {
-        setTimeout(function () {
-          if (!_postEditSaving[postId]) hideEditFields(postId);
-        }, 100);
-      };
-    }
-    document.getElementById(`save-post-${postId}`).classList.remove('d-none');
-  }
-
-  function hideEditFields(postId) {
-    // Restore original values
-    if (window._postEditOriginal && window._postEditOriginal[postId]) {
-      document.getElementById(`edit-title-${postId}`).value = window._postEditOriginal[postId].title;
-      document.getElementById(`edit-caption-${postId}`).value = window._postEditOriginal[postId].content;
-    }
-    document.getElementById(`post-title-${postId}`).classList.remove('d-none');
-    document.getElementById(`edit-title-${postId}`).classList.add('d-none');
-    document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
-    document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
-    document.getElementById(`save-post-${postId}`).classList.add('d-none');
-    _postEditSaving[postId] = false;
-  }
-
-  // Optional: handle Esc key to cancel edit
-  ['edit-title-', 'edit-caption-'].forEach(prefix => {
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        const inputs = document.querySelectorAll(`[id^='${prefix}']`);
-        inputs.forEach(input => {
-          if (!input.classList.contains('d-none')) {
-            const postId = input.id.split('-').pop();
-            hideEditFields(postId);
-          }
-        });
-      }
-    });
-  });
-
-  function savePostEdit(postId) {
-    _postEditSaving[postId] = true;
-    const titleInput = document.getElementById(`edit-title-${postId}`);
-    const captionInput = document.getElementById(`edit-caption-${postId}`);
-    const title = titleInput ? titleInput.value.trim() : '';
-    const content = captionInput ? captionInput.value.trim() : '';
-    csrfFetch(`/api/edit-post/${postId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById(`post-title-${postId}`).textContent = data.title;
-          document.getElementById(`post-caption-${postId}`).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
-          document.getElementById(`post-title-${postId}`).classList.remove('d-none');
-          document.getElementById(`edit-title-${postId}`).classList.add('d-none');
-          document.getElementById(`post-caption-${postId}`).classList.remove('d-none');
-          document.getElementById(`edit-caption-${postId}`).classList.add('d-none');
-          document.getElementById(`save-post-${postId}`).classList.add('d-none');
-          if (window._postEditOriginal) delete window._postEditOriginal[postId];
-          showNotification('Post updated!', 'success');
-        } else {
-          showNotification(data.error || 'Failed to update post', 'danger');
-        }
-        _postEditSaving[postId] = false;
-      })
-      .catch(() => { _postEditSaving[postId] = false; });
-  }
+  // Note: Post editing outside modal has been removed.
+  // Only modal-based editing is supported for better UX.
 
   function enableModalPostEdit(postId, isCaption) {
     if (!window._modalPostEditOriginal) window._modalPostEditOriginal = {};
     if (!window._modalPostEditOriginal[postId]) {
       window._modalPostEditOriginal[postId] = {
-        title: document.getElementById(`modal-edit-title-${postId}`)?.value || document.getElementById(`post-title-${postId}`)?.textContent || '',
-        content: document.getElementById(`modal-edit-caption-${postId}`)?.value || document.getElementById(`post-caption-${postId}`)?.textContent || ''
+        title:
+          document.getElementById(`modal-edit-title-${postId}`)?.value ||
+          document.getElementById(`post-title-${postId}`)?.textContent ||
+          "",
+        content:
+          document.getElementById(`modal-edit-caption-${postId}`)?.value ||
+          document.getElementById(`post-caption-${postId}`)?.textContent ||
+          "",
       };
     }
     const titleDisplay = document.getElementById(`post-title-${postId}`);
     const titleInput = document.getElementById(`modal-edit-title-${postId}`);
     const captionDisplay = document.getElementById(`post-caption-${postId}`);
-    const captionInput = document.getElementById(`modal-edit-caption-${postId}`);
+    const captionInput = document.getElementById(
+      `modal-edit-caption-${postId}`
+    );
     if (!isCaption) {
-      if (titleDisplay) titleDisplay.classList.add('d-none');
+      if (titleDisplay) titleDisplay.classList.add("d-none");
       if (titleInput) {
-        titleInput.classList.remove('d-none');
+        titleInput.classList.remove("d-none");
         titleInput.focus();
       }
     } else {
-      if (captionDisplay) captionDisplay.classList.add('d-none');
+      if (captionDisplay) captionDisplay.classList.add("d-none");
       if (captionInput) {
-        captionInput.classList.remove('d-none');
+        captionInput.classList.remove("d-none");
         captionInput.focus();
       }
     }
-    document.getElementById(`modal-save-post-${postId}`).classList.remove('d-none');
-    document.getElementById(`modal-cancel-post-${postId}`).classList.remove('d-none');
+    document
+      .getElementById(`modal-save-post-${postId}`)
+      .classList.remove("d-none");
+    document
+      .getElementById(`modal-cancel-post-${postId}`)
+      .classList.remove("d-none");
   }
 
   function hideModalEditFields(postId) {
-    if (window._modalPostEditOriginal && window._modalPostEditOriginal[postId]) {
+    if (
+      window._modalPostEditOriginal &&
+      window._modalPostEditOriginal[postId]
+    ) {
       const titleInput = document.getElementById(`modal-edit-title-${postId}`);
-      const captionInput = document.getElementById(`modal-edit-caption-${postId}`);
-      if (titleInput) titleInput.value = window._modalPostEditOriginal[postId].title;
-      if (captionInput) captionInput.value = window._modalPostEditOriginal[postId].content;
+      const captionInput = document.getElementById(
+        `modal-edit-caption-${postId}`
+      );
+      if (titleInput)
+        titleInput.value = window._modalPostEditOriginal[postId].title;
+      if (captionInput)
+        captionInput.value = window._modalPostEditOriginal[postId].content;
     }
     const titleDisplay = document.getElementById(`post-title-${postId}`);
     const titleInput = document.getElementById(`modal-edit-title-${postId}`);
     const captionDisplay = document.getElementById(`post-caption-${postId}`);
-    const captionInput = document.getElementById(`modal-edit-caption-${postId}`);
-    if (titleDisplay) titleDisplay.classList.remove('d-none');
-    if (titleInput) titleInput.classList.add('d-none');
-    if (captionDisplay) captionDisplay.classList.remove('d-none');
-    if (captionInput) captionInput.classList.add('d-none');
-    document.getElementById(`modal-save-post-${postId}`).classList.add('d-none');
-    document.getElementById(`modal-cancel-post-${postId}`).classList.add('d-none');
-    if (window._modalPostEditOriginal) delete window._modalPostEditOriginal[postId];
+    const captionInput = document.getElementById(
+      `modal-edit-caption-${postId}`
+    );
+    if (titleDisplay) titleDisplay.classList.remove("d-none");
+    if (titleInput) titleInput.classList.add("d-none");
+    if (captionDisplay) captionDisplay.classList.remove("d-none");
+    if (captionInput) captionInput.classList.add("d-none");
+    document
+      .getElementById(`modal-save-post-${postId}`)
+      .classList.add("d-none");
+    document
+      .getElementById(`modal-cancel-post-${postId}`)
+      .classList.add("d-none");
+    if (window._modalPostEditOriginal)
+      delete window._modalPostEditOriginal[postId];
   }
 
   function saveModalPostEdit(postId) {
     const titleInput = document.getElementById(`modal-edit-title-${postId}`);
-    const captionInput = document.getElementById(`modal-edit-caption-${postId}`);
-    const title = titleInput ? titleInput.value.trim() : '';
-    const content = captionInput ? captionInput.value.trim() : '';
+    const captionInput = document.getElementById(
+      `modal-edit-caption-${postId}`
+    );
+    const title = titleInput ? titleInput.value.trim() : "";
+    const content = captionInput ? captionInput.value.trim() : "";
     csrfFetch(`/api/edit-post/${postId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, content }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           // Update both display and edit fields
-          document.getElementById(`post-title-${postId}`).textContent = data.title;
-          document.getElementById(`modal-edit-title-${postId}`).value = data.title;
-          document.getElementById(`post-caption-${postId}`).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
-          document.getElementById(`modal-edit-caption-${postId}`).value = data.content;
+          document.getElementById(`post-title-${postId}`).textContent =
+            data.title;
+          document.getElementById(`modal-edit-title-${postId}`).value =
+            data.title;
+          document.getElementById(
+            `post-caption-${postId}`
+          ).innerHTML = `<strong>${currentUser.username}</strong> ${data.content}`;
+          document.getElementById(`modal-edit-caption-${postId}`).value =
+            data.content;
           // Show the Edited badge if updatedAt is present
-          let badge = document.querySelector(`#post-title-${postId} .badge.bg-secondary`);
+          let badge = document.querySelector(
+            `#post-title-${postId} .badge.bg-secondary`
+          );
           if (data.updatedAt) {
-            if (badge) badge.style.display = '';
+            if (badge) badge.style.display = "";
           } else if (badge) {
-            badge.style.display = 'none';
+            badge.style.display = "none";
           }
           hideModalEditFields(postId);
-          showNotification('Post updated!', 'success');
+          showNotification("Post updated!", "success");
           location.reload(); // Refresh the page to update modal and card
         } else {
-          showNotification(data.error || 'Failed to update post', 'danger');
+          showNotification(data.error || "Failed to update post", "danger");
         }
       })
-      .catch(() => { showNotification('Network error occurred while updating post', 'danger'); });
+      .catch(() => {
+        showNotification(
+          "Network error occurred while updating post",
+          "danger"
+        );
+      });
   }
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Auto-open post modal if ?post=<post_id> is in the URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const postId = urlParams.get('post');
-  if (postId) {
-    const modal = document.getElementById('postModal' + postId);
-    if (modal) {
-      const bsModal = new bootstrap.Modal(modal);
-      bsModal.show();
+  document.addEventListener("DOMContentLoaded", function () {
+    // Auto-open post modal if ?post=<post_id> is in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get("post");
+    if (postId) {
+      const modal = document.getElementById("postModal" + postId);
+      if (modal) {
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+      }
     }
-  }
-});
+  });
 </script>
 {% endblock %}
