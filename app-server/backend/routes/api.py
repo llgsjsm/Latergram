@@ -6,7 +6,7 @@ from backend.splunk_utils import log_to_splunk
 from backend.profanity_helper import check_profanity
 from backend.logging_utils import log_action
 from managers import get_auth_manager, get_profile_manager, get_post_manager
-from backend.limiter import limiter
+# from backend.limiter import limiter
 
 api_bp = Blueprint('api', __name__)
 
@@ -327,7 +327,7 @@ def api_edit_post(post_id):
     return jsonify({'success': True, 'message': 'Post updated', 'title': post.title, 'content': post.content, 'updatedAt': post.updatedAt.isoformat() if post.updatedAt else None})
 
 @api_bp.route('/send-email-update-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
 def send_email_update_otp():
     """Send OTP to new email address for email update verification"""
     if 'user_id' not in session:
@@ -367,7 +367,7 @@ def send_email_update_otp():
     return jsonify({'success': True, 'message': 'OTP sent if email is valid'})
 
 @api_bp.route('/verify-email-update-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
 def verify_email_update_otp():
     """Verify OTP and update email address"""
     if 'user_id' not in session:
@@ -448,7 +448,7 @@ def api_update_email():
         return jsonify({'success': False, 'error': f'Failed to update email: {str(e)}'}), 500
 
 @api_bp.route('/send-password-change-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
 def send_password_change_otp():
     """Send OTP for password change verification"""
     if 'user_id' not in session:

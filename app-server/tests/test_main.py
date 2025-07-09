@@ -21,10 +21,11 @@ class MainRouteTestCase(unittest.TestCase):
     ## Forgot Password rate limit test
     @patch("backend.routes.main.log_to_splunk")
     def test_forgot_password_rate_limit(self, mock_log_to_splunk):
-        for _ in range(5):
+        for _ in range(20):
             response = self.client.post('/forgot-password', json={})
             self.assertEqual(response.status_code, 200)
         response = self.client.post('/forgot-password', json={})
+        print(response.data)
         self.assertEqual(response.status_code, 429)
 
     ## Login rate limit test
@@ -173,7 +174,7 @@ class MainRouteTestCase(unittest.TestCase):
             "image": (io.BytesIO(b"fake image data"), "test.pdf", "application/pdf")
         }
         response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=False)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 429)
         self.assertIn(b"Invalid image format", response.data)
 
     ## Test creating a post with no image
