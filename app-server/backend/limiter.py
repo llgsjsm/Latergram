@@ -28,16 +28,14 @@ rate_limited_paths = [
     "/resend-login-otp"
 ]
 
-def check_rate_limit(ip, max_requests=5, time_window=60, request_data=None):
+def check_rate_limit(ip, max_requests=15, time_window=20, request_data=None):
     if request_data is None:
         request_data = defaultdict(list) 
     current_time = time.time()
     request_data[ip] = [timestamp for timestamp in request_data[ip] if current_time - timestamp < time_window]
     print(f"Requests for IP {ip}: {len(request_data[ip])} within {time_window} seconds.")
-
     if len(request_data[ip]) >= max_requests:
         print(f"Rate limit exceeded for IP {ip}.")
-
         return False
     return True
 

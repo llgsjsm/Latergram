@@ -10,10 +10,9 @@ from backend.firebase_utils import ensure_firebase_initialized
 from datetime import datetime, timedelta, timezone
 from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
-import uuid, re, magic, os
+import uuid, re, magic, os, secrets
 from firebase_admin import storage
 # from backend.limiter import limiter
-from flask_wtf.csrf import generate_csrf
 
 main_bp = Blueprint('main', __name__)
 auth_manager = get_auth_manager()
@@ -96,11 +95,15 @@ def home():
 
     return render_template('home.html', posts=posts, user_stats=user_stats, suggested_users=suggested_users, liked_posts=liked_posts, pending_requests=pending_requests, comment_counts=comment_counts, current_user=current_user)
 
+def generate_csrf():
+    csrf_token = secrets.token_hex(32)  # Generates a secure 32-byte hex token
+    session['csrf_token'] = csrf_token  # Store the token in the session
+    return csrf_token
+
 @main_bp.route('/get-csrf-token', methods=['GET'])
 def get_csrf_token():
     token = generate_csrf()
     return jsonify({'csrf_token': token})
-
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 # @limiter.limit('7 per minute')
@@ -124,12 +127,6 @@ def login():
                 password = data.get('password', '')
 
                 if email and password:
-                    if PLAYWRIGHT:
-                        result = auth_manager.login(email, password)
-                        if result['success']:
-                            session['user_id'] = 999999
-                            return jsonify(result)
-
                     # Check if user exists in User table first
                     user = User.query.filter(
                         or_(User.username == email, User.email == email)
