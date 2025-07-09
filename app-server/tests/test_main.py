@@ -53,7 +53,8 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertIn(response.status_code, [200, 404])
 
     ## Force deletion of other posts with authentication
-    def test_user_cannot_delete_others_post(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_user_cannot_delete_others_post(self, mock_log_to_splunk):
         self.login_as_user(user_id=8)
         response = self.client.post('/delete-post/5', json={}) 
         if b'You can only delete your own posts' in response.data:
@@ -61,7 +62,8 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertIn(response.status_code, [403, 404, 500])
 
     ## Force browsing without authentication
-    def test_force_browsing_moderator(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_force_browsing_moderator(self, mock_log_to_splunk):
         response = self.client.get('/moderation/', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         location = response.headers.get("Location")
@@ -69,7 +71,8 @@ class MainRouteTestCase(unittest.TestCase):
         self.assertTrue("/login" in location, f"Expected redirect to /login but got {location}")
 
     ## Force browsing with logging in as a user
-    def test_user_cannot_access_moderation(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_user_cannot_access_moderation(self, mock_log_to_splunk):
         self.login_as_user(user_id=99)
 
         response = self.client.get('/moderation/', follow_redirects=False)
@@ -81,7 +84,8 @@ class MainRouteTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 403, "Expected 403 Forbidden for non-moderator access")
 
     ## Test adding a comment without authentication
-    def test_add_comment_requires_login(self):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_add_comment_requires_login(self, mock_log_to_splunk):
         response = self.client.post('/comment/1', data={'comment': 'Test comment'})
         self.assertEqual(response.status_code, 401)
         self.assertIn(b'Not logged in', response.data)
@@ -90,7 +94,8 @@ class MainRouteTestCase(unittest.TestCase):
     @patch("backend.routes.main.storage")
     @patch("backend.routes.main.db")
     @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
-    def test_create_post_unauthenticated(self,mock_is_allowed_file_secure,mock_db,mock_storage):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_create_post_unauthenticated(self,mock_log_to_splunk,mock_is_allowed_file_secure,mock_db,mock_storage):
         # Set up mocks
         mock_user = MagicMock()
         mock_user.username = "testuser"
@@ -118,7 +123,8 @@ class MainRouteTestCase(unittest.TestCase):
     @patch("backend.routes.main.db")
     @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
     @patch("backend.routes.main.log_action")
-    def test_create_post_authenticated(self,mock_log_action,mock_is_allowed_file_secure,mock_db,mock_storage):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_create_post_authenticated(self,mock_log_action,mock_log_to_splunk,mock_is_allowed_file_secure,mock_db,mock_storage):
         self.login_as_user(user_id=99)
 
         # Set up mocks
@@ -145,7 +151,8 @@ class MainRouteTestCase(unittest.TestCase):
     ## Test creating a post of invalid type with authentication
     @patch("backend.routes.main.storage")
     @patch("backend.routes.main.db")
-    def test_file_type_authenticated(self,mock_db,mock_storage):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_file_type_authenticated(self,mock_log_to_splunk,mock_db,mock_storage):
         self.login_as_user(user_id=99)
 
         # Set up mocks
@@ -172,7 +179,8 @@ class MainRouteTestCase(unittest.TestCase):
     ## Test creating a post with no image
     @patch("backend.routes.main.storage")
     @patch("backend.routes.main.db")
-    def test_create_post_no_image(self, mock_db, mock_storage):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_create_post_no_image(self, mock_log_to_splunk, mock_db, mock_storage):
         self.login_as_user(user_id=99)
 
         # Set up mocks
@@ -196,7 +204,8 @@ class MainRouteTestCase(unittest.TestCase):
     @patch("backend.routes.main.is_allowed_file_secure", return_value=True)
     @patch("backend.routes.main.storage")
     @patch("backend.routes.main.db")
-    def test_profanity_in_post_content(self, mock_db, mock_storage, mock_is_allowed_file_secure):
+    @patch("backend.routes.main.log_to_splunk")
+    def test_profanity_in_post_content(self, mock_log_to_splunk, mock_db, mock_storage, mock_is_allowed_file_secure):
         self.login_as_user(user_id=99)
         mock_user = MagicMock()
         mock_user.username = "testuser"
