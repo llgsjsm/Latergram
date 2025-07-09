@@ -75,6 +75,9 @@ a:hover {
 
 .input-group-text {
     background: transparent;
+    width: 48px;
+    display: flex;
+    justify-content: center;
     border: none;
     color: #999;
 }

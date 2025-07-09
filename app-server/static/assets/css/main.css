@@ -78,6 +78,14 @@ html {
   font-weight: 600;
 }
 
+.btn-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+
 .base-btn {
   border: none;
   border-radius: var(--bs-border-radius-sm);
@@ -468,8 +476,6 @@ h4.card-header,
     top: 10px;
     z-index: 1052;
     margin-top: 1rem !important;
-    padding: 0.5rem;
-    background: var(--color-navbg);
     border-radius: 8px;
   }
 
@@ -482,6 +488,7 @@ h4.card-header,
     background: var(--color-input);
     border-radius: 8px;
     margin-top: 0.5rem;
+    padding: 0 16px;
     border: 1px solid #363947;
   }
 
@@ -534,5 +541,13 @@ h4.card-header,
 
   .navbar {
     padding: 8px 32px !important;
+  }
+
+  #user-search-form {
+    margin: auto 16px
+  }
+
+  #search-suggestions {
+    margin: 8px 16px;
   }
 }
