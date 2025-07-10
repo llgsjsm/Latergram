@@ -43,7 +43,7 @@ def create_app(test_config=None):
     DB_NAME = os.environ.get('DB_NAME', '')
     BUCKET = os.environ.get('BUCKET', '')
     FILE_LOCATION = os.environ.get('FILE_LOCATION','')
-    # Default to false if not set. Set IS_TESTING to true for testing environments
+    # Default to false if not set. Set IS_TESTING to true for testing env
     IS_TESTING = os.getenv("IS_TESTING", "false").lower() == "true"
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
@@ -88,10 +88,8 @@ def create_app(test_config=None):
     return app
 
 app = create_app()
-
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    # HTML
     if request.accept_mimetypes.accept_html:
         flash('Security token mismatch. Please refresh the page and try again.', 'danger')
         return redirect(url_for('main.login')), 400
