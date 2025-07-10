@@ -287,7 +287,7 @@
                 {% if is_own_profile %}
                 <button
                   class="btn btn-sm p-1"
-                  onclick="deletePost('{{ post.postId }}', this)"
+                  onclick="deletePost(event, '{{ post.postId }}', this)"
                   title="Delete Post"
                   style="background: none; border: none; color: #dc3545"
                 >
@@ -352,7 +352,7 @@
                 {% if is_own_profile %}
                 <button
                   class="btn btn-sm p-1"
-                  onclick="deletePost('{{ post.postId }}', this)"
+                  onclick="deletePost(event, '{{ post.postId }}', this)"
                   title="Delete Post"
                   style="background: none; border: none; color: #dc3545"
                 >
@@ -532,7 +532,7 @@
                 {% if is_own_profile %}
                 <button
                   class="btn btn-danger btn-sm ms-2"
-                  onclick="deletePost('{{ post.postId }}', this)"
+                  onclick="deletePost(event, '{{ post.postId }}', this)"
                   title="Delete Post"
                 >
                   <i class="fas fa-trash"></i>
@@ -698,6 +698,41 @@
 <style>
   .post-thumbnail:hover .post-overlay {
     opacity: 1 !important;
+  }
+
+  /* Ensure dropdowns and buttons in modals appear on top */
+  .modal .dropdown-menu {
+    z-index: 1060 !important;
+  }
+
+  .modal .btn-group .dropdown-menu {
+    z-index: 1060 !important;
+  }
+
+  /* Ensure modal edit elements have proper z-index */
+  .modal .comment-item .btn {
+    z-index: 1051 !important;
+  }
+
+  /* Override any conflicting z-index for edit actions */
+  .modal [id^="edit-actions-"] {
+    z-index: 1051 !important;
+    position: relative;
+  }
+
+  /* Ensure mobile navigation always appears above modals */
+  @media (max-width: 991px) {
+    #main-nav {
+      z-index: 1060 !important;
+    }
+
+    .mobile-nav-toggle {
+      z-index: 1061 !important;
+    }
+
+    .nav-overlay {
+      z-index: 1059 !important;
+    }
   }
 </style>
 <script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
@@ -997,7 +1032,9 @@
                 ${
                   canEdit
                     ? `
-                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
+                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${
+                    comment.commentId
+                  }, '${comment.content.replace(/'/g, "\\'")}')">
                     <i class="fas fa-edit"></i>
                   </button>
                 `
@@ -1041,6 +1078,9 @@
                         : ""
                     }
                   </div>
+                  <div id="edit-actions-${
+                    comment.commentId
+                  }" style="display: none;" class="comment-edit-actions-row mt-2"></div>
                 </div>
                 ${editDeleteButtons}
               </div>
@@ -1060,25 +1100,26 @@
   }
 
   // Function to edit comment
-  function editComment(commentId, currentContent) {
-    const contentDiv = document.getElementById(`content-${commentId}`);
-    const commentItem = document.getElementById(`comment-${commentId}`);
+  function editComment(commentId, originalContent) {
+    const contentElement = document.getElementById(`content-${commentId}`);
+    const actionsElement = document.getElementById(`edit-actions-${commentId}`);
 
-    // Create edit form
-    const editForm = document.createElement("div");
-    editForm.innerHTML = `
-      <div class="input-group mt-2">
-        <input type="text" class="form-control" value="${currentContent}" id="edit-input-${commentId}" maxlength="500">
-        <button class="btn btn-success btn-sm" onclick="saveComment(${commentId})">Save</button>
-        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
-      </div>
+    // Replace content with textarea for editing
+    contentElement.innerHTML = `
+        <textarea class="form-control mb-2" id="edit-input-${commentId}" rows="2" maxlength="500">${originalContent}</textarea>
     `;
 
-    // Replace content with edit form
-    contentDiv.innerHTML = "";
-    contentDiv.appendChild(editForm);
+    // Show save/cancel buttons
+    actionsElement.innerHTML = `
+        <button class="btn btn-sm card-btn-primary me-2" onclick="saveComment(${commentId})">Save</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="cancelEdit(${commentId}, '${originalContent.replace(
+      /'/g,
+      "\\'"
+    )}')">Cancel</button>
+    `;
+    actionsElement.style.display = "block";
 
-    // Focus on input
+    // Focus on the textarea
     document.getElementById(`edit-input-${commentId}`).focus();
   }
 
@@ -1088,7 +1129,7 @@
       .getElementById(`edit-input-${commentId}`)
       .value.trim();
     if (!newContent) {
-      alert("Comment cannot be empty");
+      showNotification("Comment cannot be empty", "warning");
       return;
     }
 
@@ -1102,11 +1143,8 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          // Update the content
-          document.getElementById(`content-${commentId}`).innerHTML =
-            newContent;
           showNotification("Comment updated successfully", "success");
-          // Reload comments to show the "Edited" timestamp
+          // Find the post ID to reload comments and show the edited timestamp
           const commentElement = document.getElementById(
             `comment-${commentId}`
           );
@@ -1115,21 +1153,26 @@
           );
           if (postElement) {
             const postId = postElement.id.replace("comments-list-modal-", "");
-            loadCommentsForPost(postId, true); // Show loading indicator for reload
+            // Reload comments to show the "Edited" timestamp with loading indicator
+            loadCommentsForPost(postId, true);
           }
         } else {
-          alert("Error: " + data.error);
+          showNotification("Error: " + data.error, "danger");
         }
       })
       .catch((error) => {
         console.error("Error:", error);
-        alert("An error occurred while updating the comment");
+        showNotification(
+          "An error occurred while updating the comment",
+          "danger"
+        );
       });
   }
 
   // Function to cancel edit
   function cancelEdit(commentId, originalContent) {
     document.getElementById(`content-${commentId}`).innerHTML = originalContent;
+    document.getElementById(`edit-actions-${commentId}`).style.display = "none";
   } // Function to delete comment
   function deleteComment(commentId, postId) {
     if (confirm("Are you sure you want to delete this comment?")) {
@@ -1545,7 +1588,13 @@
   }
 
   // Delete post function
-  function deletePost(postId, clickedButton) {
+  function deletePost(event, postId, clickedButton) {
+    // Prevent the modal from opening (if event is provided)
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    
     if (
       confirm(
         "Are you sure you want to delete this post? This action cannot be undone."

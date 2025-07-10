@@ -23,7 +23,10 @@
             aria-controls="mobileFollowRequests"
             style="cursor: pointer"
           >
-            <div class="d-flex align-items-center justify-content-between">
+            <div
+              class="d-flex align-items-center justify-content-between"
+              style="gap: 8px"
+            >
               <h6 class="mb-0">
                 <i class="fas fa-user-plus me-2"></i>Follow Requests ({{
                 pending_requests|length }})
@@ -130,7 +133,10 @@
             aria-controls="mobileSuggestedUsers"
             style="cursor: pointer"
           >
-            <div class="d-flex align-items-center justify-content-between">
+            <div
+              class="d-flex align-items-center justify-content-between"
+              style="gap: 8px"
+            >
               <h6 class="mb-0">
                 <i class="fas fa-users me-2"></i>People you might know
               </h6>
@@ -388,12 +394,12 @@
             id="comments-section-{{ post.postId }}"
             style="display: none"
           >
+            <!-- Comment Form -->
+            <div id="comment-form-{{ post.postId }}" class="mb-3">
+              <!-- Form will be dynamically inserted here -->
+            </div>
             <div id="comments-{{ post.postId }}">
               <!-- Comments will be loaded dynamically -->
-            </div>
-            <!-- Comment Form -->
-            <div id="comment-form-{{ post.postId }}" class="mt-3">
-              <!-- Form will be dynamically inserted here -->
             </div>
           </div>
         </div>
@@ -1048,7 +1054,7 @@
         {{ request.requested_at.strftime('%b %d, %Y') if request.requested_at
         else '' }}
       </div>
-      <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-start justify-content-between flex-column">
         <div class="d-flex align-items-center">
           {% if request.profile_picture %}
           <img
