@@ -160,21 +160,6 @@ body,
   background: var(--color-primary-hover);
 }
 
-@media (max-width: 767px) {
-  .profile-header-card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1.2rem 1rem;
-  }
-
-  .profile-header-actions {
-    flex-direction: row;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    align-items: center;
-  }
-}
-
 .posts-section {
   color: #bfc7d5;
 }
@@ -284,25 +269,11 @@ body,
 
 .comments-list-modal,
 [id^="comments-list-modal-"] {
-  max-height: 140px;
+  max-height: 180px;
   overflow-y: auto;
 }
 
 @media (max-width: 991px) {
-  .profile-header-card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1.2rem 1rem 1.5rem 1rem;
-    text-align: left;
-    background-color: transparent;
-  }
-
-  .profile-header-left {
-    align-items: flex-start;
-    width: 100%;
-    margin-bottom: 1.5rem;
-  }
-
   .profile-header-username {
     font-size: 1.5rem;
     margin-top: 0.5rem;
@@ -334,15 +305,6 @@ body,
 
   .profile-header-stats a {
     margin-right: 0;
-  }
-
-  .profile-header-actions {
-    margin-top: 0;
-    flex-direction: row;
-    gap: 0.75rem;
-    width: 100%;
-    justify-content: center;
-    align-items: center;
   }
 
   .profile-header-actions .btn {
@@ -447,35 +409,6 @@ body,
   gap: 0.75rem;
 }
 
-/* Responsive follow button improvements */
-@media (min-width: 576px) and (max-width: 767px) {
-  .profile-header-actions {
-    justify-content: flex-start;
-    margin-left: 0;
-    gap: 1rem;
-  }
-
-  .profile-header-actions .btn {
-    width: 44px;
-    height: 44px;
-    font-size: 1.2rem;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .profile-header-actions {
-    justify-content: center;
-    margin-left: 0;
-    gap: 1rem;
-  }
-
-  .profile-header-actions .btn {
-    width: 46px;
-    height: 46px;
-    font-size: 1.25rem;
-  }
-}
-
 @media (min-width: 992px) {
   .profile-header-actions {
     justify-content: flex-end;
@@ -523,10 +456,8 @@ body,
   .like-btn[data-action="like"]:hover i {
     color: #dc3545 !important;
   }
-}
 
 /* Desktop like button states - specific styles */
-@media (min-width: 768px) {
   .like-btn[data-action="unlike"] {
     background-color: rgba(220, 53, 69, 0.1) !important;
     color: #fff !important;
@@ -551,47 +482,47 @@ body,
   .like-btn[data-action="like"]:hover i {
     color: #dc3545 !important;
   }
-}
 
-/* Modal like button styles to match home page design */
-.modal .btn-outline-danger.like-btn {
-  background-color: transparent !important;
-  border-color: #dc3545 !important;
-  color: #dc3545 !important;
-}
+  /* Modal like button styles to match home page design */
+  .modal .btn-outline-danger.like-btn {
+    background-color: transparent !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+  }
 
-.modal .btn-outline-danger.like-btn:hover {
-  background-color: rgba(220, 53, 69, 0.1) !important;
-  border-color: #dc3545 !important;
-  color: #dc3545 !important;
-}
+  .modal .btn-outline-danger.like-btn:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-color: #dc3545 !important;
+    color: #dc3545 !important;
+  }
 
-.modal .btn-danger.like-btn {
-  background-color: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #fff !important;
-}
+  .modal .btn-danger.like-btn {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #fff !important;
+  }
 
-.modal .btn-danger.like-btn:hover {
-  background-color: #c82333 !important;
-  border-color: #bd2130 !important;
-  color: #fff !important;
-}
+  .modal .btn-danger.like-btn:hover {
+    background-color: #c82333 !important;
+    border-color: #bd2130 !important;
+    color: #fff !important;
+  }
 
-/* Ensure modal like button icon colors are correct */
-.modal .btn-outline-danger.like-btn i {
-  color: #dc3545 !important;
-}
+  /* Ensure modal like button icon colors are correct */
+  .modal .btn-outline-danger.like-btn i {
+    color: #dc3545 !important;
+  }
 
-.modal .btn-danger.like-btn i {
-  color: #fff !important;
-}
+  .modal .btn-danger.like-btn i {
+    color: #fff !important;
+  }
 
-.modal .like-btn {
-  transition: all 0.2s ease-in-out !important;
-}
+  .modal .like-btn {
+    transition: all 0.2s ease-in-out !important;
+  }
 
-.modal .btn-outline-danger.like-btn:not(:hover):not(:focus):not(:active) {
-  background-color: transparent !important;
-  box-shadow: none !important;
+  .modal .btn-outline-danger.like-btn:not(:hover):not(:focus):not(:active) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
 }

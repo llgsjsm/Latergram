@@ -3,6 +3,10 @@
   rel="stylesheet"
   href="{{ url_for('static', filename='assets/css/profile.css') }}"
 />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='assets/css/home.css') }}"
+/>
 {% endblock %} {% block content %}
 
 <div class="container-fluid profile-bg">
@@ -993,56 +997,61 @@
             const editDeleteButtons =
               canEdit || canDelete
                 ? `
-              <div class="ms-auto">
-                ${
-                  canEdit
-                    ? `
-                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${comment.commentId}, '${comment.content}')">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                `
-                    : ""
-                }
-                ${
-                  canDelete
-                    ? `
-                  <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${
-                    comment.commentId
-                  }, ${postId})"
-                    title="${
-                      isOwnComment
-                        ? "Delete your comment"
-                        : "Delete comment (as post owner)"
-                    }">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                `
-                    : ""
-                }
-              </div>
-            `
+                <div class="ms-auto d-flex">
+                  ${
+                    canEdit
+                      ? `
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="editComment(${
+                      comment.commentId
+                    }, '${comment.content.replace(/'/g, "\\'")}')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  `
+                      : ""
+                  }
+                  ${
+                    canDelete
+                      ? `
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${
+                      comment.commentId
+                    }, ${postId})"
+                      title="${
+                        isOwnComment
+                          ? "Delete your comment"
+                          : "Delete comment (as post owner)"
+                      }">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  `
+                      : ""
+                  }
+                </div>
+              `
                 : "";
 
             commentsHtml += `
-              <div class="mb-3 d-flex comment-item" id="comment-${
+              <div class="comment-item d-flex flex-column mb-2" id="comment-${
                 comment.commentId
               }">
-                ${profileImg}
-                <div class="flex-grow-1">
-                  <div><strong>${comment.author.username}</strong></div>
-                  <div class="comment-content" id="content-${
-                    comment.commentId
-                  }">${comment.content}</div>
-                  <div class="text-muted small">
-                    ${comment.timestamp}
-                    ${
-                      comment.is_edited
-                        ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>`
-                        : ""
-                    }
-                  </div>
+                <div class="d-flex align-items-center comment-header-row">
+                  ${profileImg}
+                  <div class="fw-bold">${comment.author.username}</div>
+                  ${editDeleteButtons}
                 </div>
-                ${editDeleteButtons}
+                <div class="comment-content-row" id="content-${
+                  comment.commentId
+                }">${comment.content}</div>
+                <div class="comment-edit-actions-row mt-2" id="edit-actions-${
+                  comment.commentId
+                }" style="display:none;"></div>
+                <div class="text-muted small mt-2">
+                  ${comment.timestamp}
+                  ${
+                    comment.is_edited
+                      ? `<span class="ms-2 text-muted" style="font-style: italic;">Edited ${comment.edited_at}</span>`
+                      : ""
+                  }
+                </div>
               </div>
             `;
           });
@@ -1061,24 +1070,25 @@
 
   // Function to edit comment
   function editComment(commentId, currentContent) {
-    const contentDiv = document.getElementById(`content-${commentId}`);
-    const commentItem = document.getElementById(`comment-${commentId}`);
+    const contentElement = document.getElementById(`content-${commentId}`);
+    const actionsElement = document.getElementById(`edit-actions-${commentId}`);
 
-    // Create edit form
-    const editForm = document.createElement("div");
-    editForm.innerHTML = `
-      <div class="input-group mt-2">
-        <input type="text" class="form-control" value="${currentContent}" id="edit-input-${commentId}" maxlength="500">
-        <button class="btn btn-success btn-sm" onclick="saveComment(${commentId})">Save</button>
-        <button class="btn btn-secondary btn-sm" onclick="cancelEdit(${commentId}, '${currentContent}')">Cancel</button>
-      </div>
+    // Replace content with textarea for editing
+    contentElement.innerHTML = `
+        <textarea class="form-control mb-2" id="edit-input-${commentId}" rows="2" maxlength="500">${currentContent}</textarea>
     `;
 
-    // Replace content with edit form
-    contentDiv.innerHTML = "";
-    contentDiv.appendChild(editForm);
+    // Show save/cancel buttons
+    actionsElement.innerHTML = `
+        <button class="btn btn-sm card-btn-primary me-2" onclick="saveComment(${commentId})">Save</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="cancelEdit(${commentId}, '${currentContent.replace(
+      /'/g,
+      "\\'"
+    )}')">Cancel</button>
+    `;
+    actionsElement.style.display = "block";
 
-    // Focus on input
+    // Focus on the textarea
     document.getElementById(`edit-input-${commentId}`).focus();
   }
 
@@ -1130,6 +1140,7 @@
   // Function to cancel edit
   function cancelEdit(commentId, originalContent) {
     document.getElementById(`content-${commentId}`).innerHTML = originalContent;
+    document.getElementById(`edit-actions-${commentId}`).style.display = "none";
   } // Function to delete comment
   function deleteComment(commentId, postId) {
     if (confirm("Are you sure you want to delete this comment?")) {

@@ -173,6 +173,12 @@
   justify-content: space-between;
 }
 
+/* Scrollable comments section */
+[id^="comments-"] {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
 /* Responsive post actions layout */
 .post-actions-container {
   display: flex;

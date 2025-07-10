@@ -1,0 +1,79 @@
+.form-control:not(textarea), .form-select {
+    height: 48px;
+}
+
+#user-picture{
+    gap:16px;display: flex;justify-content: flex-start;align-items: center;flex-direction: row;
+}
+
+.profile-pic-img {
+    transition: box-shadow 0.2s, border 0.2s;
+    border-radius: 50%;
+}
+#profile-pic-preview:hover .profile-pic-img {
+    box-shadow: 0 0 0 6px rgba(95, 119, 248, 0.25), 0 2px 12px 0 rgba(0,0,0,0.35);
+    border: 2.5px solid rgba(95, 119, 248, 0.7);
+    filter: brightness(0.85) blur(0.2px);
+    transition: box-shadow 0.2s, border 0.2s, filter 0.2s, transform 0.2s;
+    transform: scale(1.04);
+}
+
+.change-pic-icon {
+    position: absolute; 
+    left: 50%; 
+    top: 50%; 
+    transform: translate(-50%, -50%); 
+    display: none; 
+    pointer-events: none; 
+    color: #fff; 
+    font-size: 1.7rem; 
+    background: rgba(30, 34, 54, 0.92); /* dark background */
+    border-radius: 50%; 
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: background 0.2s, color 0.2s;
+}
+
+#profile-pic-preview:hover .change-pic-icon {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin-top: -4px;
+    background: rgba(95, 119, 248, 0.92); /* blue accent on hover */
+    color: #fff;
+}
+#profile-pic-filename {
+    display: block; 
+    font-size: 0.97rem; 
+    color: #fff; 
+    margin-top: 0.5rem;
+}
+
+/* OTP Input Styling */
+#email_otp_code {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    /* letter-spacing: 0.5em; */
+    /* font-family: 'Courier New', monospace; */
+}
+
+#email_otp_code:focus {
+    box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25);
+    border-color: #6c63ff;
+}
+
+/* Display name validation styling */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.display-name-error {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
