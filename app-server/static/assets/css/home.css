@@ -173,10 +173,88 @@
   justify-content: space-between;
 }
 
-/* Scrollable comments section */
+/* Post card structure - separate post content from scrollable comments */
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Post content (image, title, caption, actions) - fixed, non-scrollable */
+.card-img-top,
+.card-body {
+  flex-shrink: 0;
+}
+
+.card-body {
+  position: relative;
+  background: var(--color-cardbg, #1e2139);
+  overflow: visible;
+}
+
+/* Post content sections that should not scroll */
+.card-body>*:not([id^="comments-section-"]) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Ensure post actions container stays fixed */
+.post-actions-container {
+  position: relative;
+  z-index: 2;
+  background: var(--color-cardbg, #1e2139);
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Comments section - positioned as a separate scrollable area */
+.comments-section-border {
+  position: relative;
+  background: var(--color-cardbg, #1e2139);
+  border-top: 1px solid #363947 !important;
+  margin-top: 0.75rem !important;
+  padding-top: 0.75rem !important;
+  flex-shrink: 0;
+}
+
+/* Make only the comments list scrollable, not the entire section */
 [id^="comments-"] {
-  max-height: 180px;
+  max-height: 300px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6c63ff #2a2d3a;
+  background: var(--color-cardbg, #1e2139);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+/* Comment form stays fixed above the scrollable comments */
+[id^="comment-form-"] {
+  flex-shrink: 0;
+  background: var(--color-cardbg, #1e2139);
+  padding-bottom: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Custom scrollbar for webkit browsers */
+[id^="comments-"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-track {
+  background: #2a2d3a;
+  border-radius: 3px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-thumb {
+  background: #6c63ff;
+  border-radius: 3px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-thumb:hover {
+  background: #5a54d9;
 }
 
 /* Responsive post actions layout */
@@ -208,6 +286,21 @@
 
   .card-body {
     padding: 1rem 0.75rem !important;
+    background: var(--color-cardbg, #1e2139);
+  }
+
+  /* Ensure post actions stay above comments on mobile */
+  .post-actions-container {
+    background: var(--color-cardbg, #1e2139);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  /* Comments section styling for mobile */
+  .comments-section-border {
+    margin-top: 0 !important;
+    padding-top: 1rem !important;
+    background: var(--color-cardbg, #1e2139);
   }
 
   .post-actions-container .d-flex {
