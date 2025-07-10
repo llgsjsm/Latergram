@@ -84,8 +84,6 @@ def create_app(test_config=None):
     app.register_blueprint(load_comment_bp, url_prefix='/load_comments')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
-    
-    # Redis Rate limiting
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
     init_limiter(app, storage_uri=storage_uri)
     return app
