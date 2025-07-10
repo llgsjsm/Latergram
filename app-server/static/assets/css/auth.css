@@ -40,14 +40,7 @@ body {
 }
 
 #password {
-    border: none !important;
-    height: 47px !important;
-    border-bottom: 1px solid #495074 !important;
-    border-right: 1px solid #495074 !important;
-}
-
-#password:focus-within {
-    border-bottom-color: var(--color-primary) !important;
+    border: none;
 }
 
 .btn {
@@ -75,9 +68,6 @@ a:hover {
 
 .input-group-text {
     background: transparent;
-    width: 48px;
-    display: flex;
-    justify-content: center;
     border: none;
     color: #999;
 }

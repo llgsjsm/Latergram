@@ -1,101 +1,32 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block content %}
 <div class="container mt-5">
   <div class="row">
-    <div class="col-md-8 offset-md-2 col-lg-6 offset-lg-3">
-      <div class="card shadow-lg border-0">
-        <div class="card-body p-4">
-          <h2 class="text-center mb-4 fw-bold text-primary">Create New Post</h2>
+    <div class="col-md-6 offset-md-3">
+      <h2 class="text-center mb-4">Create Post</h2>
 
-          <form
-            id="createPostForm"
-            method="POST"
-            action="{{ url_for('main.create_post') }}"
-            enctype="multipart/form-data"
-          >
-            <!-- Title -->
-            <div class="mb-4">
-              <label for="title" class="form-label fw-semibold text-dark"
-                >Title</label
-              >
-              <input
-                type="text"
-                class="form-control form-control-lg border-0 shadow-sm"
-                id="title"
-                name="title"
-                required
-                placeholder="Give your post a catchy title..."
-                style="background-color: #f8f9fa"
-              />
-            </div>
+      <form id="createPostForm" method="POST" action="{{ url_for('main.create_post') }}" enctype="multipart/form-data">
+        <!-- Title -->
+        <div class="mb-3">
+          <label for="title" class="form-label">Title</label>
+          <input type="text" class="form-control" id="title" name="title" required>
+        </div>
 
-            <!-- Content / Caption -->
-            <div class="mb-4">
-              <label for="content" class="form-label fw-semibold text-dark"
-                >Caption</label
-              >
-              <textarea
-                class="form-control border-0 shadow-sm"
-                id="content"
-                name="content"
-                rows="4"
-                required
-                placeholder="Share what's on your mind..."
-                style="background-color: #f8f9fa; resize: vertical"
-              ></textarea>
-            </div>
+        <!-- Content / Caption -->
+        <div class="mb-3">
+          <label for="content" class="form-label">Caption</label>
+          <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+        </div>
 
-            <!-- Image Upload with Preview -->
-            <div class="mb-4">
-              <label for="image" class="form-label fw-semibold text-dark mb-3"
-                ><i class="fas fa-image me-2 text-primary"></i>Upload
-                Image</label
-              >
-              <div
-                class="upload-area border-2 border-dashed rounded-4 position-relative overflow-hidden"
-                id="uploadArea"
-              >
-                <input
-                  class="form-control position-absolute w-100 h-100 opacity-0"
-                  type="file"
-                  id="image"
-                  name="image"
-                  accept="image/*"
-                  style="cursor: pointer; z-index: 2"
-                />
-                <div class="upload-content p-4 text-center" id="uploadContent">
-                  <div class="upload-icon-container mb-3">
-                    <i
-                      class="fas fa-cloud-upload-alt upload-icon text-primary"
-                    ></i>
-                  </div>
-                  <h6 class="upload-title mb-2">Choose your image</h6>
-                  <p class="upload-subtitle mb-2 d-none d-sm-block">
-                    Click to browse or drag and drop your image here
-                  </p>
-                  <p class="upload-subtitle mb-2 d-sm-none">
-                    Tap to select image
-                  </p>
-                  <div class="upload-formats">
-                    <span class="badge bg-light text-dark me-1">JPG</span>
-                    <span class="badge bg-light text-dark me-1">PNG</span>
-                    <span class="badge bg-light text-dark">GIF</span>
-                  </div>
-                  <small class="d-block mt-2" style="color: #6c757d"
-                    >Maximum size: 10MB</small
-                  >
-                </div>
-                <div
-                  id="imagePreview"
-                  class="image-preview-container p-3"
-                  style="display: none"
-                >
-                  <!-- Preview content will be inserted here -->
-                </div>
-              </div>
-            </div>
+        <!-- Image -->
+        <div class="mb-3">
+          <label for="image" class="form-label">Upload Image</label>
+          <input class="form-control" type="file" id="image" name="image" accept="image/*">
+        </div>
 
-            <!-- Visibility -->
-            <!--<div class="mb-3">
+        <!-- Visibility -->
+        <!--<div class="mb-3">
           <label for="visibility" class="form-label">Post Visibility</label>
           <select class="form-select" id="visibility" name="visibility">
             <option value="public">Public</option>
@@ -104,418 +35,88 @@
           </select>
         </div> -->
 
-            <div class="d-flex justify-content-between mt-4 gap-3">
-              <button
-                type="submit"
-                class="base-btn base-btn-primary flex-fill position-relative"
-                id="submitBtn"
-              >
-                <span class="btn-text">
-                  <i class="fas fa-plus-circle me-2"></i>Create Post
-                </span>
-                <div
-                  class="spinner-border spinner-border-sm text-white me-2 d-none"
-                  role="status"
-                  id="loadingSpinner"
-                >
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <span class="loading-text d-none">Creating...</span>
-              </button>
-              <a
-                href="{{ url_for('main.home') }}"
-                class="base-btn base-btn-secondary flex-fill text-center"
-              >
-                <i class="fas fa-times me-2"></i>Cancel
-              </a>
-            </div>
-          </form>
+        <div class="d-flex justify-content-between mt-3">
+          <button type="submit" class="base-btn base-btn-primary">Post</button>
+          <a href="{{ url_for('main.home') }}" class="base-btn base-btn-secondary">Cancel</a>
         </div>
-      </div>
+      </form>
     </div>
   </div>
-  <script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
-  <style>
-    /* Upload Area Styles */
-    .upload-area {
-      border-color: #495057;
-      background: linear-gradient(135deg, #2c3034 0%, #343a40 100%);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      min-height: 180px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .upload-content {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    .upload-area:hover {
-      border-color: #007bff;
-      background: linear-gradient(135deg, #3a4148 0%, #4a525a 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.2);
-    }
-
-    .upload-area.dragover {
-      border-color: #007bff;
-      background: linear-gradient(135deg, #1e3a52 0%, #2c4a6b 100%);
-      box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
-    }
-
-    .upload-icon-container {
-      width: 60px;
-      height: 60px;
-      margin: 0 auto;
-      background: rgba(0, 123, 255, 0.15);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      border: 1px solid rgba(0, 123, 255, 0.3);
-    }
-
-    .upload-area:hover .upload-icon-container {
-      background: rgba(0, 123, 255, 0.25);
-      border-color: rgba(0, 123, 255, 0.5);
-      transform: scale(1.1);
-    }
-
-    .upload-icon {
-      font-size: 24px;
-      transition: all 0.3s ease;
-    }
-
-    .upload-area:hover .upload-icon {
-      transform: translateY(-2px);
-    }
-
-    .upload-title {
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: #e9ecef;
-    }
-
-    .upload-subtitle {
-      font-size: 0.9rem;
-      line-height: 1.4;
-      color: #adb5bd;
-    }
-
-    .upload-formats .badge {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.5rem;
-      border: 1px solid #495057;
-      background-color: #374151;
-      color: #d1d5db;
-    }
-
-    .image-preview-container {
-      text-align: center;
-    }
-
-    .image-preview {
-      max-width: 100%;
-      max-height: 250px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-    }
-
-    .image-preview:hover {
-      transform: scale(1.02);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .preview-info {
-      background: rgba(0, 123, 255, 0.05);
-      border-radius: 8px;
-      padding: 0.75rem;
-      margin-top: 1rem;
-      border: 1px solid rgba(0, 123, 255, 0.2);
-    }
-
-    .change-image-btn {
-      background: rgba(0, 123, 255, 0.1);
-      border: 1px solid #007bff;
-      color: #007bff;
-      border-radius: 6px;
-      padding: 0.4rem 1rem;
-      font-size: 0.85rem;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 0.5rem;
-    }
-
-    .change-image-btn:hover {
-      background: #007bff;
-      color: white;
-      transform: translateY(-1px);
-    }
-
-    /* General styles */
-    .card {
-      border-radius: 20px;
-      border: none;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    }
-
-    .form-control:focus {
-      border-color: #007bff;
-      box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.15);
-    }
-
-    .base-btn {
-      border-radius: 12px;
-      font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 0.75rem 1.5rem;
-    }
-
-    .base-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Mobile optimizations */
-    @media (max-width: 576px) {
-      .upload-area {
-        min-height: 160px;
-      }
-
-      .upload-icon-container {
-        width: 50px;
-        height: 50px;
-      }
-
-      .upload-icon {
-        font-size: 20px;
-      }
-
-      .upload-title {
-        font-size: 1rem;
-      }
-
-      .upload-subtitle {
-        font-size: 0.85rem;
-      }
-
-      .image-preview {
-        max-height: 200px;
-      }
-
-      .card-body {
-        padding: 1.5rem !important;
-      }
-
-      .base-btn {
-        padding: 0.65rem 1.25rem;
-        font-size: 0.9rem;
-      }
-    }
-
-    /* Tablet optimizations */
-    @media (min-width: 577px) and (max-width: 768px) {
-      .upload-area {
-        min-height: 170px;
-      }
-    }
-  </style>
-  <script>
-    function showNotification(message, type = "success") {
-      const notification = document.createElement("div");
-      notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-      notification.style.cssText =
-        "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
-      notification.innerHTML = `
+</div>
+<script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
+<script>
+  function showNotification(message, type = "success") {
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText =
+      "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
+    notification.innerHTML = `
       ${message}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-      document.body.appendChild(notification);
+    document.body.appendChild(notification);
 
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.remove();
-        }
-      }, 3000);
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+  }
+  
+  document.addEventListener('DOMContentLoaded', function () {
+    const postForm = document.getElementById('createPostForm');
+    const imageInput = document.getElementById('image');
+
+    postForm.addEventListener('submit', function (e) {
+      if (!imageInput.files || imageInput.files.length === 0) {
+        e.preventDefault(); // Stop form from submitting
+        showNotification("Please upload an image before creating a post.", "warning");
+      }
+    });
+  });
+
+document.addEventListener('DOMContentLoaded', function () {
+  const postForm = document.getElementById('createPostForm');
+  const imageInput = document.getElementById('image');
+
+  postForm.addEventListener('submit', function (e) {
+    e.preventDefault(); // always prevent the default form submit
+
+    // Validate image
+    if (!imageInput.files || imageInput.files.length === 0) {
+      showNotification("Please upload an image before creating a post.", "warning");
+      return; // Stop here if no image
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const postForm = document.getElementById("createPostForm");
-      const imageInput = document.getElementById("image");
-      const uploadArea = document.querySelector(".upload-area");
-      const uploadContent = document.querySelector(".upload-content");
-      const imagePreview = document.getElementById("imagePreview");
-      const submitBtn = document.getElementById("submitBtn");
-      const loadingSpinner = document.getElementById("loadingSpinner");
-      const btnText = document.querySelector(".btn-text");
-      const loadingText = document.querySelector(".loading-text");
+    const formData = new FormData(postForm);
 
-      // Image preview functionality
-      imageInput.addEventListener("change", function (e) {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const fileSize = (file.size / 1024 / 1024).toFixed(2); // Convert to MB
-            imagePreview.innerHTML = `
-              <img src="${e.target.result}" alt="Preview" class="image-preview">
-              <div class="preview-info">
-                <div class="d-flex align-items-center justify-content-center text-success mb-2">
-                  <i class="fas fa-check-circle me-2"></i>
-                  <strong>Image selected successfully!</strong>
-                </div>
-                <div class="row text-center g-2">
-                  <div class="col-6">
-                    <small class="text-muted d-block">Filename</small>
-                    <small class="fw-semibold">${file.name}</small>
-                  </div>
-                  <div class="col-6">
-                    <small class="text-muted d-block">Size</small>
-                    <small class="fw-semibold">${fileSize} MB</small>
-                  </div>
-                </div>
-                <button type="button" class="change-image-btn" onclick="document.getElementById('image').click()">
-                  <i class="fas fa-sync-alt me-1"></i>Change Image
-                </button>
-              </div>
-            `;
-            imagePreview.style.display = "block";
-            uploadContent.style.display = "none";
-          };
-          reader.readAsDataURL(file);
+    csrfFetch('/create-post', {
+      method: 'POST',
+      body: formData
+    })
+    .then(async response => {
+      if (!response.ok) {
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { error: "An unknown error occurred." };
         }
-      });
-
-      // Drag and drop functionality (desktop only)
-      if (window.innerWidth > 576) {
-        uploadArea.addEventListener("dragover", function (e) {
-          e.preventDefault();
-          uploadArea.classList.add("dragover");
-        });
-
-        uploadArea.addEventListener("dragleave", function (e) {
-          e.preventDefault();
-          uploadArea.classList.remove("dragover");
-        });
-
-        uploadArea.addEventListener("drop", function (e) {
-          e.preventDefault();
-          uploadArea.classList.remove("dragover");
-          const files = e.dataTransfer.files;
-          if (files.length > 0 && files[0].type.startsWith("image/")) {
-            imageInput.files = files;
-            imageInput.dispatchEvent(new Event("change"));
-          }
-        });
+        showNotification(data.error || 'Something went wrong.', 'danger');
+        return;
       }
 
-      // Show loading animation
-      function showLoading() {
-        submitBtn.disabled = true;
-        btnText.classList.add("d-none");
-        loadingSpinner.classList.remove("d-none");
-        loadingText.classList.remove("d-none");
-      }
-
-      // Hide loading animation
-      function hideLoading() {
-        submitBtn.disabled = false;
-        btnText.classList.remove("d-none");
-        loadingSpinner.classList.add("d-none");
-        loadingText.classList.add("d-none");
-      }
-
-      postForm.addEventListener("submit", function (e) {
-        if (!imageInput.files || imageInput.files.length === 0) {
-          e.preventDefault(); // Stop form from submitting
-          showNotification(
-            "Please upload an image before creating a post.",
-            "warning"
-          );
-        } else {
-          showLoading();
-        }
-      });
+      // If successful, redirect to home
+      window.location.href = '/';
+    })
+    .catch(err => {
+      console.error(err);
+      showNotification("Unexpected error occurred.", "danger");
     });
+  });
+});
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const postForm = document.getElementById("createPostForm");
-      const imageInput = document.getElementById("image");
-      const submitBtn = document.getElementById("submitBtn");
-      const loadingSpinner = document.getElementById("loadingSpinner");
-      const btnText = document.querySelector(".btn-text");
-      const loadingText = document.querySelector(".loading-text");
+  
+</script>
+{% endblock %}
 
-      // Show loading animation
-      function showLoading() {
-        submitBtn.disabled = true;
-        btnText.classList.add("d-none");
-        loadingSpinner.classList.remove("d-none");
-        loadingText.classList.remove("d-none");
-      }
-
-      // Hide loading animation
-      function hideLoading() {
-        submitBtn.disabled = false;
-        btnText.classList.remove("d-none");
-        loadingSpinner.classList.add("d-none");
-        loadingText.classList.add("d-none");
-      }
-
-      postForm.addEventListener("submit", function (e) {
-        e.preventDefault(); // always prevent the default form submit
-
-        // Validate image
-        if (!imageInput.files || imageInput.files.length === 0) {
-          showNotification(
-            "Please upload an image before creating a post.",
-            "warning"
-          );
-          return; // Stop here if no image
-        }
-
-        // Show loading animation
-        showLoading();
-
-        const formData = new FormData(postForm);
-
-        csrfFetch("/create-post", {
-          method: "POST",
-          body: formData,
-        })
-          .then(async (response) => {
-            if (!response.ok) {
-              let data;
-              try {
-                data = await response.json();
-              } catch {
-                data = { error: "An unknown error occurred." };
-              }
-              hideLoading(); // Hide loading on error
-              showNotification(data.error || "Something went wrong.", "danger");
-              return;
-            }
-
-            // If successful, redirect to home
-            window.location.href = "/";
-          })
-          .catch((err) => {
-            console.error(err);
-            hideLoading(); // Hide loading on error
-            showNotification("Unexpected error occurred.", "danger");
-          });
-      });
-    });
-  </script>
-  {% endblock %}
-</div>

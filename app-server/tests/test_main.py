@@ -6,13 +6,14 @@ from unittest.mock import patch, MagicMock
 class MainRouteTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app({
-            'IS_TESTING': True,  # Ensure TESTING is set to True for the test
+            'IS_TESTING': True,
         })
         self.client = self.app.test_client()
 
     def login_as_user(self, user_id):
         with self.client.session_transaction() as session:
             session['user_id'] = user_id
+
     ## Forgot Password rate limit test
     @patch("backend.routes.main.log_to_splunk")
     def test_forgot_password_rate_limit(self, mock_log_to_splunk):
@@ -25,7 +26,7 @@ class MainRouteTestCase(unittest.TestCase):
     ## Login rate limit test
     @patch("backend.routes.main.log_to_splunk")
     def test_login_rate_limit(self, mock_log_to_splunk):
-        for _ in range(4):
+        for _ in range(7):
             response = self.client.post('/login', json={
                 "email": "testuser@email.com",
                 "password": "correct-password",
@@ -168,6 +169,7 @@ class MainRouteTestCase(unittest.TestCase):
             "image": (io.BytesIO(b"fake image data"), "test.pdf", "application/pdf")
         }
         response = self.client.post("/create-post", data=data, content_type="multipart/form-data", follow_redirects=False)
+        self.assertEqual(response.status_code, 400)
         self.assertIn(b"Invalid image format", response.data)
 
     ## Test creating a post with no image

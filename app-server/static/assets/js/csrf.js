@@ -14,7 +14,7 @@
 async function csrfFetch(url, options = {}) {
   const res = await fetch('/get-csrf-token');
   const token = (await res.json()).csrf_token;
-  const headers = {'X-CSRF-Token': token, 'X-Requested-With': 'XMLHttpRequest', ...(options.headers || {}) };
+  const headers = {'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest', ...(options.headers || {}) };
   if (!(options.body instanceof FormData)) { if (!headers['Content-Type']) { headers['Content-Type'] = 'application/json';  } }
   return fetch(url, { ...options, headers });
 }
