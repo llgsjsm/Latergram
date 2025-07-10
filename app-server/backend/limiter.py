@@ -10,7 +10,7 @@ def check_rate_limit(ip, request_data, max_requests=5, time_window=15):
     current_time = time.time()
     request_data[ip] = [timestamp for timestamp in request_data[ip] if current_time - timestamp < time_window]
     if len(request_data[ip]) >= max_requests:
-        return False  # Rate limit exceeded
+        return False  ## Rate limit exceeded
     return True
 
 def rate_limit_required(func):
@@ -24,7 +24,7 @@ def rate_limit_required(func):
             if not check_rate_limit(ip, request_data=request_data):
                 return jsonify({"error": "Rate limit exceeded"}), 429
         
-        # Record the request by adding the current time --
+        ## Record the request by adding the current time --
         request_data[ip].append(time.time())
         return func(*args, **kwargs)
 

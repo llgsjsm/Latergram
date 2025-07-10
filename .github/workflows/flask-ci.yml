@@ -14,6 +14,8 @@ jobs:
   # Setup common environment and dependencies
   setup:
     runs-on: ubuntu-latest
+    name: Setup Environment for Flask CI
+    environment: development
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
