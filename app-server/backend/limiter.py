@@ -24,7 +24,7 @@ def rate_limit_required(func):
             if not check_rate_limit(ip, request_data=request_data):
                 return jsonify({"error": "Rate limit exceeded"}), 429
         
-        # Record the request by adding the current time
+        # Record the request by adding the current time --
         request_data[ip].append(time.time())
         return func(*args, **kwargs)
 
