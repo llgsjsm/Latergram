@@ -14,10 +14,6 @@ class MainRouteTestCase(unittest.TestCase):
         with self.client.session_transaction() as session:
             session['user_id'] = user_id
 
-    #########################################################
-    ## For rate limit tests - 400 counts towards the limit ##
-    #########################################################
-
     ## Forgot Password rate limit test
     @patch("backend.routes.main.log_to_splunk")
     def test_forgot_password_rate_limit(self, mock_log_to_splunk):
