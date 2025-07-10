@@ -35,7 +35,7 @@ def create_app(test_config=None):
         app.config.update(test_config)
         IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
 
-    # Enable debug mode for development (auto-reload on code changes)
+    # Enable debug mode for development (auto-reload on code changes)!
     app.debug = True
     DB_USER = os.environ.get('DB_USER', '') 
     DB_PASSWORD = os.environ.get('DB_PASSWORD', '') 
