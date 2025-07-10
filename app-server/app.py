@@ -88,7 +88,6 @@ def create_app(test_config=None):
     return app
 
 app = create_app()
-
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
     # HTML
