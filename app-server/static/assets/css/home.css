@@ -2,6 +2,17 @@
   margin-right: 320px !important;
 }
 
+#main-content {
+    margin-right: 320px;
+}
+
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  #main-content {
+    margin-right: 280px;
+  }
+}
+
 .card-body a {
   text-decoration: none;
   color: var(--color-primary);
