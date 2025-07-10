@@ -269,8 +269,33 @@ body,
 
 .comments-list-modal,
 [id^="comments-list-modal-"] {
-  max-height: 180px;
+  max-height: 300px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6c63ff #2a2d3a;
+}
+
+/* Custom scrollbar for webkit browsers in profile modals */
+.comments-list-modal::-webkit-scrollbar,
+[id^="comments-list-modal-"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list-modal::-webkit-scrollbar-track,
+[id^="comments-list-modal-"]::-webkit-scrollbar-track {
+  background: #2a2d3a;
+  border-radius: 3px;
+}
+
+.comments-list-modal::-webkit-scrollbar-thumb,
+[id^="comments-list-modal-"]::-webkit-scrollbar-thumb {
+  background: #6c63ff;
+  border-radius: 3px;
+}
+
+.comments-list-modal::-webkit-scrollbar-thumb:hover,
+[id^="comments-list-modal-"]::-webkit-scrollbar-thumb:hover {
+  background: #5a54d9;
 }
 
 @media (max-width: 991px) {
@@ -457,7 +482,7 @@ body,
     color: #dc3545 !important;
   }
 
-/* Desktop like button states - specific styles */
+  /* Desktop like button states - specific styles */
   .like-btn[data-action="unlike"] {
     background-color: rgba(220, 53, 69, 0.1) !important;
     color: #fff !important;

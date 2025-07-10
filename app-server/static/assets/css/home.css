@@ -173,10 +173,115 @@
   justify-content: space-between;
 }
 
-/* Scrollable comments section */
+/* Post card structure - separate post content from scrollable comments */
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Post content (image, title, caption, actions) - fixed, non-scrollable */
+.card-img-top,
+.card-body {
+  flex-shrink: 0;
+}
+
+.card-body {
+  position: relative;
+  background: var(--color-cardbg, #1e2139);
+  overflow: visible;
+}
+
+/* Post content sections that should not scroll */
+.card-body>*:not([id^="comments-section-"]) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Ensure post actions container stays fixed */
+.post-actions-container {
+  position: relative;
+  z-index: 2;
+  background: var(--color-cardbg, #1e2139);
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Comments section - positioned as a separate non-scrollable area */
+.comments-section-border {
+  position: relative;
+  background: var(--color-cardbg, #1e2139);
+  border-top: 1px solid #363947 !important;
+  margin-top: 0.75rem !important;
+  padding-top: 0.75rem !important;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Comment form stays fixed above the scrollable comments - match profile page exactly */
+[id^="comment-form-"] {
+  flex-shrink: 0;
+  background: var(--color-cardbg, #1e2139);
+  padding-bottom: 0.5rem;
+  order: 1;
+  position: relative;
+  z-index: 2;
+}
+
+/* Comment form styling to match profile page */
+[id^="comment-form-"] .form-control {
+  background: #181a25 !important;
+  border: 1px solid #363947 !important;
+  color: #fff !important;
+}
+
+[id^="comment-form-"] .form-control:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25) !important;
+  background: #181a25 !important;
+  color: #fff !important;
+}
+
+[id^="comment-form-"] .form-control::placeholder {
+  color: #adb5bd !important;
+}
+
+/* Loading state for comments */
+[id^="comments-"] .spinner-border {
+  color: var(--color-primary) !important;
+}
+
+/* Make only the comments list scrollable - match profile page exactly */
 [id^="comments-"] {
-  max-height: 180px;
+  max-height: 300px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6c63ff #2a2d3a;
+  order: 2;
+  flex-grow: 1;
+  border-top: 1px solid #363947;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Custom scrollbar for webkit browsers - match profile page exactly */
+[id^="comments-"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-track {
+  background: #2a2d3a;
+  border-radius: 3px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-thumb {
+  background: #6c63ff;
+  border-radius: 3px;
+}
+
+[id^="comments-"]::-webkit-scrollbar-thumb:hover {
+  background: #5a54d9;
 }
 
 /* Responsive post actions layout */
@@ -208,6 +313,46 @@
 
   .card-body {
     padding: 1rem 0.75rem !important;
+    background: var(--color-cardbg, #1e2139);
+  }
+
+  /* Ensure post actions stay above comments on mobile */
+  .post-actions-container {
+    background: var(--color-cardbg, #1e2139);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  /* Comments section styling for mobile */
+  .comments-section-border {
+    margin-top: 0 !important;
+    padding-top: 1rem !important;
+    background: var(--color-cardbg, #1e2139);
+  }
+
+  /* Only apply flex layout on mobile when comments section is visible */
+  .comments-section-border[style*="display: block"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Ensure comment form stays fixed above comments on mobile */
+  [id^="comment-form-"] {
+    order: 1 !important;
+    flex-shrink: 0 !important;
+    background: var(--color-cardbg, #1e2139);
+    padding-bottom: 0.75rem !important;
+    border-bottom: 1px solid #363947;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Comments list remains scrollable on mobile */
+  [id^="comments-"] {
+    order: 2 !important;
+    max-height: 250px !important;
+    border-top: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
   }
 
   .post-actions-container .d-flex {
@@ -252,6 +397,20 @@
   .post-timestamp {
     align-self: auto;
   }
+
+  /* Maintain comment structure on medium screens */
+  .comments-section-border[style*="display: block"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  [id^="comment-form-"] {
+    order: 1 !important;
+  }
+
+  [id^="comments-"] {
+    order: 2 !important;
+  }
 }
 
 /* Large screens - keep the current layout */
@@ -264,6 +423,21 @@
 
   .post-timestamp {
     align-self: auto;
+  }
+
+  /* Maintain comment structure on large screens */
+  .comments-section-border[style*="display: block"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  [id^="comment-form-"] {
+    order: 1 !important;
+  }
+
+  [id^="comments-"] {
+    order: 2 !important;
+    max-height: 300px !important;
   }
 }
 
@@ -439,4 +613,37 @@
   .btn-outline-danger.like-btn:not(:hover):not(:focus):not(:active) {
     background-color: transparent !important;
   }
+}
+
+/* Additional styles for comment form and list separation */
+[id^="comments-"]:empty {
+  display: none;
+}
+
+[id^="comments-"]:not(:empty) {
+  border-top: 1px solid #363947 !important;
+  padding-top: 0.75rem !important;
+  margin-top: 0.5rem !important;
+}
+
+/* Ensure comment form has proper spacing when comments are present */
+[id^="comment-form-"]:not(:empty)+[id^="comments-"]:not(:empty) {
+  border-top: 1px solid #363947 !important;
+}
+
+/* Better visual hierarchy for comment sections */
+.comments-section-border {
+  min-height: auto;
+}
+
+/* Only apply flex layout when comments section is visible (not hidden by JavaScript) */
+.comments-section-border[style*="display: block"] {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Ensure proper flex layout when inline styles are not present but section is visible */
+.comments-section-border:not([style*="display: none"]):not([style*="display:"]) {
+  display: flex !important;
+  flex-direction: column !important;
 }
