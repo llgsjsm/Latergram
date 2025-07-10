@@ -134,7 +134,7 @@ jobs:
         EOF
 
     - name: Build Flask Container
-      run: docker-compose -f docker-compose.ci.yml build flask
+      run: docker-compose -f docker-compose.ci.yml up -d --build flask
 
     - name: Run Flask Unit Tests
       run: |
@@ -172,8 +172,8 @@ jobs:
         EOF
 
     - name: Build Flask Container
-      run: docker-compose -f docker-compose.ci.yml build flask
-      
+      run: docker-compose -f docker-compose.ci.yml up -d --build flask
+
     - name: Run Playwright Tests
       run: |
         echo "Running Playwright tests..."
