@@ -11,7 +11,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data" id="profileForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="csrf-token-input">
+                        <input type="hidden" name="csrf_token" id="csrfTokenField" value="{{ csrf_token }}">
                         <div class="row mb-4" style="gap: 0;display: flex;align-items: flex-start;">
                             <div class="col-md-6">
                                 <div id="user-picture">
@@ -300,6 +300,17 @@
 <!-- Scripts -->
 <script src="{{ url_for('static', filename='assets/js/csrf.js') }}"></script>
 <script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+    fetch('/get-csrf-token')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('csrfTokenField').value = data.csrf_token;
+        })
+        .catch(err => {
+            console.error('Failed to fetch CSRF token:', err);
+        });
+    });
     // Profile picture preview function
     function previewProfilePicture(input) {
         const file = input.files[0];
@@ -619,9 +630,9 @@
     // Helper function to check if OTP is currently required
     function isOtpCurrentlyEnabled() {
         const otpToggle = document.getElementById('otpToggle');
-        return otpToggle ? otpToggle.checked : {{ 'true' if user.otp_enabled else 'false' }
+        return otpToggle ? otpToggle.checked : {{ 'true' if user.otp_enabled else 'false' }};
     };
-}
+
 
     // Helper function to update password OTP section visibility
     function updatePasswordOtpSection() {
@@ -759,8 +770,8 @@
         if (otpToggle) {
             otpToggle.addEventListener('change', function () {
                 const isEnabled = this.checked;
-                const wasEnabled = {{ 'true' if user.otp_enabled else 'false' }
-            };
+                const wasEnabled = {{ 'true' if user.otp_enabled else 'false' }};
+            });
 
             // If disabling MFA, show confirmation dialog
             if (!isEnabled && wasEnabled) {

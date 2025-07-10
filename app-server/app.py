@@ -93,6 +93,9 @@ def csrf_protect():
     if request.method in ["GET", "OPTIONS"]:
         return
     csrf_token_from_request = request.form.get('csrf_token') or request.headers.get('X-CSRF-TOKEN')    
+    # Debugging: Print the CSRF tokens
+    print(f"Session CSRF Token: {session.get('csrf_token')}")
+    print(f"Submitted CSRF Token: {csrf_token_from_request}")
     if not csrf_token_from_request or csrf_token_from_request != session.get('csrf_token'):
         return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
 

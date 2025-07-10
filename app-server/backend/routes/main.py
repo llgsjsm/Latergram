@@ -459,6 +459,10 @@ def edit_profile():
     if not user:
         flash('User not found', 'danger')
         return redirect(url_for('main.home'))
+
+    csrf_token = get_csrf_token()
+    csrf_token = secrets.token_hex(32)  # Generates a secure 32-byte hex token
+    session['csrf_token'] = csrf_token  # Store the token in the session
     
     if request.method == 'POST':
         display_name = request.form.get('display_name')
@@ -500,7 +504,7 @@ def edit_profile():
                 log_to_splunk("Edit Profile", "Failed to update profile" + result['error'], username=user.username)
                 flash(result['error'], 'danger')
     
-    return render_template('edit_profile.html', user=user, current_user=user)
+    return render_template('edit_profile.html', user=user, current_user=user, csrf_token=csrf_token)
 
 ########################
 ### Password helpers ###
