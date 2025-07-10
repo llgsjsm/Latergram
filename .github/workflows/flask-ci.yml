@@ -80,6 +80,11 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
       - name: Build Flask + NGINX + MySQL
         run: docker compose -f docker-compose.ci.yml up -d --build flask nginx mysqldb
 
@@ -129,6 +134,11 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
       - name: Build Flask Container
         run: docker compose -f docker-compose.ci.yml up -d --build flask
 
@@ -144,6 +154,11 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Build Flask Container
         run: docker compose -f docker-compose.ci.yml up -d --build flask
