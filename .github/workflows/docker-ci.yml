@@ -4,9 +4,6 @@ on:
   pull_request: 
     branches: [ production ]
 
-# This workflow runs on pull requests to the main branch
-# Web Stack testing. Pipeline for the main application stack including Flask, MySQL, and NGINX and includes other services on startup.
-
 # Unit testing & UI testing for the application stack.
 
 jobs:

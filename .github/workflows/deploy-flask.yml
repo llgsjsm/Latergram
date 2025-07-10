@@ -2,14 +2,10 @@ name: Deploy Flask to EC2
 
 on:
   workflow_run:
-    workflows: ["Application stack CI Pipeline to Main"]
+    workflows: ["Application stack CI Pipeline to Main22"]
     types:
       - completed
-  # push:
-  #   branches: [ main ]
-  #   paths:
-  #     - 'app-server/**' # Only trigger CD if Flask code changes
-  #     - '.github/workflows/deploy-flask.yml'
+
 
 jobs:
   deploy:
