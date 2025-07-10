@@ -329,12 +329,13 @@ def api_edit_post(post_id):
 @api_bp.route('/send-email-update-otp', methods=['POST'])
 @limiter.limit('5 per minute')
 def send_email_update_otp():
-    """Send OTP to new email address for email update verification"""
+    """Send OTP for email update verification"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
     data = request.get_json()
     new_email = data.get('new_email', '').strip()
+    send_to_current = data.get('send_to_current', False)
     
     if not new_email:
         return jsonify({'success': False, 'error': 'New email is required'}), 400
@@ -359,7 +360,8 @@ def send_email_update_otp():
     
     if not existing:
         try:
-            auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email)
+            # Pass the send_to_current flag to determine where to send OTP
+            auth_manager.generate_and_send_email_update_otp(session['user_id'], new_email, send_to_current)
         except Exception:
             log_to_splunk("Edit Profile", "Failed to send OTP for email update", username=db.session.get(User, session['user_id']).username, content=[new_email])
             pass

@@ -674,8 +674,14 @@ class AuthenticationManager:
             db.session.rollback()
             return {'success': False, 'error': f'Failed to reset moderator password: {str(e)}'}
     
-    def generate_and_send_email_update_otp(self, current_user_id: int, new_email: str) -> Dict[str, Any]:
-        """Generate and send OTP to new email address for email update verification"""
+    def generate_and_send_email_update_otp(self, current_user_id: int, new_email: str, send_to_current: bool = False) -> Dict[str, Any]:
+        """Generate and send OTP for email update verification
+        
+        Args:
+            current_user_id: ID of user requesting email change
+            new_email: New email address user wants to change to
+            send_to_current: If True, send OTP to current email (more secure), if False send to new email
+        """
         # Find the current user (who is requesting the email change)
         current_user = User.query.filter_by(userId=current_user_id).first()
         if not current_user:
@@ -697,9 +703,12 @@ class AuthenticationManager:
         try:
             db.session.commit()
             
-            # Send OTP via email to the NEW email address
-            if self.send_otp_email(new_email, otp_code, 'email_update'):
-                return {'success': True, 'message': f'OTP sent to {new_email}'}
+            # Determine which email to send OTP to based on security preference
+            target_email = current_user.email if send_to_current else new_email
+            
+            # Send OTP via email
+            if self.send_otp_email(target_email, otp_code, 'email_update'):
+                return {'success': True, 'message': f'OTP sent to {target_email}'}
             else:
                 # Rollback if email sending fails
                 current_user.clear_otp()
