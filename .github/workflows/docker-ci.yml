@@ -4,8 +4,6 @@ on:
   pull_request: 
     branches: [ production ]
 
-# Unit testing & UI testing for the application stack.
-
 jobs:
   full-stack:
     runs-on: ubuntu-latest

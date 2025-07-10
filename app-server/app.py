@@ -17,7 +17,6 @@ import os
 from dotenv import load_dotenv 
 from models import db
 from managers.authentication_manager import bcrypt
-
 import firebase_admin
 from firebase_admin import credentials, storage, _DEFAULT_APP_NAME
 from flask_wtf import CSRFProtect
