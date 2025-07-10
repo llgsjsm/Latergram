@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 class MainRouteTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app({
-            'IS_TESTING': True,  ## Ensure TESTING is set to True for the test
+            'IS_TESTING': True,  # Ensure TESTING is set to True for the test
         })
         self.client = self.app.test_client()
 
