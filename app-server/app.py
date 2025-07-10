@@ -1,4 +1,4 @@
-from flask import Flask, app, render_template, request, jsonify, flash, session, redirect, url_for
+from flask import Flask, app, abort, request, jsonify, flash, session, redirect, url_for
 from backend.routes.main import main_bp
 from backend.routes.profile import profile_bp
 from backend.routes.comment import comment_bp
@@ -11,7 +11,6 @@ from backend.routes.delete_comment import delete_comment_bp
 from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
-from backend.limiter import init_limiter
 from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv 
@@ -20,10 +19,6 @@ from managers.authentication_manager import bcrypt
 
 import firebase_admin
 from firebase_admin import credentials, storage, _DEFAULT_APP_NAME
-from flask_wtf import CSRFProtect
-from flask_wtf.csrf import CSRFError
-
-csrf = CSRFProtect()
 
 def create_app(test_config=None):
     load_dotenv()
@@ -31,9 +26,11 @@ def create_app(test_config=None):
     app.config['SECRET_KEY'] = os.urandom(24)
     app.config['SESSION_COOKIE_SECURE'] = True     # Only send cookies thru HTTPS
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF attacks w SameSite
+
     if test_config:
         app.config.update(test_config)
-        IS_TESTING = app.config.get("TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
+    app.config['IS_TESTING'] = app.config.get("IS_TESTING", os.getenv("IS_TESTING", "false").lower() == "true")
+
 
     # Enable debug mode for development (auto-reload on code changes)
     app.debug = True
@@ -60,7 +57,6 @@ def create_app(test_config=None):
     db.init_app(app)
     bcrypt.init_app(app)
     if not IS_TESTING:
-        csrf.init_app(app)
         if FILE_LOCATION and BUCKET:
             try:
                 if _DEFAULT_APP_NAME not in firebase_admin._apps:
@@ -86,19 +82,19 @@ def create_app(test_config=None):
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
     
     # Redis Rate limiting
-    storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
-    init_limiter(app, storage_uri=storage_uri)
+    # storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
+    # init_limiter(app, storage_uri=storage_uri)
     return app
 
 app = create_app()
 
-@app.errorhandler(CSRFError)
-def handle_csrf_error(e):
-    # HTML
-    if request.accept_mimetypes.accept_html:
-        flash('Security token mismatch. Please refresh the page and try again.', 'danger')
-        return redirect(url_for('main.login')), 400
-    return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
+@app.before_request
+def csrf_protect():
+    if request.method in ["GET", "OPTIONS"]:
+        return
+    csrf_token_from_request = request.form.get('csrf_token') or request.headers.get('X-CSRF-TOKEN')    
+    if not csrf_token_from_request or csrf_token_from_request != session.get('csrf_token'):
+        return jsonify({'success': False, 'error': 'CSRF token missing or invalid'}), 400
 
 @app.before_request
 def session_inactivity_check():
