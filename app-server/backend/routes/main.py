@@ -432,18 +432,16 @@ def delete_account():
         log_to_splunk("Delete Account", "Failed to delete account due to incorrect fields", username=session.get('user_id', 'Unknown'))
         return jsonify({'success': False, 'error': 'All correct fields required for account deletion'}), 400
     
-    # if confirm_deletion != 'DELETE':
-        return jsonify({'success': False, 'error': 'Please type DELETE to confirm account deletion'}), 400
-    
     # Delete the account
     result = profile_manager.delete_account(session['user_id'], password)
     
     if result['success']:
-        log_to_splunk("Delete Account", "Account deleted successfully", username=session.get['user_id', 'Unknown'])
-
-        # Clear the session after successful deletion
+        log_to_splunk("Delete Account", "Account deleted successfully", username=session.get('user_id', 'Unknown'))
         session.clear()
-        return jsonify({'success': True, 'message': 'Account deleted successfully'})
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'redirect': url_for('main.login')})
+        flash('Account deleted successfully', 'success')
+        # return jsonify({'success': True, 'message': ''})
     else:
         log_to_splunk("Delete Account", "Failed to delete account", username=session.get('user_id', 'Unknown'))
         return jsonify({'success': False, 'error': result['error']}), 400
