@@ -12,7 +12,8 @@ from models.enums import ReportTarget, LogActionTypes
 from werkzeug.utils import secure_filename
 import uuid, re, magic, os
 from firebase_admin import storage
-from backend.limiter import limiter
+# from backend.limiter import limiter
+from backend.limiter import rate_limit_required
 from flask_wtf.csrf import generate_csrf
 
 main_bp = Blueprint('main', __name__)
@@ -103,7 +104,8 @@ def get_csrf_token():
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit('7 per minute')
+# @limiter.limit('7 per minute')
+@rate_limit_required
 def login():
     log_to_splunk("Login", "Visited login page")
     if request.method == 'POST':
@@ -527,7 +529,8 @@ def reset_password():
     return jsonify(result)
 
 @main_bp.route('/forgot-password', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def forgot_password():
     data = request.get_json()
     email = data.get('email', '')
@@ -607,7 +610,8 @@ def change_password():
 ### OTP helpers ###
 ######################
 @main_bp.route('/verify-login-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_login_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -641,7 +645,8 @@ def verify_login_otp():
     return jsonify(result)
 
 @main_bp.route('/verify-register-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_register_otp():
     data = request.get_json()
     email = data.get('email')
@@ -692,7 +697,8 @@ def verify_register_otp():
         return jsonify({'success': False, 'error': 'Login failed after OTP verification.'})
     
 @main_bp.route('/verify-reset-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def verify_reset_otp():
     data = request.get_json()
     email = data.get('email', '')
@@ -751,7 +757,8 @@ def update_otp_setting():
         return jsonify({'success': False, 'error': 'Failed to update OTP setting'}), 500
 
 @main_bp.route('/resend-login-otp', methods=['POST'])
-@limiter.limit('5 per minute')
+# @limiter.limit('5 per minute')
+@rate_limit_required
 def resend_login_otp():
     data = request.get_json()
     email = data.get('email', '')

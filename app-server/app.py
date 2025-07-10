@@ -11,7 +11,7 @@ from backend.routes.delete_comment import delete_comment_bp
 from backend.routes.load_comments import load_comment_bp
 from backend.routes.admin import admin_bp
 from backend.routes.moderation import moderation_bp
-from backend.limiter import init_limiter
+# from backend.limiter import init_limiter
 from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv 
@@ -84,7 +84,7 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(moderation_bp, url_prefix='/moderation')
     storage_uri = "redis://10.20.0.5:6379" if IS_TESTING else None
-    init_limiter(app, storage_uri=storage_uri)
+    # init_limiter(app, storage_uri=storage_uri)
     return app
 
 app = create_app()

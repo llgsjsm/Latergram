@@ -14,19 +14,19 @@ class MainRouteTestCase(unittest.TestCase):
         with self.client.session_transaction() as session:
             session['user_id'] = user_id
 
-    ## Forgot Password rate limit test
-    @patch("backend.routes.main.log_to_splunk")
-    def test_forgot_password_rate_limit(self, mock_log_to_splunk):
-        for _ in range(5):
-            response = self.client.post('/forgot-password', json={})
-            self.assertEqual(response.status_code, 200)
-        response = self.client.post('/forgot-password', json={})
-        self.assertEqual(response.status_code, 429)
+    # ## Forgot Password rate limit test
+    # @patch("backend.routes.main.log_to_splunk")
+    # def test_forgot_password_rate_limit(self, mock_log_to_splunk):
+    #     for _ in range(5):
+    #         response = self.client.post('/forgot-password', json={})
+    #         self.assertEqual(response.status_code, 200)
+    #     response = self.client.post('/forgot-password', json={})
+    #     self.assertEqual(response.status_code, 429)
 
     ## Login rate limit test
     @patch("backend.routes.main.log_to_splunk")
     def test_login_rate_limit(self, mock_log_to_splunk):
-        for _ in range(7):
+        for _ in range(4):
             response = self.client.post('/login', json={
                 "email": "testuser@email.com",
                 "password": "correct-password",

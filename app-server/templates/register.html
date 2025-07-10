@@ -107,9 +107,11 @@
                 showMessage('OTP sent to your email', 'success', 'otp-container');
             } else {
                 showMessage(data.error || (data.errors && data.errors.join('<br>')) || 'Registration failed', 'error', 'register-message');
+                grecaptcha.reset(); // Reset reCAPTCHA on failure
             }
         })
         .catch(() => showMessage('An error occurred', 'error', 'register-message'));
+        grecaptcha.reset(); // Reset reCAPTCHA after submission
     });
 
     // Show message function
