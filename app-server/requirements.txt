@@ -1,7 +1,7 @@
 Flask-SQLAlchemy
 Flask-Bcrypt
 Flask-Limiter
-Werkzeug>=2.2,<3.0
+Werkzeug>=2.2,<4.0
 Flask>=2.2.0,<3.0
 requests==2.31.0
 pytest
