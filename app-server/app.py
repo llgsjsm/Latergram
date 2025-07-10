@@ -90,7 +90,6 @@ def create_app(test_config=None):
 app = create_app()
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    # HTML
     if request.accept_mimetypes.accept_html:
         flash('Security token mismatch. Please refresh the page and try again.', 'danger')
         return redirect(url_for('main.login')), 400
