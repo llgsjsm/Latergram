@@ -9,7 +9,7 @@ flake8
 mysql-connector-python==8.0.33
 PyMySQL==1.0.3
 python-dotenv==1.0.0
-firebase-admin==6.8.0
+firebase-admin==7.1.0
 Flask-Mail==0.9.1
 redis>=3.0
 python-magic==0.4.27
